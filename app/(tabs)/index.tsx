@@ -1,11 +1,156 @@
-// template
-import { StyleSheet, Text, View } from "react-native";
+import React from 'react';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Colors from '@/constants/colors';
+import { useData } from '@/contexts/DataContext';
+import { NeoPopCard } from '@/components/NeoPopCard';
+import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
+import { ShimmerText } from '@/components/ShimmerText';
+import { formatCurrency } from '@/lib/formatters';
 
-export default function TabOneScreen() {
+function PersonItem({ person, balance }: { person: any; balance: number }) {
+  const status = balance > 0 ? 'YOU LENT' : balance < 0 ? 'YOU OWE' : 'SETTLED';
+  const statusColor = balance > 0 ? Colors.positive : balance < 0 ? Colors.negative : Colors.settled;
+  const avatarColor = balance > 0 ? Colors.cardGreen : balance < 0 ? Colors.cardRed : Colors.surfaceLight;
+
+  return (
+    <Pressable
+      onPress={() => {
+        if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push({ pathname: '/person/[id]', params: { id: person.id } });
+      }}
+      style={styles.personPressable}
+    >
+      <NeoPopCard color={Colors.surface} depth={2}>
+        <View style={styles.personRow}>
+          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarText}>{person.name.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.personInfo}>
+            <Text style={styles.personName}>{person.name}</Text>
+            <Text style={[styles.statusLabel, { color: statusColor }]}>{status}</Text>
+          </View>
+          <View style={styles.personBalanceArea}>
+            <Text style={[styles.personBalance, { color: statusColor }]}>
+              {balance === 0 ? formatCurrency(0) : formatCurrency(Math.abs(balance))}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </View>
+        </View>
+      </NeoPopCard>
+    </Pressable>
+  );
+}
+
+export default function DashboardScreen() {
+  const insets = useSafeAreaInsets();
+  const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed } = useData();
+
+  const webTopInset = Platform.OS === 'web' ? 67 : 0;
+  const topPad = Math.max(insets.top, webTopInset);
+
+  const sortedPeople = [...people].sort((a, b) => {
+    return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
+  });
+
+  const balanceColor = globalBalance > 0 ? Colors.positive : globalBalance < 0 ? Colors.negative : Colors.settled;
+  const contextMessage = globalBalance > 0
+    ? `You will receive ${formatCurrency(globalBalance)}`
+    : globalBalance < 0
+    ? `You are in debt. Pay ${formatCurrency(Math.abs(globalBalance))} to be debt-free`
+    : 'You are free of debt!';
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: topPad }]}>
+        <ActivityIndicator color={Colors.primary} size="large" style={{ marginTop: 100 }} />
+      </View>
+    );
+  }
+
+  const renderHeader = () => (
+    <View>
+      <View style={[styles.header, { paddingTop: topPad + 16 }]}>
+        <Text style={styles.appTitle}>DebtFree</Text>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push('/(tabs)/cards')}
+            hitSlop={12}
+          >
+            <Ionicons name="card-outline" size={24} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.balanceSection}>
+        <Text style={styles.balanceLabel}>NET BALANCE</Text>
+        <ShimmerText
+          text={formatCurrency(Math.abs(globalBalance))}
+          style={[styles.balanceAmount, { color: balanceColor }]}
+        />
+        <Text style={[styles.contextMessage, { color: balanceColor }]}>{contextMessage}</Text>
+      </View>
+
+      <View style={styles.summaryRow}>
+        <View style={{ flex: 1 }}>
+          <NeoPopCard color={Colors.cardGreen} depth={2}>
+            <Text style={styles.summaryLabel}>YOU LENT</Text>
+            <Text style={[styles.summaryAmount, { color: Colors.positive }]}>{formatCurrency(totalLent)}</Text>
+          </NeoPopCard>
+        </View>
+        <View style={{ width: 12 }} />
+        <View style={{ flex: 1 }}>
+          <NeoPopCard color={Colors.cardRed} depth={2}>
+            <Text style={styles.summaryLabel}>YOU BORROWED</Text>
+            <Text style={[styles.summaryAmount, { color: Colors.negative }]}>{formatCurrency(totalBorrowed)}</Text>
+          </NeoPopCard>
+        </View>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>YOUR CIRCLE</Text>
+        <Text style={styles.sectionCount}>{people.length}</Text>
+      </View>
+    </View>
+  );
+
+  const renderEmpty = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="people-outline" size={48} color={Colors.textMuted} />
+      <Text style={styles.emptyText}>Your circle is empty</Text>
+      <Text style={styles.emptySubtext}>Add someone to start tracking</Text>
+      <View style={{ marginTop: 20, width: '70%' }}>
+        <NeoPopTiltedButton onPress={() => router.push('/add-person')} showShimmer>
+          <Text style={styles.ctaText}>ADD SOMEONE</Text>
+        </NeoPopTiltedButton>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Your Replit app will be here</Text>
-      <Text style={styles.text}>Please wait until we finish building it</Text>
+      <FlatList
+        data={sortedPeople}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <PersonItem person={item} balance={getPersonBalance(item.id)} />
+        )}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={[styles.listContent, { paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }]}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {people.length > 0 && (
+        <View style={[styles.fab, { bottom: Platform.OS === 'web' ? 84 + 34 + 16 : 100 }]}>
+          <NeoPopTiltedButton onPress={() => router.push('/add-person')} showShimmer>
+            <Ionicons name="add" size={24} color="#000" />
+          </NeoPopTiltedButton>
+        </View>
+      )}
     </View>
   );
 }
@@ -13,17 +158,154 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: Colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  appTitle: {
+    fontSize: 28,
+    fontFamily: 'Inter_700Bold',
+    color: Colors.white,
+    letterSpacing: -0.5,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  balanceSection: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
+  balanceLabel: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textMuted,
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  balanceAmount: {
+    fontSize: 40,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -1,
+  },
+  contextMessage: {
+    fontSize: 13,
+    fontFamily: 'Inter_500Medium',
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  summaryLabel: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  summaryAmount: {
+    fontSize: 20,
+    fontFamily: 'Inter_700Bold',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textMuted,
+    letterSpacing: 2,
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textMuted,
+  },
+  listContent: {
+    paddingBottom: 100,
+  },
+  personPressable: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  personRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
+    color: Colors.white,
+  },
+  personInfo: {
+    flex: 1,
+  },
+  personName: {
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.white,
+    marginBottom: 2,
+  },
+  statusLabel: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 1,
+  },
+  personBalanceArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  text: {
+  personBalance: {
     fontSize: 16,
-    textAlign: "center",
-    paddingHorizontal: 20,
+    fontFamily: 'Inter_700Bold',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textSecondary,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+  ctaText: {
+    fontSize: 14,
+    fontFamily: 'Inter_700Bold',
+    color: '#000',
+    letterSpacing: 1,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
   },
 });
