@@ -20,9 +20,11 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     html, body, #root {
       overflow-x: hidden !important;
       max-width: 100vw !important;
+      background-color: #0D0D0D !important;
     }
-    * {
-      -webkit-overflow-scrolling: touch;
+    #root > div > div > div > div {
+      box-shadow: none !important;
+      border: none !important;
     }
   `;
   document.head.appendChild(style);
@@ -48,7 +50,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <AuthGate>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0D0D0D' } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0D0D0D' }, cardStyle: { backgroundColor: '#0D0D0D' } }}>
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="(tabs)" />
