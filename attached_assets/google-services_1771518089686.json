@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "629935243184",
+    "project_id": "debt-free-af02a",
+    "storage_bucket": "debt-free-af02a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:629935243184:android:b91bcfb493c3071e7a2075",
+        "android_client_info": {
+          "package_name": "com.debtfree"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "629935243184-g1pcc5h3cm7fu8ncuskjt6clv69fgrud.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.debtfree",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "629935243184-vflmb8gi97r6e7fcsmdk1dg6i4ib9e2a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBftNHay-UIkV9GyQJ2ez6fgvS8MMAXrSU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "629935243184-vflmb8gi97r6e7fcsmdk1dg6i4ib9e2a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

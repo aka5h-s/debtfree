@@ -68,3 +68,14 @@ task = "shell.exec"
 args = "npm run expo:dev"
 waitForPort = 8081
 ensurePreviewReachable = "/status"
+
+[userenv]
+
+[userenv.shared]
+EXPO_PUBLIC_FIREBASE_API_KEY = "AIzaSyBftNHay-UIkV9GyQJ2ez6fgvS8MMAXrSU"
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN = "debt-free-af02a.firebaseapp.com"
+EXPO_PUBLIC_FIREBASE_PROJECT_ID = "debt-free-af02a"
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET = "debt-free-af02a.firebasestorage.app"
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "629935243184"
+EXPO_PUBLIC_FIREBASE_APP_ID = "1:629935243184:android:b91bcfb493c3071e7a2075"
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = "629935243184-vflmb8gi97r6e7fcsmdk1dg6i4ib9e2a.apps.googleusercontent.com"
