@@ -71,20 +71,17 @@ export function NeoPopTiltedButton({
       style={{ opacity: disabled ? 0.4 : 1 }}
     >
       <View style={styles.wrapper}>
-        <Animated.View style={[styles.shadow, { backgroundColor: Colors.shadow }]} />
-        <View style={styles.main}>
-          <Animated.View style={[styles.button, { backgroundColor: color }, buttonStyle]}>
-            <View style={styles.content}>
-              {children}
-            </View>
-            {showShimmer && (
-              <Animated.View style={[styles.shimmer, shimmerStyle]}>
-                <View style={[styles.shimmerInner, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }]} />
-              </Animated.View>
-            )}
-          </Animated.View>
-          <Animated.View style={[styles.plunk, { backgroundColor: plunkColor }, plunkStyle]} />
-        </View>
+        <Animated.View style={[styles.button, { backgroundColor: color }, buttonStyle]}>
+          <View style={styles.content}>
+            {children}
+          </View>
+          {showShimmer && (
+            <Animated.View style={[styles.shimmer, shimmerStyle]}>
+              <View style={[styles.shimmerInner, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }]} />
+            </Animated.View>
+          )}
+        </Animated.View>
+        <Animated.View style={[styles.plunk, { backgroundColor: plunkColor }, plunkStyle]} />
       </View>
     </Pressable>
   );
@@ -93,17 +90,6 @@ export function NeoPopTiltedButton({
 const styles = StyleSheet.create({
   wrapper: {
     overflow: 'hidden',
-  },
-  shadow: {
-    position: 'absolute',
-    bottom: -2,
-    left: 4,
-    right: 4,
-    height: 6,
-    borderRadius: 2,
-  },
-  main: {
-    width: '100%',
   },
   button: {
     overflow: 'hidden',
