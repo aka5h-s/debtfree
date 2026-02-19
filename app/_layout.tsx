@@ -20,26 +20,11 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     html, body, #root {
       overflow-x: hidden !important;
       max-width: 100vw !important;
-      background-color: #0D0D0D !important;
     }
-    #root div {
-      box-shadow: none !important;
+    * {
+      -webkit-overflow-scrolling: touch;
     }
   `;
-
-  const fixNavBg = () => {
-    document.querySelectorAll('div').forEach(el => {
-      const bg = window.getComputedStyle(el).backgroundColor;
-      if (bg === 'rgb(242, 242, 242)') {
-        el.style.backgroundColor = '#0D0D0D';
-      }
-    });
-  };
-  const observer = new MutationObserver(fixNavBg);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  setTimeout(fixNavBg, 100);
-  setTimeout(fixNavBg, 500);
-  setTimeout(fixNavBg, 1500);
   document.head.appendChild(style);
 }
 
@@ -63,7 +48,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <AuthGate>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0D0D0D' }, cardStyle: { backgroundColor: '#0D0D0D' }, cardShadowEnabled: false, cardOverlayEnabled: false }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0D0D0D' } }}>
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="(tabs)" />
