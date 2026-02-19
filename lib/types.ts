@@ -27,7 +27,7 @@ export interface TransactionHistory {
   changedAt: number;
 }
 
-export type CardType = 'VISA' | 'MASTERCARD' | 'RUPAY';
+export type CardType = 'VISA' | 'MASTERCARD' | 'RUPAY' | 'AMEX';
 
 export type CardColor = '#0D0D0D' | '#1A237E' | '#4A148C' | '#1B5E20' | '#E65100' | '#B71C1C';
 

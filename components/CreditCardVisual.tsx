@@ -13,11 +13,13 @@ interface CreditCardVisualProps {
   onDelete?: () => void;
 }
 
-function getCardTypeIcon(type: CardType) {
+function getCardTypeIcon(type: CardType): React.ComponentProps<typeof MaterialCommunityIcons>['name'] {
   switch (type) {
     case 'VISA': return 'credit-card';
     case 'MASTERCARD': return 'credit-card-multiple';
     case 'RUPAY': return 'credit-card-chip';
+    case 'AMEX': return 'credit-card-fast';
+    default: return 'credit-card-outline';
   }
 }
 
@@ -68,16 +70,15 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
             <Text style={styles.infoValue}>{card.cvv}</Text>
           </Pressable>
         </View>
-        <View style={[styles.infoBlock, { flex: 1, alignItems: 'flex-end' as const }]}>
+        <View style={styles.infoBlock}>
           <Text style={styles.infoLabel}>CARDHOLDER</Text>
           <Pressable onPress={() => copyToClipboard(card.nameOnCard, 'Cardholder name')}>
             <Text style={styles.infoValue} numberOfLines={1}>{card.nameOnCard.toUpperCase()}</Text>
           </Pressable>
         </View>
-      </View>
-
-      <View style={styles.typeTag}>
-        <Text style={styles.typeText}>{card.cardType}</Text>
+        <View style={styles.typeBlock}>
+          <Text style={styles.typeText}>{card.cardType}</Text>
+        </View>
       </View>
     </View>
   );
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   },
   bottomRow: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 20,
     alignItems: 'flex-end',
   },
   infoBlock: {},
@@ -147,15 +148,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Outfit_600SemiBold',
   },
-  typeTag: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
+  typeBlock: {
+    flex: 1,
+    alignItems: 'flex-end' as const,
+    justifyContent: 'flex-end' as const,
   },
   typeText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 10,
-    fontFamily: 'Outfit_600SemiBold',
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontFamily: 'Outfit_700Bold',
     letterSpacing: 2,
   },
 });
