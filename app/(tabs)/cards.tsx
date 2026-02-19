@@ -1,39 +1,39 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, Text, View, Pressable, TextInput, Alert, Platform, Dimensions, ScrollView } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, Platform, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, interpolate, Extrapolation } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CreditCardVisual } from '@/components/CreditCardVisual';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - 64;
-const CARD_GAP = 12;
-const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
+const CARD_WIDTH = SCREEN_WIDTH * 0.82;
+const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
 
-function AnimatedCard({ card, index, scrollX, onCopy, onEdit, onDelete }: {
+function AnimatedCard({ card, index, scrollX, totalCards, onCopy, onEdit, onDelete }: {
   card: any;
   index: number;
   scrollX: Animated.SharedValue<number>;
+  totalCards: number;
   onCopy: (label: string) => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const animatedStyle = useAnimatedStyle(() => {
     const inputRange = [
-      (index - 1) * SNAP_INTERVAL,
-      index * SNAP_INTERVAL,
-      (index + 1) * SNAP_INTERVAL,
+      (index - 1) * CARD_WIDTH,
+      index * CARD_WIDTH,
+      (index + 1) * CARD_WIDTH,
     ];
 
     const scale = interpolate(
       scrollX.value,
       inputRange,
-      [0.88, 1, 0.88],
+      [0.9, 1, 0.9],
       Extrapolation.CLAMP
     );
 
@@ -44,19 +44,8 @@ function AnimatedCard({ card, index, scrollX, onCopy, onEdit, onDelete }: {
       Extrapolation.CLAMP
     );
 
-    const rotateY = interpolate(
-      scrollX.value,
-      inputRange,
-      [8, 0, -8],
-      Extrapolation.CLAMP
-    );
-
     return {
-      transform: [
-        { scale },
-        { perspective: 1000 },
-        { rotateY: `${rotateY}deg` },
-      ],
+      transform: [{ scale }],
       opacity,
     };
   });
@@ -110,16 +99,25 @@ export default function CardsScreen() {
     router.push({ pathname: '/edit-card', params: { cardId } });
   };
 
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollX.value = event.contentOffset.x;
-    },
-  });
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollX.value = e.nativeEvent.contentOffset.x;
+    const idx = Math.round(e.nativeEvent.contentOffset.x / CARD_WIDTH);
+    if (idx !== activeIndex && idx >= 0 && idx < filteredCards.length) {
+      setActiveIndex(idx);
+    }
+  }, [activeIndex, filteredCards.length]);
 
-  const handleMomentumEnd = (e: any) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / SNAP_INTERVAL);
-    setActiveIndex(Math.max(0, Math.min(idx, filteredCards.length - 1)));
-  };
+  const renderCard = useCallback(({ item, index }: { item: any; index: number }) => (
+    <AnimatedCard
+      card={item}
+      index={index}
+      scrollX={scrollX}
+      totalCards={filteredCards.length}
+      onCopy={handleCopy}
+      onEdit={() => handleEdit(item.id)}
+      onDelete={() => handleDelete(item.id, item.cardName)}
+    />
+  ), [filteredCards.length]);
 
   return (
     <View style={styles.container}>
@@ -158,29 +156,25 @@ export default function CardsScreen() {
           )}
         </View>
       ) : (
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }}>
-          <Animated.ScrollView
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={filteredCards}
+            keyExtractor={(item) => item.id}
+            renderItem={renderCard}
             horizontal
             showsHorizontalScrollIndicator={false}
-            snapToInterval={SNAP_INTERVAL}
+            snapToInterval={CARD_WIDTH}
+            snapToAlignment="start"
             decelerationRate="fast"
-            contentContainerStyle={styles.carousel}
-            onScroll={scrollHandler}
+            contentContainerStyle={{ paddingHorizontal: SIDE_PADDING }}
+            onScroll={onScroll}
             scrollEventThrottle={16}
-            onMomentumScrollEnd={handleMomentumEnd}
-          >
-            {filteredCards.map((card, index) => (
-              <AnimatedCard
-                key={card.id}
-                card={card}
-                index={index}
-                scrollX={scrollX}
-                onCopy={handleCopy}
-                onEdit={() => handleEdit(card.id)}
-                onDelete={() => handleDelete(card.id, card.cardName)}
-              />
-            ))}
-          </Animated.ScrollView>
+            getItemLayout={(_, index) => ({
+              length: CARD_WIDTH,
+              offset: CARD_WIDTH * index,
+              index,
+            })}
+          />
 
           <View style={styles.dots}>
             {filteredCards.map((_, i) => (
@@ -199,7 +193,7 @@ export default function CardsScreen() {
             <Ionicons name="hand-left-outline" size={14} color={Colors.textMuted} />
             <Text style={styles.hintText}>Swipe to browse cards. Tap details to copy.</Text>
           </View>
-        </ScrollView>
+        </View>
       )}
 
       {filteredCards.length > 0 && (
@@ -235,7 +229,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'Outfit_700Bold',
     color: Colors.primary,
-    backgroundColor: 'rgba(255,235,52,0.15)',
+    backgroundColor: 'rgba(229,254,64,0.15)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -257,11 +251,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontFamily: 'Outfit_400Regular',
     fontSize: 15,
-  },
-  carousel: {
-    paddingHorizontal: 32,
-    gap: CARD_GAP,
-    alignItems: 'center',
   },
   dots: {
     flexDirection: 'row',
