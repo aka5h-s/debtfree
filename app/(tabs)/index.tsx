@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     fontSize: 28,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     letterSpacing: -0.5,
   },
@@ -184,19 +184,19 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 2,
     marginBottom: 8,
   },
   balanceAmount: {
     fontSize: 40,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'DMSerifDisplay_400Regular',
     letterSpacing: -1,
   },
   contextMessage: {
     fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Outfit_500Medium',
     marginTop: 8,
     opacity: 0.8,
   },
@@ -207,14 +207,14 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
   },
   summaryAmount: {
     fontSize: 20,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'DMSerifDisplay_400Regular',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -225,13 +225,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   sectionCount: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
   },
   listContent: {
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
   },
   personInfo: {
@@ -263,13 +263,13 @@ const styles = StyleSheet.create({
   },
   personName: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.white,
     marginBottom: 2,
   },
   statusLabel: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     letterSpacing: 1,
   },
   personBalanceArea: {
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   personBalance: {
     fontSize: 16,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
   },
   emptyState: {
     alignItems: 'center',
@@ -288,19 +288,19 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textSecondary,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
     marginTop: 4,
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: '#000',
     letterSpacing: 1,
   },

@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     marginBottom: 16,
   },
   label: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     color: Colors.white,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     fontSize: 16,
   },
   typeRow: {
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1,
   },
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.negative,
     marginTop: 12,
   },
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: '#000',
     letterSpacing: 1,
   },

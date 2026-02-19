@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   cardNameLabel: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: 11,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     letterSpacing: 1,
     marginTop: 4,
   },
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   cardNumber: {
     color: '#FFFFFF',
     fontSize: 22,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     letterSpacing: 3,
   },
   bottomRow: {
@@ -138,14 +138,14 @@ const styles = StyleSheet.create({
   infoLabel: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: 9,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     letterSpacing: 1,
     marginBottom: 2,
   },
   infoValue: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
   },
   typeTag: {
     position: 'absolute',
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   typeText: {
     color: 'rgba(255,255,255,0.4)',
     fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     letterSpacing: 2,
   },
 });

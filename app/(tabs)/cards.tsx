@@ -227,13 +227,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   cardCount: {
     fontSize: 11,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.primary,
     backgroundColor: 'rgba(255,235,52,0.15)',
     paddingHorizontal: 8,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     fontSize: 15,
   },
   carousel: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   copiedText: {
     fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Outfit_500Medium',
     color: Colors.positive,
   },
   hint: {
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
   },
   emptyState: {
@@ -313,20 +313,20 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Outfit_500Medium',
     color: Colors.textMuted,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
     marginTop: 4,
     opacity: 0.7,
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: '#000',
     letterSpacing: 1,
   },

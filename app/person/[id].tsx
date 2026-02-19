@@ -213,30 +213,30 @@ const styles = StyleSheet.create({
   },
   largeAvatarText: {
     fontSize: 32,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
   },
   profileName: {
     fontSize: 24,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     marginBottom: 4,
   },
   profilePhone: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textSecondary,
     marginBottom: 8,
   },
   profileStatus: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     letterSpacing: 2,
     marginBottom: 4,
   },
   profileBalance: {
     fontSize: 36,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
   },
   addTxSection: {
     paddingHorizontal: 40,
@@ -252,13 +252,13 @@ const styles = StyleSheet.create({
   },
   txSectionTitle: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   txCount: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
   },
   txContainer: {
@@ -284,22 +284,22 @@ const styles = StyleSheet.create({
   },
   txLabel: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     letterSpacing: 1,
   },
   txAmount: {
     fontSize: 18,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
   },
   txNote: {
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textSecondary,
     marginBottom: 4,
   },
   txDate: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
     marginBottom: 8,
   },
@@ -316,13 +316,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Outfit_500Medium',
     color: Colors.textMuted,
     marginTop: 12,
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: '#000',
     letterSpacing: 1,
   },

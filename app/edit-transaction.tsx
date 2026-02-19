@@ -142,19 +142,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
   },
   personLabel: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textSecondary,
     marginBottom: 20,
     marginTop: 4,
   },
   label: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1,
   },
@@ -202,14 +202,14 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: 24,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textSecondary,
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     fontSize: 28,
     paddingVertical: 14,
   },
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     color: Colors.white,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     fontSize: 16,
   },
   inputError: {
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.negative,
     marginTop: 6,
   },
@@ -247,13 +247,13 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1.5,
   },
   dateValue: {
     fontSize: 14,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Outfit_500Medium',
     color: Colors.textSecondary,
   },
   actions: {
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: '#000',
     letterSpacing: 1,
   },

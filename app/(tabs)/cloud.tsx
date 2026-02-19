@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     marginBottom: 20,
   },
@@ -123,18 +123,18 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 28,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.primary,
   },
   userName: {
     fontSize: 20,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
   },
   statsCard: {
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 16,
@@ -158,13 +158,13 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 24,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
   },
   statDivider: {
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   syncText: {
     fontSize: 12,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Outfit_500Medium',
     color: Colors.positive,
   },
   signOutBtn: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.negative,
     letterSpacing: 1,
   },

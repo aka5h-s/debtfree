@@ -183,14 +183,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 235, 52, 0.2)',
   },
   appName: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
+    fontSize: 36,
+    fontFamily: 'DMSerifDisplay_400Regular',
     color: Colors.primary,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
   },
   formSection: {
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 20,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     marginBottom: 20,
   },
@@ -218,13 +218,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Outfit_500Medium',
     color: Colors.negative,
     flex: 1,
   },
   label: {
     fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     color: Colors.white,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     fontSize: 16,
   },
   passwordWrap: {
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: '#000',
     letterSpacing: 1,
   },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
     marginHorizontal: 12,
   },
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   googleText: {
     fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.white,
     letterSpacing: 0.5,
   },
@@ -297,11 +297,11 @@ const styles = StyleSheet.create({
   },
   switchText: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
   },
   switchLink: {
     color: Colors.primary,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
   },
 });

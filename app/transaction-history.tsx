@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
     color: Colors.white,
     marginBottom: 24,
   },
@@ -116,13 +116,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     color: Colors.textSecondary,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
     marginTop: 4,
   },
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   },
   changeDate: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textMuted,
     marginBottom: 8,
   },
@@ -169,17 +169,17 @@ const styles = StyleSheet.create({
   },
   changeDirection: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Outfit_600SemiBold',
     letterSpacing: 1,
     marginBottom: 4,
   },
   changeAmount: {
     fontSize: 20,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
   },
   changeNote: {
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Outfit_400Regular',
     color: Colors.textSecondary,
     marginTop: 6,
   },
