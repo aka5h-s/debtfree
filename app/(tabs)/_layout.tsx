@@ -14,6 +14,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
         <Label>Dashboard</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="cards">
+        <Icon sf={{ default: "creditcard", selected: "creditcard.fill" }} />
+        <Label>Cards</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="cloud">
         <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
         <Label>Profile</Label>
@@ -60,7 +64,10 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="cards"
         options={{
-          href: null,
+          title: "Cards",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="card" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
