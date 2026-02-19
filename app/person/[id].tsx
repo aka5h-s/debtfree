@@ -108,9 +108,14 @@ export default function PersonDetailScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
         </Pressable>
-        <Pressable onPress={handleDeletePerson} style={styles.backBtn}>
-          <Ionicons name="trash-outline" size={22} color={Colors.negative} />
-        </Pressable>
+        <View style={styles.topBarRight}>
+          <Pressable onPress={() => router.push({ pathname: '/edit-person', params: { personId: person.id } })} style={styles.backBtn}>
+            <Ionicons name="create-outline" size={22} color={Colors.textSecondary} />
+          </Pressable>
+          <Pressable onPress={handleDeletePerson} style={styles.backBtn}>
+            <Ionicons name="trash-outline" size={22} color={Colors.negative} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.profileSection}>
@@ -188,6 +193,10 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   profileSection: {
     alignItems: 'center',
