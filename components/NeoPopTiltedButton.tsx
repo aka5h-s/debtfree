@@ -18,15 +18,16 @@ export function NeoPopTiltedButton({
   showShimmer = true, disabled = false,
 }: NeoPopTiltedButtonProps) {
   const pressed = useSharedValue(0);
-  const shimmerX = useSharedValue(-1);
+  const shimmerOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (showShimmer) {
-      shimmerX.value = withRepeat(
+      shimmerOpacity.value = withRepeat(
         withSequence(
-          withTiming(-1, { duration: 0 }),
-          withTiming(2, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-          withTiming(2, { duration: 1500 }),
+          withTiming(0, { duration: 0 }),
+          withTiming(0.5, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 1400 }),
         ),
         -1,
         false
@@ -45,8 +46,7 @@ export function NeoPopTiltedButton({
   }));
 
   const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shimmerX.value * 200 }],
-    opacity: 0.3,
+    opacity: shimmerOpacity.value,
   }));
 
   const handlePressIn = () => {
@@ -79,7 +79,7 @@ export function NeoPopTiltedButton({
             </View>
             {showShimmer && (
               <Animated.View style={[styles.shimmer, shimmerStyle]}>
-                <View style={[styles.shimmerInner, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)' }]} />
+                <View style={[styles.shimmerInner, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }]} />
               </Animated.View>
             )}
           </Animated.View>
@@ -92,7 +92,7 @@ export function NeoPopTiltedButton({
 
 const styles = StyleSheet.create({
   wrapper: {
-    alignItems: 'center',
+    overflow: 'hidden',
   },
   shadow: {
     position: 'absolute',
@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
+    right: 0,
     bottom: 0,
-    width: 60,
   },
   shimmerInner: {
     flex: 1,

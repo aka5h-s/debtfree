@@ -77,6 +77,8 @@ export function NeoPopButton({ onPress, children, variant = 'primary', disabled 
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    overflow: 'hidden',
+    marginRight: 3,
   },
   button: {
     position: 'relative',

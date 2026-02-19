@@ -49,6 +49,8 @@ export function NeoPopCard({ children, color = Colors.card, depth = 3, borderCol
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    overflow: 'hidden',
+    marginRight: 3,
   },
   card: {
     position: 'relative',
