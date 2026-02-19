@@ -6,21 +6,18 @@ import {
   createUserWithEmailAndPassword,
   firebaseSignOut,
   signInWithCredential,
+  signInWithPopup,
   GoogleAuthProvider,
   type User,
 } from '@/lib/firebase';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
-
-WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   signInEmail: (email: string, password: string) => Promise<{ error?: string }>;
   signUpEmail: (email: string, password: string) => Promise<{ error?: string }>;
-  signInGoogle: () => void;
+  signInGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -30,11 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -42,14 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, []);
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      const credential = GoogleAuthProvider.credential(id_token);
-      signInWithCredential(auth, credential).catch(console.error);
-    }
-  }, [response]);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     try {
@@ -77,9 +61,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const signInGoogle = useCallback(() => {
-    promptAsync();
-  }, [promptAsync]);
+  const signInGoogle = useCallback(async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      return {};
+    } catch (e: any) {
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        return {};
+      }
+      return { error: e.message || 'Google sign-in failed' };
+    }
+  }, []);
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);

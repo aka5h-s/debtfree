@@ -56,6 +56,7 @@ if (Platform.OS === 'web') {
 const db = getFirestore(app);
 
 export { auth, db, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, firebaseSignOut, onAuthStateChanged };
+export { signInWithPopup } from 'firebase/auth';
 export type { User };
 
 function userDoc(userId: string) {

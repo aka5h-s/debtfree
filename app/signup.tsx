@@ -22,6 +22,15 @@ export default function SignupScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+    const result = await signInGoogle();
+    setGoogleLoading(false);
+    if (result.error) setError(result.error);
+  };
 
   const handleSignup = async () => {
     if (!email.trim() || !password.trim()) {
@@ -123,10 +132,16 @@ export default function SignupScreen() {
                 <View style={styles.dividerLine} />
               </View>
 
-              <NeoPopButton onPress={signInGoogle} variant="secondary">
+              <NeoPopButton onPress={handleGoogleSignIn} variant="secondary">
                 <View style={styles.googleBtn}>
-                  <Ionicons name="logo-google" size={20} color={Colors.white} />
-                  <Text style={styles.googleText}>CONTINUE WITH GOOGLE</Text>
+                  {googleLoading ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-google" size={20} color={Colors.white} />
+                      <Text style={styles.googleText}>CONTINUE WITH GOOGLE</Text>
+                    </>
+                  )}
                 </View>
               </NeoPopButton>
             </View>
