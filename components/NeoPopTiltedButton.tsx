@@ -36,13 +36,12 @@ export function NeoPopTiltedButton({
 
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [
-      { skewY: '-2deg' as any },
-      { translateY: pressed.value * 2 },
+      { translateY: pressed.value * 3 },
     ],
   }));
 
   const plunkStyle = useAnimatedStyle(() => ({
-    height: Math.max(0, 6 - pressed.value * 4),
+    height: Math.max(0, 5 - pressed.value * 4),
   }));
 
   const shimmerStyle = useAnimatedStyle(() => ({
@@ -74,7 +73,7 @@ export function NeoPopTiltedButton({
       <View style={styles.wrapper}>
         <Animated.View style={[styles.shadow, { backgroundColor: Colors.shadow }]} />
         <View style={styles.main}>
-          <Animated.View style={[styles.button, { backgroundColor: color, transform: [{ skewY: '-2deg' }] }, buttonStyle]}>
+          <Animated.View style={[styles.button, { backgroundColor: color }, buttonStyle]}>
             <View style={styles.content}>
               {children}
             </View>
@@ -84,7 +83,7 @@ export function NeoPopTiltedButton({
               </Animated.View>
             )}
           </Animated.View>
-          <Animated.View style={[styles.plunk, { backgroundColor: plunkColor, transform: [{ skewY: '-2deg' }] }, plunkStyle]} />
+          <Animated.View style={[styles.plunk, { backgroundColor: plunkColor }, plunkStyle]} />
         </View>
       </View>
     </Pressable>
@@ -100,9 +99,8 @@ const styles = StyleSheet.create({
     bottom: -2,
     left: 4,
     right: 4,
-    height: 8,
+    height: 6,
     borderRadius: 2,
-    transform: [{ skewY: '-2deg' }],
   },
   main: {
     width: '100%',
@@ -110,6 +108,7 @@ const styles = StyleSheet.create({
   button: {
     overflow: 'hidden',
     position: 'relative',
+    borderRadius: 4,
   },
   content: {
     paddingHorizontal: 28,
@@ -119,7 +118,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   plunk: {
-    height: 6,
+    height: 5,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
   },
   shimmer: {
     position: 'absolute',
