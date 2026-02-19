@@ -76,7 +76,6 @@ export default function AddTransactionScreen() {
             placeholder="0.00"
             placeholderTextColor={Colors.textMuted}
             keyboardType="decimal-pad"
-            autoFocus
           />
         </View>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}

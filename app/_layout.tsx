@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
@@ -12,6 +13,20 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 
 SplashScreen.preventAutoHideAsync();
+
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    html, body, #root {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+    }
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -38,13 +53,13 @@ function RootLayoutNav() {
         <Stack.Screen name="signup" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="person/[id]" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="add-person" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="edit-person" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="add-transaction" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="edit-transaction" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="add-card" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="edit-card" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="transaction-history" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="add-person" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
+        <Stack.Screen name="edit-person" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
+        <Stack.Screen name="add-transaction" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
+        <Stack.Screen name="edit-transaction" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
+        <Stack.Screen name="add-card" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
+        <Stack.Screen name="edit-card" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
+        <Stack.Screen name="transaction-history" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
       </Stack>
     </AuthGate>
   );
