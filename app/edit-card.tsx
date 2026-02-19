@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
@@ -14,6 +15,9 @@ const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY'];
 export default function EditCardScreen() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const { cards, updateCard } = useData();
+  const insets = useSafeAreaInsets();
+  const webTopInset = Platform.OS === 'web' ? 67 : 0;
+  const topPad = Math.max(insets.top, webTopInset);
 
   const card = cards.find(c => c.id === cardId);
 
@@ -57,8 +61,15 @@ export default function EditCardScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Edit Card</Text>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 12 }]} keyboardShouldPersistTaps="handled">
+        <View style={styles.topBar}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Edit Card</Text>
+          </View>
+          <Pressable onPress={() => router.back()} style={styles.closeBtn}>
+            <Ionicons name="close" size={24} color={Colors.white} />
+          </Pressable>
+        </View>
 
         <Text style={styles.label}>CARD NAME</Text>
         <TextInput
@@ -167,11 +178,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    overflow: 'hidden' as const,
   },
   scrollContent: {
-    padding: 24,
-    paddingTop: 16,
-    paddingBottom: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  topBar: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 4,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   title: {
     fontSize: 24,
