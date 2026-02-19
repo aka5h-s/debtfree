@@ -1,134 +1,140 @@
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
+import {
+  getAuth,
+  initializeAuth,
+  GoogleAuthProvider,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  type User,
+} from 'firebase/auth';
+// @ts-ignore - getReactNativePersistence exists at runtime in React Native
+import { getReactNativePersistence } from 'firebase/auth';
 import {
   getFirestore,
   collection,
   doc,
   setDoc,
+  getDoc,
   getDocs,
   deleteDoc,
+  query,
+  orderBy,
+  where,
   writeBatch,
-  Firestore,
 } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import type { Person, Transaction, TransactionHistory, CreditCard } from '@/lib/types';
-import * as Storage from '@/lib/storage';
 
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
+const firebaseConfig = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+};
 
-const COLLECTIONS = {
-  people: 'people',
-  transactions: 'transactions',
-  transactionHistory: 'transactionHistory',
-  cards: 'cards',
-} as const;
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-export interface FirebaseConfig {
-  apiKey: string;
-  authDomain: string;
-  projectId: string;
-  storageBucket: string;
-  messagingSenderId: string;
-  appId: string;
-}
-
-export function isFirebaseInitialized(): boolean {
-  return app !== null && db !== null;
-}
-
-export function initFirebase(config: FirebaseConfig): boolean {
+let auth: ReturnType<typeof getAuth>;
+if (Platform.OS === 'web') {
+  auth = getAuth(app);
+} else {
   try {
-    if (getApps().length > 0) {
-      app = getApps()[0];
-    } else {
-      app = initializeApp(config);
-    }
-    db = getFirestore(app);
-    return true;
-  } catch (error) {
-    console.error('Firebase init error:', error);
-    return false;
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch {
+    auth = getAuth(app);
   }
 }
 
-export function disconnectFirebase() {
-  app = null;
-  db = null;
+const db = getFirestore(app);
+
+export { auth, db, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, firebaseSignOut, onAuthStateChanged };
+export type { User };
+
+function userDoc(userId: string) {
+  return doc(db, 'users', userId);
 }
 
-function getDb(): Firestore {
-  if (!db) throw new Error('Firebase not initialized');
-  return db;
+function userCollection(userId: string, col: string) {
+  return collection(db, 'users', userId, col);
 }
 
-export async function uploadAllToCloud(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const firestore = getDb();
-    const [people, transactions, cards] = await Promise.all([
-      Storage.getPeople(),
-      Storage.getTransactions(),
-      Storage.getCards(),
-    ]);
+export async function savePerson(userId: string, person: Person): Promise<void> {
+  await setDoc(doc(db, 'users', userId, 'people', person.id), person);
+}
 
-    const batch = writeBatch(firestore);
+export async function getPeople(userId: string): Promise<Person[]> {
+  const snap = await getDocs(collection(db, 'users', userId, 'people'));
+  const items: Person[] = [];
+  snap.forEach(d => items.push(d.data() as Person));
+  return items.sort((a, b) => b.createdAt - a.createdAt);
+}
 
-    for (const person of people) {
-      batch.set(doc(firestore, COLLECTIONS.people, person.id), person);
-    }
+export async function deletePerson(userId: string, personId: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'people', personId));
+  const txSnap = await getDocs(
+    query(collection(db, 'users', userId, 'transactions'), where('personId', '==', personId))
+  );
+  const batch = writeBatch(db);
+  txSnap.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
 
-    for (const tx of transactions) {
-      batch.set(doc(firestore, COLLECTIONS.transactions, tx.id), tx);
-    }
+export async function saveTransaction(userId: string, tx: Transaction): Promise<void> {
+  await setDoc(doc(db, 'users', userId, 'transactions', tx.id), tx);
+}
 
-    for (const card of cards) {
-      batch.set(doc(firestore, COLLECTIONS.cards, card.id), card);
-    }
+export async function getTransactions(userId: string): Promise<Transaction[]> {
+  const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
+  const items: Transaction[] = [];
+  snap.forEach(d => items.push(d.data() as Transaction));
+  return items.sort((a, b) => b.date - a.date);
+}
 
-    const allHistory: TransactionHistory[] = [];
-    for (const tx of transactions) {
-      const history = await Storage.getHistoryForTransaction(tx.id);
-      allHistory.push(...history);
-    }
-    for (const h of allHistory) {
-      batch.set(doc(firestore, COLLECTIONS.transactionHistory, h.id), h);
-    }
+export async function deleteTransaction(userId: string, txId: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'transactions', txId));
+}
 
-    await batch.commit();
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Upload failed' };
+export async function addTransactionHistory(userId: string, entry: TransactionHistory): Promise<void> {
+  await setDoc(doc(db, 'users', userId, 'transactionHistory', entry.id), entry);
+}
+
+export async function getHistoryForTransaction(userId: string, txId: string): Promise<TransactionHistory[]> {
+  const snap = await getDocs(
+    query(collection(db, 'users', userId, 'transactionHistory'), where('transactionId', '==', txId))
+  );
+  const items: TransactionHistory[] = [];
+  snap.forEach(d => items.push(d.data() as TransactionHistory));
+  return items.sort((a, b) => b.changedAt - a.changedAt);
+}
+
+export async function saveCard(userId: string, card: CreditCard): Promise<void> {
+  await setDoc(doc(db, 'users', userId, 'cards', card.id), card);
+}
+
+export async function getCards(userId: string): Promise<CreditCard[]> {
+  const snap = await getDocs(collection(db, 'users', userId, 'cards'));
+  const items: CreditCard[] = [];
+  snap.forEach(d => items.push(d.data() as CreditCard));
+  return items.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function deleteCard(userId: string, cardId: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'cards', cardId));
+}
+
+export function calculatePersonBalance(txs: Transaction[]): number {
+  let balance = 0;
+  for (const tx of txs) {
+    if (tx.direction === 'YOU_LENT') balance += tx.amount;
+    else balance -= tx.amount;
   }
-}
-
-export async function downloadFromCloud(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const firestore = getDb();
-
-    const [peopleSnap, txSnap, cardsSnap, historySnap] = await Promise.all([
-      getDocs(collection(firestore, COLLECTIONS.people)),
-      getDocs(collection(firestore, COLLECTIONS.transactions)),
-      getDocs(collection(firestore, COLLECTIONS.cards)),
-      getDocs(collection(firestore, COLLECTIONS.transactionHistory)),
-    ]);
-
-    const people: Person[] = [];
-    peopleSnap.forEach(d => people.push(d.data() as Person));
-
-    const transactions: Transaction[] = [];
-    txSnap.forEach(d => transactions.push(d.data() as Transaction));
-
-    const cards: CreditCard[] = [];
-    cardsSnap.forEach(d => cards.push(d.data() as CreditCard));
-
-    const history: TransactionHistory[] = [];
-    historySnap.forEach(d => history.push(d.data() as TransactionHistory));
-
-    for (const p of people) await Storage.savePerson(p);
-    for (const t of transactions) await Storage.saveTransaction(t);
-    for (const c of cards) await Storage.saveCard(c);
-    for (const h of history) await Storage.addTransactionHistory(h);
-
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Download failed' };
-  }
+  return balance;
 }

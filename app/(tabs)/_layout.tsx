@@ -19,8 +19,8 @@ function NativeTabLayout() {
         <Label>Cards</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="cloud">
-        <Icon sf={{ default: "icloud", selected: "icloud.fill" }} />
-        <Label>Cloud</Label>
+        <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
+        <Label>Profile</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -73,9 +73,9 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="cloud"
         options={{
-          title: "Cloud",
+          title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cloud" size={size} color={color} />
+            <Ionicons name="person-circle" size={size} color={color} />
           ),
         }}
       />

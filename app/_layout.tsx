@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -8,23 +8,45 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from "@expo-google-fonts/inter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 
 SplashScreen.preventAutoHideAsync();
 
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const inAuth = segments[0] === 'login' || segments[0] === 'signup';
+    if (!user && !inAuth) {
+      router.replace('/login');
+    } else if (user && inAuth) {
+      router.replace('/');
+    }
+  }, [user, isLoading, segments]);
+
+  return <>{children}</>;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0D0D0D' } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="person/[id]" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="add-person" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.65], sheetGrabberVisible: true }} />
-      <Stack.Screen name="edit-person" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.65], sheetGrabberVisible: true }} />
-      <Stack.Screen name="add-transaction" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7], sheetGrabberVisible: true }} />
-      <Stack.Screen name="edit-transaction" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7], sheetGrabberVisible: true }} />
-      <Stack.Screen name="add-card" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.85], sheetGrabberVisible: true }} />
-      <Stack.Screen name="edit-card" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.85], sheetGrabberVisible: true }} />
-      <Stack.Screen name="transaction-history" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6], sheetGrabberVisible: true }} />
-    </Stack>
+    <AuthGate>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0D0D0D' } }}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="person/[id]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="add-person" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.65], sheetGrabberVisible: true }} />
+        <Stack.Screen name="edit-person" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.65], sheetGrabberVisible: true }} />
+        <Stack.Screen name="add-transaction" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7], sheetGrabberVisible: true }} />
+        <Stack.Screen name="edit-transaction" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7], sheetGrabberVisible: true }} />
+        <Stack.Screen name="add-card" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.85], sheetGrabberVisible: true }} />
+        <Stack.Screen name="edit-card" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.85], sheetGrabberVisible: true }} />
+        <Stack.Screen name="transaction-history" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6], sheetGrabberVisible: true }} />
+      </Stack>
+    </AuthGate>
   );
 }
 
@@ -49,10 +71,12 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
-            <DataProvider>
-              <StatusBar style="light" />
-              <RootLayoutNav />
-            </DataProvider>
+            <AuthProvider>
+              <DataProvider>
+                <StatusBar style="light" />
+                <RootLayoutNav />
+              </DataProvider>
+            </AuthProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
