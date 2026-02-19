@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, View, Platform } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -16,9 +16,9 @@ export function NeoPopButton({ onPress, children, variant = 'primary', disabled 
   const pressed = useSharedValue(0);
 
   const colors = {
-    primary: { bg: Colors.white, rightShadow: '#CCCCCC', bottomShadow: '#999999' },
-    secondary: { bg: Colors.surface, rightShadow: Colors.accentDark, bottomShadow: Colors.accentDarker },
-    danger: { bg: '#2E0A0A', rightShadow: '#661111', bottomShadow: '#441111' },
+    primary: { bg: Colors.white, border: '#CCCCCC' },
+    secondary: { bg: Colors.surface, border: Colors.borderGreen },
+    danger: { bg: '#2E0A0A', border: Colors.negative },
   };
 
   const c = colors[variant];
@@ -28,14 +28,6 @@ export function NeoPopButton({ onPress, children, variant = 'primary', disabled 
       { translateX: pressed.value * depth * 0.5 },
       { translateY: pressed.value * depth * 0.5 },
     ],
-  }));
-
-  const rightShadowStyle = useAnimatedStyle(() => ({
-    opacity: 1 - pressed.value * 0.8,
-  }));
-
-  const bottomShadowStyle = useAnimatedStyle(() => ({
-    opacity: 1 - pressed.value * 0.8,
   }));
 
   const handlePressIn = () => {
@@ -58,13 +50,17 @@ export function NeoPopButton({ onPress, children, variant = 'primary', disabled 
       style={{ opacity: disabled ? 0.4 : 1 }}
     >
       <View style={styles.container}>
-        <Animated.View style={[styles.rightShadow, { backgroundColor: c.rightShadow, width: depth }, rightShadowStyle]} />
-        <Animated.View style={[styles.bottomShadow, { backgroundColor: c.bottomShadow, height: depth }, bottomShadowStyle]} />
         <Animated.View style={[
           styles.button,
-          { backgroundColor: c.bg },
-          variant === 'secondary' && { borderWidth: 0.5, borderColor: Colors.borderGreen },
-          variant === 'danger' && { borderWidth: 0.5, borderColor: Colors.negative },
+          {
+            backgroundColor: c.bg,
+            borderWidth: 0.5,
+            borderColor: c.border,
+            borderRightWidth: depth,
+            borderBottomWidth: depth,
+            borderRightColor: c.border,
+            borderBottomColor: c.border,
+          },
           animatedStyle,
         ]}>
           {children}
@@ -76,26 +72,9 @@ export function NeoPopButton({ onPress, children, variant = 'primary', disabled 
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
     overflow: 'hidden',
-    marginRight: 3,
   },
   button: {
-    position: 'relative',
     zIndex: 2,
-  },
-  rightShadow: {
-    position: 'absolute',
-    right: -3,
-    top: 3,
-    bottom: 0,
-    zIndex: 1,
-  },
-  bottomShadow: {
-    position: 'absolute',
-    left: 3,
-    bottom: -3,
-    right: 0,
-    zIndex: 1,
   },
 });

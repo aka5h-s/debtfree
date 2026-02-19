@@ -33,12 +33,16 @@ export function NeoPopCard({ children, color = Colors.card, depth = 3, borderCol
 
   return (
     <View style={[styles.container, style]}>
-      <View style={[styles.rightShadow, { backgroundColor: lighten(color, 0.15), width: depth }]} />
-      <View style={[styles.bottomShadow, { backgroundColor: darken(color, 0.3), height: depth }]} />
       <View style={[
         styles.card,
         { backgroundColor: color },
         borderColor ? { borderWidth: 0.5, borderColor } : null,
+        {
+          borderRightWidth: depth,
+          borderBottomWidth: depth,
+          borderRightColor: lighten(color, 0.15),
+          borderBottomColor: darken(color, 0.3),
+        },
       ]}>
         {children}
       </View>
@@ -48,27 +52,9 @@ export function NeoPopCard({ children, color = Colors.card, depth = 3, borderCol
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
     overflow: 'hidden',
-    marginRight: 3,
   },
   card: {
-    position: 'relative',
-    zIndex: 2,
     padding: 16,
-  },
-  rightShadow: {
-    position: 'absolute',
-    right: -3,
-    top: 3,
-    bottom: 0,
-    zIndex: 1,
-  },
-  bottomShadow: {
-    position: 'absolute',
-    left: 3,
-    bottom: -3,
-    right: 0,
-    zIndex: 1,
   },
 });
