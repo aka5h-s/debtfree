@@ -62,14 +62,24 @@ export default function EditPersonScreen() {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <Text style={styles.label}>PHONE (OPTIONAL)</Text>
-        <TextInput
-          style={styles.input}
-          value={phone}
-          onChangeText={setPhone}
-          placeholder="Phone number"
-          placeholderTextColor={Colors.textMuted}
-          keyboardType="phone-pad"
-        />
+        <View style={styles.phoneRow}>
+          <Text style={styles.phonePrefix}>+91</Text>
+          <TextInput
+            style={[styles.input, styles.phoneInput]}
+            value={phone}
+            onChangeText={(t) => {
+              const digits = t.replace(/[^0-9]/g, '').slice(0, 10);
+              setPhone(digits);
+            }}
+            placeholder="10-digit mobile number"
+            placeholderTextColor={Colors.textMuted}
+            keyboardType="number-pad"
+            maxLength={10}
+          />
+        </View>
+        {phone.length > 0 && phone.length < 10 && (
+          <Text style={styles.phoneHint}>{10 - phone.length} digits remaining</Text>
+        )}
 
         <Text style={styles.label}>NOTES (OPTIONAL)</Text>
         <TextInput
@@ -176,5 +186,31 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
     color: Colors.white,
     letterSpacing: 1,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  phonePrefix: {
+    fontSize: 16,
+    fontFamily: 'Outfit_600SemiBold',
+    color: Colors.textSecondary,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    overflow: 'hidden',
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  phoneHint: {
+    fontSize: 11,
+    fontFamily: 'Outfit_400Regular',
+    color: Colors.textMuted,
+    marginTop: 4,
   },
 });

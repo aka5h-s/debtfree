@@ -35,21 +35,8 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
       <View style={styles.cardOverlay} />
       <View style={styles.topRow}>
         <MaterialCommunityIcons name={getCardTypeIcon(card.cardType)} size={32} color="rgba(255,255,255,0.9)" />
-        <View style={styles.cardActions}>
-          {onEdit && (
-            <Pressable onPress={onEdit} hitSlop={8} style={styles.cardActionBtn}>
-              <Ionicons name="create-outline" size={18} color="rgba(255,255,255,0.7)" />
-            </Pressable>
-          )}
-          {onDelete && (
-            <Pressable onPress={onDelete} hitSlop={8} style={styles.cardActionBtn}>
-              <Ionicons name="trash-outline" size={18} color="rgba(255,107,107,0.8)" />
-            </Pressable>
-          )}
-        </View>
+        <Text style={styles.cardNameTop}>{card.cardName}</Text>
       </View>
-
-      <Text style={styles.cardNameLabel}>{card.cardName}</Text>
 
       <Pressable onPress={() => copyToClipboard(card.cardNumber, 'Card number')} style={styles.numberRow}>
         <Text style={styles.cardNumber}>{formatCardNumber(card.cardNumber)}</Text>
@@ -101,24 +88,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cardActionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardNameLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 11,
-    fontFamily: 'Outfit_400Regular',
+  cardNameTop: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontFamily: 'Outfit_600SemiBold',
     letterSpacing: 1,
-    marginTop: 4,
   },
   numberRow: {
     marginVertical: 4,
