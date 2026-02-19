@@ -57,11 +57,14 @@ export default function CardsScreen() {
     router.push({ pathname: '/edit-card', params: { cardId } });
   };
 
-  const onScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
     const idx = Math.round(offsetX / SNAP_INTERVAL);
-    setActiveIndex(Math.max(0, Math.min(idx, filteredCards.length - 1)));
-  }, [filteredCards.length]);
+    const clampedIdx = Math.max(0, Math.min(idx, filteredCards.length - 1));
+    if (clampedIdx !== activeIndex) {
+      setActiveIndex(clampedIdx);
+    }
+  }, [filteredCards.length, activeIndex]);
 
   const renderCard = useCallback(({ item }: { item: CreditCard }) => (
     <View style={{ width: CARD_WIDTH, marginRight: CARD_GAP }}>
@@ -121,8 +124,8 @@ export default function CardsScreen() {
             snapToInterval={SNAP_INTERVAL}
             decelerationRate="fast"
             contentContainerStyle={styles.carousel}
-            onMomentumScrollEnd={onScrollEnd}
-            onScrollEndDrag={Platform.OS === 'web' ? onScrollEnd : undefined}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
             renderItem={renderCard}
             scrollEnabled={filteredCards.length > 0}
           />

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import type { CreditCard, CardType } from '@/lib/types';
 import { formatCardNumber } from '@/lib/formatters';
 
@@ -13,15 +13,41 @@ interface CreditCardVisualProps {
   onDelete?: () => void;
 }
 
-function getCardTypeIcon(type: CardType): React.ComponentProps<typeof MaterialCommunityIcons>['name'] {
+function CardBrandLogo({ type }: { type: CardType }) {
   switch (type) {
-    case 'VISA': return 'credit-card';
-    case 'MASTERCARD': return 'credit-card-multiple';
-    case 'RUPAY': return 'credit-card-chip';
-    case 'AMEX': return 'credit-card-fast';
-    default: return 'credit-card-outline';
+    case 'VISA':
+      return <FontAwesome5 name="cc-visa" size={36} color="rgba(255,255,255,0.9)" />;
+    case 'MASTERCARD':
+      return <FontAwesome5 name="cc-mastercard" size={36} color="rgba(255,255,255,0.9)" />;
+    case 'AMEX':
+      return <FontAwesome5 name="cc-amex" size={36} color="rgba(255,255,255,0.9)" />;
+    case 'RUPAY':
+      return (
+        <View style={logoStyles.rupayBadge}>
+          <Text style={logoStyles.rupayText}>RuPay</Text>
+        </View>
+      );
+    default:
+      return <FontAwesome5 name="credit-card" size={32} color="rgba(255,255,255,0.9)" />;
   }
 }
+
+const logoStyles = StyleSheet.create({
+  rupayBadge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  rupayText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Outfit_700Bold',
+    letterSpacing: 1,
+  },
+});
 
 export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardVisualProps) {
   const copyToClipboard = async (value: string, label: string) => {
@@ -36,7 +62,9 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
     <View style={[styles.card, { backgroundColor: card.color }]}>
       <View style={styles.cardOverlay} />
       <View style={styles.topRow}>
-        <MaterialCommunityIcons name={getCardTypeIcon(card.cardType)} size={32} color="rgba(255,255,255,0.9)" />
+        <View style={styles.chipIcon}>
+          <FontAwesome5 name="sim-card" size={24} color="rgba(255,215,0,0.6)" />
+        </View>
         <View style={styles.cardActions}>
           {onEdit && (
             <Pressable onPress={onEdit} hitSlop={8} style={styles.cardActionBtn}>
@@ -76,8 +104,8 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
             <Text style={styles.infoValue} numberOfLines={1}>{card.nameOnCard.toUpperCase()}</Text>
           </Pressable>
         </View>
-        <View style={styles.typeBlock}>
-          <Text style={styles.typeText}>{card.cardType}</Text>
+        <View style={styles.brandBlock}>
+          <CardBrandLogo type={card.cardType} />
         </View>
       </View>
     </View>
@@ -101,6 +129,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  chipIcon: {
+    transform: [{ rotate: '90deg' }],
   },
   cardActions: {
     flexDirection: 'row',
@@ -148,15 +179,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Outfit_600SemiBold',
   },
-  typeBlock: {
+  brandBlock: {
     flex: 1,
     alignItems: 'flex-end' as const,
     justifyContent: 'flex-end' as const,
-  },
-  typeText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-    fontFamily: 'Outfit_700Bold',
-    letterSpacing: 2,
   },
 });
