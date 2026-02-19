@@ -2,13 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import type { CreditCard, CardType } from '@/lib/types';
 import { formatCardNumber } from '@/lib/formatters';
 
 interface CreditCardVisualProps {
   card: CreditCard;
   onCopy?: (label: string) => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 function getCardTypeIcon(type: CardType) {
@@ -19,7 +21,7 @@ function getCardTypeIcon(type: CardType) {
   }
 }
 
-export function CreditCardVisual({ card, onCopy }: CreditCardVisualProps) {
+export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardVisualProps) {
   const copyToClipboard = async (value: string, label: string) => {
     await Clipboard.setStringAsync(value);
     if (Platform.OS !== 'web') {
@@ -32,8 +34,19 @@ export function CreditCardVisual({ card, onCopy }: CreditCardVisualProps) {
     <View style={[styles.card, { backgroundColor: card.color }]}>
       <View style={styles.cardOverlay} />
       <View style={styles.topRow}>
-        <Text style={styles.bankName}>DEBTFREE BANK</Text>
         <MaterialCommunityIcons name={getCardTypeIcon(card.cardType)} size={32} color="rgba(255,255,255,0.9)" />
+        <View style={styles.cardActions}>
+          {onEdit && (
+            <Pressable onPress={onEdit} hitSlop={8} style={styles.cardActionBtn}>
+              <Ionicons name="create-outline" size={18} color="rgba(255,255,255,0.7)" />
+            </Pressable>
+          )}
+          {onDelete && (
+            <Pressable onPress={onDelete} hitSlop={8} style={styles.cardActionBtn}>
+              <Ionicons name="trash-outline" size={18} color="rgba(255,107,107,0.8)" />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <Text style={styles.cardNameLabel}>{card.cardName}</Text>
@@ -88,11 +101,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  bankName: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 2,
+  cardActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cardActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardNameLabel: {
     color: 'rgba(255,255,255,0.5)',

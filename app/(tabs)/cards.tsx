@@ -1,18 +1,72 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, Platform, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Pressable, TextInput, Alert, Platform, Dimensions, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
-import { NeoPopButton } from '@/components/NeoPopButton';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CreditCardVisual } from '@/components/CreditCardVisual';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - 48;
+const CARD_WIDTH = SCREEN_WIDTH - 64;
+const CARD_GAP = 12;
+const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
+
+function AnimatedCard({ card, index, scrollX, onCopy, onEdit, onDelete }: {
+  card: any;
+  index: number;
+  scrollX: Animated.SharedValue<number>;
+  onCopy: (label: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const animatedStyle = useAnimatedStyle(() => {
+    const inputRange = [
+      (index - 1) * SNAP_INTERVAL,
+      index * SNAP_INTERVAL,
+      (index + 1) * SNAP_INTERVAL,
+    ];
+
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.88, 1, 0.88],
+      Extrapolation.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5],
+      Extrapolation.CLAMP
+    );
+
+    const rotateY = interpolate(
+      scrollX.value,
+      inputRange,
+      [8, 0, -8],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      transform: [
+        { scale },
+        { perspective: 1000 },
+        { rotateY: `${rotateY}deg` },
+      ],
+      opacity,
+    };
+  });
+
+  return (
+    <Animated.View style={[{ width: CARD_WIDTH }, animatedStyle]}>
+      <CreditCardVisual card={card} onCopy={onCopy} onEdit={onEdit} onDelete={onDelete} />
+    </Animated.View>
+  );
+}
 
 export default function CardsScreen() {
   const insets = useSafeAreaInsets();
@@ -20,6 +74,7 @@ export default function CardsScreen() {
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
+  const scrollX = useSharedValue(0);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
@@ -37,32 +92,40 @@ export default function CardsScreen() {
     setTimeout(() => setCopiedLabel(null), 2000);
   };
 
-  const handleDelete = () => {
-    const card = filteredCards[activeIndex];
-    if (!card) return;
+  const handleDelete = (cardId: string, cardName: string) => {
     if (Platform.OS === 'web') {
-      if (confirm(`Remove "${card.cardName}"?`)) {
-        removeCard(card.id);
+      if (confirm(`Remove "${cardName}"?`)) {
+        removeCard(cardId);
         setActiveIndex(0);
       }
     } else {
-      Alert.alert('Remove Card', `Remove "${card.cardName}"?`, [
+      Alert.alert('Remove Card', `Remove "${cardName}"?`, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => { removeCard(card.id); setActiveIndex(0); } },
+        { text: 'Remove', style: 'destructive', onPress: () => { removeCard(cardId); setActiveIndex(0); } },
       ]);
     }
   };
 
-  const handleEdit = () => {
-    const card = filteredCards[activeIndex];
-    if (!card) return;
-    router.push({ pathname: '/edit-card', params: { cardId: card.id } });
+  const handleEdit = (cardId: string) => {
+    router.push({ pathname: '/edit-card', params: { cardId } });
+  };
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
+
+  const handleMomentumEnd = (e: any) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SNAP_INTERVAL);
+    setActiveIndex(Math.max(0, Math.min(idx, filteredCards.length - 1)));
   };
 
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: topPad + 16 }]}>
-        <Text style={styles.title}>MY CARDS ({cards.length})</Text>
+        <Text style={styles.title}>MY CARDS</Text>
+        <Text style={styles.cardCount}>{cards.length}</Text>
       </View>
 
       <View style={styles.searchContainer}>
@@ -85,6 +148,7 @@ export default function CardsScreen() {
         <View style={styles.emptyState}>
           <Ionicons name="card-outline" size={56} color={Colors.textMuted} />
           <Text style={styles.emptyText}>{search ? 'No cards found' : 'No cards yet'}</Text>
+          <Text style={styles.emptySubtext}>Store your card details securely</Text>
           {!search && (
             <View style={{ marginTop: 24, width: '70%' }}>
               <NeoPopTiltedButton onPress={() => router.push('/add-card')} showShimmer>
@@ -94,26 +158,29 @@ export default function CardsScreen() {
           )}
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={filteredCards}
-            keyExtractor={(item) => item.id}
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }}>
+          <Animated.ScrollView
             horizontal
-            pagingEnabled
             showsHorizontalScrollIndicator={false}
-            snapToInterval={CARD_WIDTH + 12}
+            snapToInterval={SNAP_INTERVAL}
             decelerationRate="fast"
             contentContainerStyle={styles.carousel}
-            onMomentumScrollEnd={(e) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / (CARD_WIDTH + 12));
-              setActiveIndex(Math.max(0, Math.min(idx, filteredCards.length - 1)));
-            }}
-            renderItem={({ item }) => (
-              <View style={[styles.cardSlide, { width: CARD_WIDTH }]}>
-                <CreditCardVisual card={item} onCopy={handleCopy} />
-              </View>
-            )}
-          />
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={handleMomentumEnd}
+          >
+            {filteredCards.map((card, index) => (
+              <AnimatedCard
+                key={card.id}
+                card={card}
+                index={index}
+                scrollX={scrollX}
+                onCopy={handleCopy}
+                onEdit={() => handleEdit(card.id)}
+                onDelete={() => handleDelete(card.id, card.cardName)}
+              />
+            ))}
+          </Animated.ScrollView>
 
           <View style={styles.dots}>
             {filteredCards.map((_, i) => (
@@ -128,26 +195,11 @@ export default function CardsScreen() {
             </View>
           )}
 
-          <View style={styles.actions}>
-            <View style={{ flex: 1 }}>
-              <NeoPopButton onPress={handleEdit} variant="secondary">
-                <View style={styles.actionBtn}>
-                  <Ionicons name="create-outline" size={18} color={Colors.white} />
-                  <Text style={styles.actionBtnText}>EDIT CARD</Text>
-                </View>
-              </NeoPopButton>
-            </View>
-            <View style={{ width: 12 }} />
-            <View style={{ flex: 1 }}>
-              <NeoPopButton onPress={handleDelete} variant="danger">
-                <View style={styles.actionBtn}>
-                  <Ionicons name="trash-outline" size={18} color={Colors.negative} />
-                  <Text style={[styles.actionBtnText, { color: Colors.negative }]}>REMOVE</Text>
-                </View>
-              </NeoPopButton>
-            </View>
+          <View style={styles.hint}>
+            <Ionicons name="hand-left-outline" size={14} color={Colors.textMuted} />
+            <Text style={styles.hintText}>Swipe to browse cards. Tap details to copy.</Text>
           </View>
-        </View>
+        </ScrollView>
       )}
 
       {filteredCards.length > 0 && (
@@ -167,14 +219,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 8,
+    gap: 8,
   },
   title: {
     fontSize: 12,
     fontFamily: 'Inter_600SemiBold',
     color: Colors.textMuted,
     letterSpacing: 2,
+  },
+  cardCount: {
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+    color: Colors.primary,
+    backgroundColor: 'rgba(255,235,52,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -194,16 +259,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   carousel: {
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  cardSlide: {
-    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: CARD_GAP,
+    alignItems: 'center',
   },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 20,
     gap: 6,
   },
   dot: {
@@ -229,24 +292,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     color: Colors.positive,
   },
-  actions: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  actionBtn: {
+  hint: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    gap: 6,
+    marginTop: 16,
+    paddingHorizontal: 20,
   },
-  actionBtnText: {
+  hintText: {
     fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    color: Colors.white,
-    letterSpacing: 1,
+    fontFamily: 'Inter_400Regular',
+    color: Colors.textMuted,
   },
   emptyState: {
     flex: 1,
@@ -259,6 +316,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     color: Colors.textMuted,
     marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    color: Colors.textMuted,
+    marginTop: 4,
+    opacity: 0.7,
   },
   ctaText: {
     fontSize: 14,
