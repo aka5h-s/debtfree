@@ -10,7 +10,7 @@ import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CARD_COLORS } from '@/lib/types';
 import type { CardType, CardColor } from '@/lib/types';
 
-const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY', 'AMEX'];
+const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY'];
 
 export default function AddCardScreen() {
   const { addCard } = useData();
