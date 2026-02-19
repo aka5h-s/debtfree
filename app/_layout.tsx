@@ -38,13 +38,13 @@ function RootLayoutNav() {
         <Stack.Screen name="signup" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="person/[id]" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="add-person" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.65], sheetGrabberVisible: true }} />
-        <Stack.Screen name="edit-person" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.65], sheetGrabberVisible: true }} />
-        <Stack.Screen name="add-transaction" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7], sheetGrabberVisible: true }} />
-        <Stack.Screen name="edit-transaction" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7], sheetGrabberVisible: true }} />
-        <Stack.Screen name="add-card" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.85], sheetGrabberVisible: true }} />
-        <Stack.Screen name="edit-card" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.85], sheetGrabberVisible: true }} />
-        <Stack.Screen name="transaction-history" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6], sheetGrabberVisible: true }} />
+        <Stack.Screen name="add-person" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="edit-person" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="add-transaction" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="edit-transaction" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="add-card" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="edit-card" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="transaction-history" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack>
     </AuthGate>
   );
