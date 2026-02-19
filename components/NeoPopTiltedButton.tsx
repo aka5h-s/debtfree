@@ -37,12 +37,8 @@ export function NeoPopTiltedButton({
 
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: pressed.value * 3 },
+      { translateY: pressed.value * 2 },
     ],
-  }));
-
-  const plunkStyle = useAnimatedStyle(() => ({
-    height: Math.max(0, 5 - pressed.value * 4),
   }));
 
   const shimmerStyle = useAnimatedStyle(() => ({
@@ -70,30 +66,23 @@ export function NeoPopTiltedButton({
       disabled={disabled}
       style={{ opacity: disabled ? 0.4 : 1 }}
     >
-      <View style={styles.wrapper}>
-        <Animated.View style={[styles.button, { backgroundColor: color }, buttonStyle]}>
-          <View style={styles.content}>
-            {children}
-          </View>
-          {showShimmer && (
-            <Animated.View style={[styles.shimmer, shimmerStyle]}>
-              <View style={[styles.shimmerInner, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }]} />
-            </Animated.View>
-          )}
-        </Animated.View>
-        <Animated.View style={[styles.plunk, { backgroundColor: plunkColor }, plunkStyle]} />
-      </View>
+      <Animated.View style={[styles.button, { backgroundColor: color, borderBottomColor: plunkColor, borderBottomWidth: 4 }, buttonStyle]}>
+        <View style={styles.content}>
+          {children}
+        </View>
+        {showShimmer && (
+          <Animated.View style={[styles.shimmer, shimmerStyle]}>
+            <View style={[styles.shimmerInner, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }]} />
+          </Animated.View>
+        )}
+      </Animated.View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    overflow: 'hidden',
-  },
   button: {
     overflow: 'hidden',
-    position: 'relative',
     borderRadius: 4,
   },
   content: {
@@ -102,11 +91,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-  },
-  plunk: {
-    height: 5,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
   },
   shimmer: {
     position: 'absolute',
