@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, Pressable, TextInput, Alert, Platform, Dimensions } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, Text, View, Pressable, TextInput, Alert, Platform, Dimensions, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,56 +9,60 @@ import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CreditCardVisual } from '@/components/CreditCardVisual';
-import type { CreditCard } from '@/lib/types';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CARD_HEIGHT = 220;
-const CARD_OVERLAP = -60;
-const VISIBLE_OFFSET = CARD_HEIGHT + CARD_OVERLAP;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH - 64;
+const CARD_GAP = 12;
+const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
 
-function StackedCard({ card, index, scrollY, total, onCopy, onEdit, onDelete }: {
-  card: CreditCard;
+function AnimatedCard({ card, index, scrollX, onCopy, onEdit, onDelete }: {
+  card: any;
   index: number;
-  scrollY: Animated.SharedValue<number>;
-  total: number;
+  scrollX: Animated.SharedValue<number>;
   onCopy: (label: string) => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const animatedStyle = useAnimatedStyle(() => {
-    const cardTop = index * VISIBLE_OFFSET;
-    const scrollOffset = scrollY.value - cardTop;
+    const inputRange = [
+      (index - 1) * SNAP_INTERVAL,
+      index * SNAP_INTERVAL,
+      (index + 1) * SNAP_INTERVAL,
+    ];
 
     const scale = interpolate(
-      scrollOffset,
-      [-VISIBLE_OFFSET, 0, VISIBLE_OFFSET, VISIBLE_OFFSET * 2],
-      [0.95, 1, 0.96, 0.92],
-      Extrapolation.CLAMP
-    );
-
-    const translateY = interpolate(
-      scrollOffset,
-      [0, VISIBLE_OFFSET, VISIBLE_OFFSET * 2, VISIBLE_OFFSET * 3],
-      [0, -CARD_OVERLAP * 0.4, -CARD_OVERLAP * 0.6, -CARD_OVERLAP * 0.7],
+      scrollX.value,
+      inputRange,
+      [0.88, 1, 0.88],
       Extrapolation.CLAMP
     );
 
     const opacity = interpolate(
-      scrollOffset,
-      [-VISIBLE_OFFSET, 0, VISIBLE_OFFSET * 2.5],
-      [0.7, 1, 0.4],
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5],
+      Extrapolation.CLAMP
+    );
+
+    const rotateY = interpolate(
+      scrollX.value,
+      inputRange,
+      [8, 0, -8],
       Extrapolation.CLAMP
     );
 
     return {
-      transform: [{ scale }, { translateY }],
+      transform: [
+        { scale },
+        { perspective: 1000 },
+        { rotateY: `${rotateY}deg` },
+      ],
       opacity,
-      zIndex: total - index,
     };
   });
 
   return (
-    <Animated.View style={[styles.cardWrapper, animatedStyle]}>
+    <Animated.View style={[{ width: CARD_WIDTH }, animatedStyle]}>
       <CreditCardVisual card={card} onCopy={onCopy} onEdit={onEdit} onDelete={onDelete} />
     </Animated.View>
   );
@@ -68,8 +72,9 @@ export default function CardsScreen() {
   const insets = useSafeAreaInsets();
   const { cards, removeCard } = useData();
   const [search, setSearch] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
-  const scrollY = useSharedValue(0);
+  const scrollX = useSharedValue(0);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
@@ -91,11 +96,12 @@ export default function CardsScreen() {
     if (Platform.OS === 'web') {
       if (confirm(`Remove "${cardName}"?`)) {
         removeCard(cardId);
+        setActiveIndex(0);
       }
     } else {
       Alert.alert('Remove Card', `Remove "${cardName}"?`, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => removeCard(cardId) },
+        { text: 'Remove', style: 'destructive', onPress: () => { removeCard(cardId); setActiveIndex(0); } },
       ]);
     }
   };
@@ -106,11 +112,14 @@ export default function CardsScreen() {
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
+      scrollX.value = event.contentOffset.x;
     },
   });
 
-  const contentHeight = filteredCards.length * VISIBLE_OFFSET + CARD_HEIGHT * 0.4;
+  const handleMomentumEnd = (e: any) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SNAP_INTERVAL);
+    setActiveIndex(Math.max(0, Math.min(idx, filteredCards.length - 1)));
+  };
 
   return (
     <View style={styles.container}>
@@ -135,13 +144,6 @@ export default function CardsScreen() {
         )}
       </View>
 
-      {copiedLabel && (
-        <View style={styles.copiedBanner}>
-          <Ionicons name="checkmark-circle" size={16} color={Colors.positive} />
-          <Text style={styles.copiedText}>{copiedLabel} copied</Text>
-        </View>
-      )}
-
       {filteredCards.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="card-outline" size={56} color={Colors.textMuted} />
@@ -156,32 +158,48 @@ export default function CardsScreen() {
           )}
         </View>
       ) : (
-        <Animated.ScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={false}
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
-          contentContainerStyle={[
-            styles.cardList,
-            {
-              height: contentHeight,
-              paddingBottom: Platform.OS === 'web' ? 84 + 34 + 16 : 120,
-            },
-          ]}
-        >
-          {filteredCards.map((card, index) => (
-            <StackedCard
-              key={card.id}
-              card={card}
-              index={index}
-              scrollY={scrollY}
-              total={filteredCards.length}
-              onCopy={handleCopy}
-              onEdit={() => handleEdit(card.id)}
-              onDelete={() => handleDelete(card.id, card.cardName)}
-            />
-          ))}
-        </Animated.ScrollView>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }}>
+          <Animated.ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={SNAP_INTERVAL}
+            decelerationRate="fast"
+            contentContainerStyle={styles.carousel}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={handleMomentumEnd}
+          >
+            {filteredCards.map((card, index) => (
+              <AnimatedCard
+                key={card.id}
+                card={card}
+                index={index}
+                scrollX={scrollX}
+                onCopy={handleCopy}
+                onEdit={() => handleEdit(card.id)}
+                onDelete={() => handleDelete(card.id, card.cardName)}
+              />
+            ))}
+          </Animated.ScrollView>
+
+          <View style={styles.dots}>
+            {filteredCards.map((_, i) => (
+              <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
+            ))}
+          </View>
+
+          {copiedLabel && (
+            <View style={styles.copiedBanner}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.positive} />
+              <Text style={styles.copiedText}>{copiedLabel} copied</Text>
+            </View>
+          )}
+
+          <View style={styles.hint}>
+            <Ionicons name="hand-left-outline" size={14} color={Colors.textMuted} />
+            <Text style={styles.hintText}>Swipe to browse cards. Tap details to copy.</Text>
+          </View>
+        </ScrollView>
       )}
 
       {filteredCards.length > 0 && (
@@ -231,7 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 14,
     height: 44,
-    marginBottom: 12,
+    marginBottom: 20,
     gap: 10,
   },
   searchInput: {
@@ -240,25 +258,52 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
   },
+  carousel: {
+    paddingHorizontal: 32,
+    gap: CARD_GAP,
+    alignItems: 'center',
+  },
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.textMuted,
+  },
+  dotActive: {
+    backgroundColor: Colors.primary,
+    width: 18,
+  },
   copiedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 6,
-    marginBottom: 4,
+    paddingVertical: 8,
+    marginTop: 8,
   },
   copiedText: {
     fontSize: 13,
     fontFamily: 'Inter_500Medium',
     color: Colors.positive,
   },
-  cardList: {
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
     paddingHorizontal: 20,
-    paddingTop: 8,
   },
-  cardWrapper: {
-    marginBottom: CARD_OVERLAP,
+  hintText: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    color: Colors.textMuted,
   },
   emptyState: {
     flex: 1,
