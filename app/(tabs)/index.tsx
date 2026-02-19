@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,13 +48,20 @@ function PersonItem({ person, balance }: { person: any; balance: number }) {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed } = useData();
+  const [search, setSearch] = useState('');
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
 
-  const sortedPeople = [...people].sort((a, b) => {
-    return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
-  });
+  const sortedPeople = [...people]
+    .filter(p => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q));
+    })
+    .sort((a, b) => {
+      return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
+    });
 
   const balanceColor = globalBalance > 0 ? Colors.positive : globalBalance < 0 ? Colors.negative : Colors.settled;
   const contextMessage = globalBalance > 0
@@ -75,14 +82,6 @@ export default function DashboardScreen() {
     <View>
       <View style={[styles.header, { paddingTop: topPad + 16 }]}>
         <Text style={styles.appTitle}>DebtFree</Text>
-        <View style={styles.headerActions}>
-          <Pressable
-            onPress={() => router.push('/(tabs)/cards')}
-            hitSlop={12}
-          >
-            <Ionicons name="card-outline" size={24} color={Colors.textSecondary} />
-          </Pressable>
-        </View>
       </View>
 
       <View style={styles.balanceSection}>
@@ -114,6 +113,24 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>YOUR CIRCLE</Text>
         <Text style={styles.sectionCount}>{people.length}</Text>
       </View>
+
+      {people.length > 0 && (
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={18} color={Colors.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name or phone..."
+            placeholderTextColor={Colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 
@@ -233,6 +250,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Outfit_600SemiBold',
     color: Colors.textMuted,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    marginHorizontal: 20,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    height: 44,
+    marginBottom: 12,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: Colors.white,
+    fontFamily: 'Outfit_400Regular',
+    fontSize: 15,
   },
   listContent: {
     paddingBottom: 100,
