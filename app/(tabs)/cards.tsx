@@ -1,19 +1,75 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, Pressable, TextInput, Alert, Platform, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Pressable, TextInput, Alert, Platform, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import Animated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CreditCardVisual } from '@/components/CreditCardVisual';
+import type { CreditCard } from '@/lib/types';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const CARD_HEIGHT = 220;
+const CARD_OVERLAP = -60;
+const VISIBLE_OFFSET = CARD_HEIGHT + CARD_OVERLAP;
+
+function StackedCard({ card, index, scrollY, total, onCopy, onEdit, onDelete }: {
+  card: CreditCard;
+  index: number;
+  scrollY: Animated.SharedValue<number>;
+  total: number;
+  onCopy: (label: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const animatedStyle = useAnimatedStyle(() => {
+    const cardTop = index * VISIBLE_OFFSET;
+    const scrollOffset = scrollY.value - cardTop;
+
+    const scale = interpolate(
+      scrollOffset,
+      [-VISIBLE_OFFSET, 0, VISIBLE_OFFSET, VISIBLE_OFFSET * 2],
+      [0.95, 1, 0.96, 0.92],
+      Extrapolation.CLAMP
+    );
+
+    const translateY = interpolate(
+      scrollOffset,
+      [0, VISIBLE_OFFSET, VISIBLE_OFFSET * 2, VISIBLE_OFFSET * 3],
+      [0, -CARD_OVERLAP * 0.4, -CARD_OVERLAP * 0.6, -CARD_OVERLAP * 0.7],
+      Extrapolation.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollOffset,
+      [-VISIBLE_OFFSET, 0, VISIBLE_OFFSET * 2.5],
+      [0.7, 1, 0.4],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      transform: [{ scale }, { translateY }],
+      opacity,
+      zIndex: total - index,
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.cardWrapper, animatedStyle]}>
+      <CreditCardVisual card={card} onCopy={onCopy} onEdit={onEdit} onDelete={onDelete} />
+    </Animated.View>
+  );
+}
 
 export default function CardsScreen() {
   const insets = useSafeAreaInsets();
   const { cards, removeCard } = useData();
   const [search, setSearch] = useState('');
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
+  const scrollY = useSharedValue(0);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
@@ -47,6 +103,14 @@ export default function CardsScreen() {
   const handleEdit = (cardId: string) => {
     router.push({ pathname: '/edit-card', params: { cardId } });
   };
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const contentHeight = filteredCards.length * VISIBLE_OFFSET + CARD_HEIGHT * 0.4;
 
   return (
     <View style={styles.container}>
@@ -92,22 +156,32 @@ export default function CardsScreen() {
           )}
         </View>
       ) : (
-        <ScrollView
+        <Animated.ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.cardList, { paddingBottom: Platform.OS === 'web' ? 84 + 34 + 16 : 120 }]}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          contentContainerStyle={[
+            styles.cardList,
+            {
+              height: contentHeight,
+              paddingBottom: Platform.OS === 'web' ? 84 + 34 + 16 : 120,
+            },
+          ]}
         >
-          {filteredCards.map((card) => (
-            <View key={card.id} style={styles.cardItem}>
-              <CreditCardVisual
-                card={card}
-                onCopy={handleCopy}
-                onEdit={() => handleEdit(card.id)}
-                onDelete={() => handleDelete(card.id, card.cardName)}
-              />
-            </View>
+          {filteredCards.map((card, index) => (
+            <StackedCard
+              key={card.id}
+              card={card}
+              index={index}
+              scrollY={scrollY}
+              total={filteredCards.length}
+              onCopy={handleCopy}
+              onEdit={() => handleEdit(card.id)}
+              onDelete={() => handleDelete(card.id, card.cardName)}
+            />
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
       )}
 
       {filteredCards.length > 0 && (
@@ -181,9 +255,11 @@ const styles = StyleSheet.create({
   },
   cardList: {
     paddingHorizontal: 20,
-    gap: 20,
+    paddingTop: 8,
   },
-  cardItem: {},
+  cardWrapper: {
+    marginBottom: CARD_OVERLAP,
+  },
   emptyState: {
     flex: 1,
     alignItems: 'center',
