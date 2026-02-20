@@ -104,7 +104,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      console.log('Google Sign-In request details:', JSON.stringify({
+        redirectUri: request?.redirectUri,
+        clientId: request?.clientId,
+        url: request?.url,
+      }));
       const result = await promptAsync();
+      console.log('Google Sign-In result:', JSON.stringify(result));
       if (result?.type === 'cancel' || result?.type === 'dismiss') {
         return {};
       }
