@@ -33,10 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    // @ts-ignore - useProxy still works in SDK 54
-    useProxy: true,
-  });
+  const redirectUri = Platform.OS === 'web'
+    ? AuthSession.makeRedirectUri()
+    : 'https://auth.expo.io/@anonymous/aka5h-s';
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
@@ -109,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await promptAsync({ useProxy: true } as any);
+      const result = await promptAsync();
       if (result?.type === 'cancel' || result?.type === 'dismiss') {
         return {};
       }
