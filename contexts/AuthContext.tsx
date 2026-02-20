@@ -34,10 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 
-  const redirectUri = makeRedirectUri({
-    scheme: 'debtfree',
-    path: 'auth',
-  });
+  const redirectUri = Platform.OS === 'web'
+    ? makeRedirectUri({ scheme: 'debtfree', path: 'auth' })
+    : 'https://auth.expo.io/@aka5h/aka5h-s';
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: webClientId,
