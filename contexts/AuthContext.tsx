@@ -10,9 +10,8 @@ import {
   type User,
 } from '@/lib/firebase';
 import { Platform } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
+import * as Crypto from 'expo-crypto';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,24 +26,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+const BACKEND_DOMAIN = process.env.EXPO_PUBLIC_DOMAIN || '';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [googleError, setGoogleError] = useState<string | null>(null);
-
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
-
-  const redirectUri = Platform.OS === 'web'
-    ? makeRedirectUri({ scheme: 'debtfree', path: 'auth' })
-    : 'https://auth.expo.io/@aka5h/aka5h-s';
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: webClientId,
-    androidClientId: webClientId,
-    iosClientId: webClientId,
-    redirectUri,
-    scopes: ['profile', 'email'],
-  });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -53,20 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, []);
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      if (id_token) {
-        const credential = GoogleAuthProvider.credential(id_token);
-        signInWithCredential(auth, credential).catch((e: any) => {
-          setGoogleError(e.message || 'Google sign-in failed');
-        });
-      }
-    } else if (response?.type === 'error') {
-      setGoogleError(response.error?.message || 'Google sign-in failed');
-    }
-  }, [response]);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     try {
@@ -95,8 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInGoogle = useCallback(async () => {
-    if (!webClientId) {
-      return { error: 'Google sign-in is not configured. Please set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.' };
+    if (!GOOGLE_WEB_CLIENT_ID) {
+      return { error: 'Google sign-in is not configured.' };
     }
 
     if (Platform.OS === 'web') {
@@ -114,19 +87,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      setGoogleError(null);
-      const result = await promptAsync();
-      if (result?.type === 'dismiss' || result?.type === 'cancel') {
+      const nonce = Crypto.randomUUID();
+      const redirectUri = `https://${BACKEND_DOMAIN}/auth/google/callback`;
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=token%20id_token` +
+        `&scope=${encodeURIComponent('openid profile email')}` +
+        `&nonce=${nonce}` +
+        `&prompt=select_account`;
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'debtfree://auth');
+
+      if (result.type === 'success' && result.url) {
+        const url = result.url;
+        const paramsString = url.includes('#') ? url.split('#')[1] : url.split('?')[1];
+        if (paramsString) {
+          const params = new URLSearchParams(paramsString);
+          const idToken = params.get('id_token');
+          if (idToken) {
+            const credential = GoogleAuthProvider.credential(idToken);
+            await signInWithCredential(auth, credential);
+            return {};
+          }
+        }
+        return { error: 'Could not get sign-in token from Google.' };
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
         return {};
       }
-      if (googleError) {
-        return { error: googleError };
-      }
-      return {};
+      return { error: 'Google sign-in was interrupted.' };
     } catch (e: any) {
       return { error: e.message || 'Google sign-in failed' };
     }
-  }, [webClientId, promptAsync, googleError]);
+  }, []);
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
