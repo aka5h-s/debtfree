@@ -204,7 +204,10 @@ function configureExpoAndLanding(app: express.Application) {
   app.get("/download-keystore", (req, res) => {
     const keystorePath = path.resolve(process.cwd(), "debtfree-keystore.jks");
     if (fs.existsSync(keystorePath)) {
-      res.download(keystorePath, "debtfree-keystore.jks");
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Disposition", "attachment; filename=debtfree-keystore.jks");
+      const fileStream = fs.createReadStream(keystorePath);
+      fileStream.pipe(res);
     } else {
       res.status(404).send("Keystore file not found");
     }
