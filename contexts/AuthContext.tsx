@@ -11,8 +11,7 @@ import {
 } from '@/lib/firebase';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
+import * as Crypto from 'expo-crypto';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -29,7 +28,6 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
-const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
 const IS_DEV_BUILD = Constants.executionEnvironment === ExecutionEnvironment.Bare;
 
@@ -37,25 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const nativeAvailable = Platform.OS !== 'web' && IS_DEV_BUILD;
-
-  const expoOwner = Constants.expoConfig?.owner || 'anonymous';
-  const expoSlug = Constants.expoConfig?.slug || 'aka5h-s';
-  const redirectUri = Platform.OS === 'web'
-    ? AuthSession.makeRedirectUri()
-    : `https://auth.expo.io/@${expoOwner}/${expoSlug}`;
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      console.log('Google Auth redirect URI:', redirectUri);
-      console.log('Native SDK available:', nativeAvailable);
-    }
-  }, [redirectUri, nativeAvailable]);
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_WEB_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    redirectUri,
-  });
 
   useEffect(() => {
     if (nativeAvailable) {
@@ -77,16 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, []);
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      if (id_token) {
-        const credential = GoogleAuthProvider.credential(id_token);
-        signInWithCredential(auth, credential).catch(console.error);
-      }
-    }
-  }, [response]);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     try {
@@ -152,15 +121,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await promptAsync();
-      if (result?.type === 'cancel' || result?.type === 'dismiss') {
+      const expoOwner = Constants.expoConfig?.owner || 'anonymous';
+      const expoSlug = Constants.expoConfig?.slug || 'aka5h-s';
+      const redirectUri = `https://auth.expo.io/@${expoOwner}/${expoSlug}`;
+      const nonce = Crypto.randomUUID();
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=id_token` +
+        `&scope=${encodeURIComponent('openid profile email')}` +
+        `&nonce=${nonce}` +
+        `&prompt=select_account`;
+
+      console.log('Google OAuth URL redirect_uri:', redirectUri);
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+
+      console.log('Google OAuth result:', JSON.stringify(result));
+
+      if (result.type === 'success' && result.url) {
+        const url = result.url;
+        const fragment = url.split('#')[1];
+        if (fragment) {
+          const params = new URLSearchParams(fragment);
+          const idToken = params.get('id_token');
+          if (idToken) {
+            const credential = GoogleAuthProvider.credential(idToken);
+            await signInWithCredential(auth, credential);
+            return {};
+          }
+        }
+        const query = url.split('?')[1];
+        if (query) {
+          const params = new URLSearchParams(query);
+          const idToken = params.get('id_token');
+          if (idToken) {
+            const credential = GoogleAuthProvider.credential(idToken);
+            await signInWithCredential(auth, credential);
+            return {};
+          }
+        }
+        return { error: 'Could not get sign-in token from Google.' };
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
         return {};
       }
-      return {};
+      return { error: 'Google sign-in was interrupted.' };
     } catch (e: any) {
+      console.log('Google sign-in error:', e);
       return { error: e.message || 'Google sign-in failed' };
     }
-  }, [nativeAvailable, promptAsync]);
+  }, [nativeAvailable]);
 
   const signOut = useCallback(async () => {
     if (nativeAvailable) {
