@@ -11,7 +11,9 @@ import {
 } from '@/lib/firebase';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import * as Crypto from 'expo-crypto';
+import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,11 +29,44 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
-const BACKEND_DOMAIN = (process.env.EXPO_PUBLIC_DOMAIN || '').replace(/:5000$/, '');
+const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
+
+function isDevBuild(): boolean {
+  try {
+    const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+    return !!GoogleSignin;
+  } catch {
+    return false;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [nativeAvailable] = useState(() => Platform.OS !== 'web' && isDevBuild());
+
+  const expoOwner = Constants.expoConfig?.owner || 'anonymous';
+  const expoSlug = Constants.expoConfig?.slug || 'aka5h-s';
+  const redirectUri = Platform.OS === 'web'
+    ? AuthSession.makeRedirectUri()
+    : `https://auth.expo.io/@${expoOwner}/${expoSlug}`;
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    redirectUri,
+  });
+
+  useEffect(() => {
+    if (nativeAvailable) {
+      try {
+        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+        GoogleSignin.configure({
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+        });
+      } catch {}
+    }
+  }, [nativeAvailable]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -40,6 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      if (id_token) {
+        const credential = GoogleAuthProvider.credential(id_token);
+        signInWithCredential(auth, credential).catch(console.error);
+      }
+    }
+  }, [response]);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     try {
@@ -86,45 +131,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    try {
-      const nonce = Crypto.randomUUID();
-      const redirectUri = `https://${BACKEND_DOMAIN}/auth/google/callback`;
-
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&response_type=id_token` +
-        `&scope=${encodeURIComponent('openid profile email')}` +
-        `&nonce=${nonce}` +
-        `&prompt=select_account`;
-
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'debtfree://auth');
-
-      if (result.type === 'success' && result.url) {
-        const url = result.url;
-        const paramsString = url.includes('?') ? url.split('?')[1] : url.includes('#') ? url.split('#')[1] : '';
-        if (paramsString) {
-          const params = new URLSearchParams(paramsString);
-          const idToken = params.get('id_token');
-          if (idToken) {
-            const credential = GoogleAuthProvider.credential(idToken);
-            await signInWithCredential(auth, credential);
-            return {};
-          }
+    if (nativeAvailable) {
+      try {
+        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+        await GoogleSignin.hasPlayServices();
+        const signInResult = await GoogleSignin.signIn();
+        const idToken = signInResult?.data?.idToken;
+        if (!idToken) {
+          return { error: 'Could not get ID token from Google.' };
         }
-        return { error: 'Could not get sign-in token from Google.' };
-      } else if (result.type === 'cancel' || result.type === 'dismiss') {
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
+        return {};
+      } catch (e: any) {
+        if (e.code === 'SIGN_IN_CANCELLED') return {};
+        return { error: e.message || 'Google sign-in failed' };
+      }
+    }
+
+    try {
+      const result = await promptAsync();
+      if (result?.type === 'cancel' || result?.type === 'dismiss') {
         return {};
       }
-      return { error: 'Google sign-in was interrupted.' };
+      return {};
     } catch (e: any) {
       return { error: e.message || 'Google sign-in failed' };
     }
-  }, []);
+  }, [nativeAvailable, promptAsync]);
 
   const signOut = useCallback(async () => {
+    if (nativeAvailable) {
+      try {
+        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+        await GoogleSignin.signOut();
+      } catch {}
+    }
     await firebaseSignOut(auth);
-  }, []);
+  }, [nativeAvailable]);
 
   const value = useMemo(() => ({
     user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut,
