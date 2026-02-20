@@ -204,10 +204,23 @@ function configureExpoAndLanding(app: express.Application) {
   app.get("/download-keystore", (req, res) => {
     const keystorePath = path.resolve(process.cwd(), "debtfree-keystore.jks");
     if (fs.existsSync(keystorePath)) {
-      res.setHeader("Content-Type", "application/octet-stream");
-      res.setHeader("Content-Disposition", "attachment; filename=debtfree-keystore.jks");
-      const fileStream = fs.createReadStream(keystorePath);
-      fileStream.pipe(res);
+      res.setHeader("Content-Type", "application/x-java-keystore");
+      res.setHeader("Content-Disposition", "attachment; filename=\"debtfree-keystore.jks\"");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.sendFile(keystorePath);
+    } else {
+      res.status(404).send("Keystore file not found");
+    }
+  });
+
+  // Alternative: download as .p12 format (also supported by Expo)
+  app.get("/download-keystore-p12", (req, res) => {
+    const keystorePath = path.resolve(process.cwd(), "debtfree-keystore.jks");
+    if (fs.existsSync(keystorePath)) {
+      res.setHeader("Content-Type", "application/x-pkcs12");
+      res.setHeader("Content-Disposition", "attachment; filename=\"debtfree-keystore.p12\"");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.sendFile(keystorePath);
     } else {
       res.status(404).send("Keystore file not found");
     }
