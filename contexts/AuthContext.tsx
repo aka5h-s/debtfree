@@ -10,9 +10,8 @@ import {
   type User,
 } from '@/lib/firebase';
 import { Platform } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as Crypto from 'expo-crypto';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -28,19 +27,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+const BACKEND_DOMAIN = (process.env.EXPO_PUBLIC_DOMAIN || '').replace(/:5000$/, '');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const redirectUri = Platform.OS === 'web'
-    ? AuthSession.makeRedirectUri()
-    : 'https://auth.expo.io/@anonymous/aka5h-s';
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
-  });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -49,18 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, []);
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      if (id_token) {
-        const credential = GoogleAuthProvider.credential(id_token);
-        signInWithCredential(auth, credential).catch((e) => {
-          console.error('Firebase credential error:', e);
-        });
-      }
-    }
-  }, [response]);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     try {
@@ -108,15 +87,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await promptAsync();
-      if (result?.type === 'cancel' || result?.type === 'dismiss') {
+      const nonce = Crypto.randomUUID();
+      const redirectUri = `https://${BACKEND_DOMAIN}/auth/google/callback`;
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=id_token` +
+        `&scope=${encodeURIComponent('openid profile email')}` +
+        `&nonce=${nonce}` +
+        `&prompt=select_account`;
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'debtfree://auth');
+
+      if (result.type === 'success' && result.url) {
+        const url = result.url;
+        const paramsString = url.includes('?') ? url.split('?')[1] : url.includes('#') ? url.split('#')[1] : '';
+        if (paramsString) {
+          const params = new URLSearchParams(paramsString);
+          const idToken = params.get('id_token');
+          if (idToken) {
+            const credential = GoogleAuthProvider.credential(idToken);
+            await signInWithCredential(auth, credential);
+            return {};
+          }
+        }
+        return { error: 'Could not get sign-in token from Google.' };
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
         return {};
       }
-      return {};
+      return { error: 'Google sign-in was interrupted.' };
     } catch (e: any) {
       return { error: e.message || 'Google sign-in failed' };
     }
-  }, [promptAsync]);
+  }, []);
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
