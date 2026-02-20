@@ -27,7 +27,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
-const BACKEND_DOMAIN = (process.env.EXPO_PUBLIC_DOMAIN || '').replace(/:5000$/, '');
+const FIREBASE_PROJECT_ID = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const nonce = Crypto.randomUUID();
-      const redirectUri = `https://${BACKEND_DOMAIN}/auth/google/callback`;
+      const redirectUri = `https://${FIREBASE_PROJECT_ID}.web.app/auth/google/callback`;
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
