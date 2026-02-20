@@ -4,7 +4,6 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
 import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
@@ -88,14 +87,12 @@ export default function RootLayout() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1, overflow: 'hidden' }}>
-          <KeyboardProvider>
             <AuthProvider>
               <DataProvider>
                 <StatusBar style="light" />
                 <RootLayoutNav />
               </DataProvider>
             </AuthProvider>
-          </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </ErrorBoundary>
