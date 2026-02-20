@@ -5,10 +5,17 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   firebaseSignOut,
+  signInWithCredential,
   GoogleAuthProvider,
   type User,
 } from '@/lib/firebase';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+
+if (Platform.OS !== 'web') {
+  WebBrowser.maybeCompleteAuthSession();
+}
 
 interface AuthContextValue {
   user: User | null;
@@ -24,6 +31,14 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: webClientId,
+    scopes: ['profile', 'email'],
+  });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -32,6 +47,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      if (id_token) {
+        const credential = GoogleAuthProvider.credential(id_token);
+        signInWithCredential(auth, credential).catch((e: any) => {
+          setGoogleError(e.message || 'Google sign-in failed');
+        });
+      }
+    } else if (response?.type === 'error') {
+      setGoogleError(response.error?.message || 'Google sign-in failed');
+    }
+  }, [response]);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     try {
@@ -60,26 +89,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInGoogle = useCallback(async () => {
-    if (Platform.OS !== 'web') {
-      Alert.alert(
-        'Google Sign-In',
-        'Google sign-in is available on the web version. Please use email and password to sign in on mobile.',
-        [{ text: 'OK' }]
-      );
-      return { error: 'Google sign-in is not available on mobile. Please use email and password.' };
+    if (!webClientId) {
+      return { error: 'Google sign-in is not configured. Please set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.' };
     }
+
+    if (Platform.OS === 'web') {
+      try {
+        const { signInWithPopup } = await import('firebase/auth');
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        return {};
+      } catch (e: any) {
+        if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+          return {};
+        }
+        return { error: e.message || 'Google sign-in failed' };
+      }
+    }
+
     try {
-      const { signInWithPopup } = await import('firebase/auth');
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      return {};
-    } catch (e: any) {
-      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+      setGoogleError(null);
+      const result = await promptAsync();
+      if (result?.type === 'dismiss' || result?.type === 'cancel') {
         return {};
       }
+      if (googleError) {
+        return { error: googleError };
+      }
+      return {};
+    } catch (e: any) {
       return { error: e.message || 'Google sign-in failed' };
     }
-  }, []);
+  }, [webClientId, promptAsync, googleError]);
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
