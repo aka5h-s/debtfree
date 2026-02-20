@@ -11,6 +11,7 @@ import {
 } from '@/lib/firebase';
 import { Platform } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -32,8 +33,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const redirectUri = AuthSession.makeRedirectUri({
+    // @ts-ignore - useProxy still works in SDK 54
+    useProxy: true,
+  });
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
+    redirectUri,
   });
 
   useEffect(() => {
@@ -102,13 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      console.log('Google Sign-In request details:', JSON.stringify({
-        redirectUri: request?.redirectUri,
-        clientId: request?.clientId,
-        url: request?.url,
-      }));
-      const result = await promptAsync();
-      console.log('Google Sign-In result:', JSON.stringify(result));
+      const result = await promptAsync({ useProxy: true } as any);
       if (result?.type === 'cancel' || result?.type === 'dismiss') {
         return {};
       }
