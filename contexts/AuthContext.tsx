@@ -123,20 +123,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const expoOwner = Constants.expoConfig?.owner || 'anonymous';
       const expoSlug = Constants.expoConfig?.slug || 'aka5h-s';
-      const redirectUri = `https://auth.expo.io/@${expoOwner}/${expoSlug}`;
+      const proxyRedirectUri = `https://auth.expo.io/@${expoOwner}/${expoSlug}`;
+      const appReturnUrl = `exp://wdh7sre-aka5h-8081.exp.direct/--/expo-auth-session`;
       const nonce = Crypto.randomUUID();
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&redirect_uri=${encodeURIComponent(proxyRedirectUri)}` +
         `&response_type=id_token` +
         `&scope=${encodeURIComponent('openid profile email')}` +
         `&nonce=${nonce}` +
         `&prompt=select_account`;
 
-      console.log('Google OAuth URL redirect_uri:', redirectUri);
+      console.log('Google OAuth redirect_uri:', proxyRedirectUri);
+      console.log('App return URL:', appReturnUrl);
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, appReturnUrl);
 
       console.log('Google OAuth result:', JSON.stringify(result));
 
