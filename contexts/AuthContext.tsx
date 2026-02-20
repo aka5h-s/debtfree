@@ -37,6 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: webClientId,
+    androidClientId: webClientId,
+    iosClientId: webClientId,
     scopes: ['profile', 'email'],
   });
 
