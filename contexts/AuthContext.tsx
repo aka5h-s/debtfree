@@ -5,12 +5,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   firebaseSignOut,
-  signInWithCredential,
-  signInWithPopup,
   GoogleAuthProvider,
   type User,
 } from '@/lib/firebase';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 
 interface AuthContextValue {
   user: User | null;
@@ -62,7 +60,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInGoogle = useCallback(async () => {
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Google Sign-In',
+        'Google sign-in is available on the web version. Please use email and password to sign in on mobile.',
+        [{ text: 'OK' }]
+      );
+      return { error: 'Google sign-in is not available on mobile. Please use email and password.' };
+    }
     try {
+      const { signInWithPopup } = await import('firebase/auth');
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       return {};
