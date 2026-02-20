@@ -12,10 +12,9 @@ import {
 import { Platform } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 
-if (Platform.OS !== 'web') {
-  WebBrowser.maybeCompleteAuthSession();
-}
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextValue {
   user: User | null;
@@ -35,10 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 
+  const redirectUri = makeRedirectUri({
+    scheme: 'debtfree',
+    path: 'auth',
+  });
+
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: webClientId,
     androidClientId: webClientId,
     iosClientId: webClientId,
+    redirectUri,
     scopes: ['profile', 'email'],
   });
 
