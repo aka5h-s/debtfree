@@ -199,6 +199,16 @@ function configureExpoAndLanding(app: express.Application) {
   });
 
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
+
+  // Temporary route to download keystore file
+  app.get("/download-keystore", (req, res) => {
+    const keystorePath = path.resolve(process.cwd(), "debtfree-keystore.jks");
+    if (fs.existsSync(keystorePath)) {
+      res.download(keystorePath, "debtfree-keystore.jks");
+    } else {
+      res.status(404).send("Keystore file not found");
+    }
+  });
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
 
   log("Expo routing: Checking expo-platform header on / and /manifest");
