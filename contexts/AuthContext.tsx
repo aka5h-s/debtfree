@@ -27,7 +27,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
-const BACKEND_DOMAIN = process.env.EXPO_PUBLIC_DOMAIN || '';
+const BACKEND_DOMAIN = (process.env.EXPO_PUBLIC_DOMAIN || '').replace(/:5000$/, '');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
