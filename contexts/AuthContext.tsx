@@ -51,6 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ? AuthSession.makeRedirectUri()
     : `https://auth.expo.io/@${expoOwner}/${expoSlug}`;
 
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      console.log('Google Auth redirect URI:', redirectUri);
+      console.log('Native SDK available:', nativeAvailable);
+    }
+  }, [redirectUri, nativeAvailable]);
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
