@@ -13,7 +13,7 @@ import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -31,19 +31,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
-function isDevBuild(): boolean {
-  try {
-    const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-    return !!GoogleSignin;
-  } catch {
-    return false;
-  }
-}
+const IS_DEV_BUILD = Constants.executionEnvironment === ExecutionEnvironment.Bare;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [nativeAvailable] = useState(() => Platform.OS !== 'web' && isDevBuild());
+  const nativeAvailable = Platform.OS !== 'web' && IS_DEV_BUILD;
 
   const expoOwner = Constants.expoConfig?.owner || 'anonymous';
   const expoSlug = Constants.expoConfig?.slug || 'aka5h-s';
@@ -67,11 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (nativeAvailable) {
       try {
-        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-        GoogleSignin.configure({
+        const RNGoogleSignIn = require('@react-native-google-signin/google-signin');
+        RNGoogleSignIn.GoogleSignin.configure({
           webClientId: GOOGLE_WEB_CLIENT_ID,
         });
-      } catch {}
+      } catch (e) {
+        console.log('Native Google Sign-In config failed:', e);
+      }
     }
   }, [nativeAvailable]);
 
@@ -140,9 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (nativeAvailable) {
       try {
-        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-        await GoogleSignin.hasPlayServices();
-        const signInResult = await GoogleSignin.signIn();
+        const RNGoogleSignIn = require('@react-native-google-signin/google-signin');
+        await RNGoogleSignIn.GoogleSignin.hasPlayServices();
+        const signInResult = await RNGoogleSignIn.GoogleSignin.signIn();
         const idToken = signInResult?.data?.idToken;
         if (!idToken) {
           return { error: 'Could not get ID token from Google.' };
@@ -170,8 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (nativeAvailable) {
       try {
-        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-        await GoogleSignin.signOut();
+        const RNGoogleSignIn = require('@react-native-google-signin/google-signin');
+        await RNGoogleSignIn.GoogleSignin.signOut();
       } catch {}
     }
     await firebaseSignOut(auth);
