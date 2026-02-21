@@ -32,12 +32,12 @@ const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 
 const IS_DEV_BUILD = Constants.executionEnvironment === ExecutionEnvironment.Bare;
 
-const EXPO_PROXY_REDIRECT_URI = 'https://auth.expo.io/@aka5h/aka5h-s';
-
 function GoogleAuthInner({ onGooglePrompt }: { onGooglePrompt: (promptFn: () => Promise<AuthSession.AuthSessionResult | null>) => void }) {
+  const redirectUri = AuthSession.makeRedirectUri({ preferLocalhost: false });
+
   const [request, response, promptAsync] = useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
-    redirectUri: EXPO_PROXY_REDIRECT_URI,
+    redirectUri,
   });
 
   useEffect(() => {
