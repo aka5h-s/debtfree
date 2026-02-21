@@ -10,11 +10,8 @@ import {
   type User,
 } from '@/lib/firebase';
 import { Platform } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Crypto from 'expo-crypto';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-
-WebBrowser.maybeCompleteAuthSession();
+import GoogleSignInWebView from '@/components/GoogleSignInWebView';
 
 interface AuthContextValue {
   user: User | null;
@@ -28,12 +25,15 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+const FIREBASE_AUTH_DOMAIN = process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '';
 
 const IS_DEV_BUILD = Constants.executionEnvironment === ExecutionEnvironment.Bare;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showGoogleWebView, setShowGoogleWebView] = useState(false);
+  const [googleResolve, setGoogleResolve] = useState<((value: { error?: string }) => void) | null>(null);
   const nativeAvailable = Platform.OS !== 'web' && IS_DEV_BUILD;
 
   useEffect(() => {
@@ -83,6 +83,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleGoogleToken = useCallback(async (idToken: string) => {
+    setShowGoogleWebView(false);
+    try {
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, credential);
+      if (googleResolve) googleResolve({});
+    } catch (e: any) {
+      if (googleResolve) googleResolve({ error: e.message || 'Google sign-in failed' });
+    }
+    setGoogleResolve(null);
+  }, [googleResolve]);
+
+  const handleGoogleClose = useCallback(() => {
+    setShowGoogleWebView(false);
+    if (googleResolve) googleResolve({});
+    setGoogleResolve(null);
+  }, [googleResolve]);
+
   const signInGoogle = useCallback(async () => {
     if (!GOOGLE_WEB_CLIENT_ID) {
       return { error: 'Google sign-in is not configured.' };
@@ -120,48 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    try {
-      const firebaseAuthDomain = process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '';
-      const redirectUri = `https://${firebaseAuthDomain}/__/auth/handler`;
-      const nonce = Crypto.randomUUID();
-      const state = Crypto.randomUUID();
-
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&response_type=id_token` +
-        `&scope=${encodeURIComponent('openid profile email')}` +
-        `&nonce=${nonce}` +
-        `&state=${state}` +
-        `&prompt=select_account`;
-
-      console.log('Google OAuth redirect_uri:', redirectUri);
-
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-
-      console.log('Google OAuth result type:', result.type);
-      if ('url' in result) console.log('Google OAuth result url:', result.url);
-
-      if (result.type === 'success' && result.url) {
-        const url = result.url;
-        const fragment = url.split('#')[1] || '';
-        const query = url.includes('?') ? url.split('?')[1]?.split('#')[0] || '' : '';
-        const allParams = new URLSearchParams(fragment || query);
-        const idToken = allParams.get('id_token');
-        if (idToken) {
-          const credential = GoogleAuthProvider.credential(idToken);
-          await signInWithCredential(auth, credential);
-          return {};
-        }
-        return { error: 'Could not get sign-in token from Google.' };
-      } else if (result.type === 'cancel' || result.type === 'dismiss') {
-        return {};
-      }
-      return { error: 'Google sign-in was interrupted.' };
-    } catch (e: any) {
-      console.log('Google sign-in error:', e);
-      return { error: e.message || 'Google sign-in failed' };
-    }
+    return new Promise<{ error?: string }>((resolve) => {
+      setGoogleResolve(() => resolve);
+      setShowGoogleWebView(true);
+    });
   }, [nativeAvailable]);
 
   const signOut = useCallback(async () => {
@@ -178,7 +158,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut,
   }), [user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {Platform.OS !== 'web' && (
+        <GoogleSignInWebView
+          visible={showGoogleWebView}
+          onToken={handleGoogleToken}
+          onClose={handleGoogleClose}
+          clientId={GOOGLE_WEB_CLIENT_ID}
+          firebaseAuthDomain={FIREBASE_AUTH_DOMAIN}
+        />
+      )}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
