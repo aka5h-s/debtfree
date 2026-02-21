@@ -9,8 +9,13 @@ import {
   GoogleAuthProvider,
   type User,
 } from '@/lib/firebase';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import { useIdTokenAuthRequest } from 'expo-auth-session/providers/google';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextValue {
   user: User | null;
@@ -27,10 +32,31 @@ const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 
 const IS_DEV_BUILD = Constants.executionEnvironment === ExecutionEnvironment.Bare;
 
+function GoogleAuthInner({ onGooglePrompt }: { onGooglePrompt: (promptFn: () => Promise<AuthSession.AuthSessionResult | null>) => void }) {
+  const redirectUri = AuthSession.makeRedirectUri({ preferLocalhost: false });
+
+  const [request, response, promptAsync] = useIdTokenAuthRequest({
+    clientId: GOOGLE_WEB_CLIENT_ID,
+    redirectUri,
+  });
+
+  useEffect(() => {
+    if (request) {
+      onGooglePrompt(() => promptAsync());
+    }
+  }, [request]);
+
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const nativeAvailable = Platform.OS !== 'web' && IS_DEV_BUILD;
+  const useExpoAuth = Platform.OS !== 'web' && !IS_DEV_BUILD;
+
+  const googlePromptRef = React.useRef<(() => Promise<AuthSession.AuthSessionResult | null>) | null>(null);
+  const pendingGoogleResolveRef = React.useRef<((result: { error?: string }) => void) | null>(null);
 
   useEffect(() => {
     if (nativeAvailable) {
@@ -51,6 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
     return unsub;
+  }, []);
+
+  const handleGooglePrompt = useCallback((promptFn: () => Promise<AuthSession.AuthSessionResult | null>) => {
+    googlePromptRef.current = promptFn;
   }, []);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
@@ -98,28 +128,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (!nativeAvailable) {
-      Alert.alert(
-        'APK Required',
-        'Google Sign-In uses the native SDK and requires the built APK. Please use email login in Expo Go, or install the APK to use Google Sign-In.',
-        [{ text: 'OK' }]
-      );
-      return { error: 'Google Sign-In requires the built APK.' };
+    if (nativeAvailable) {
+      try {
+        const RNGoogleSignIn = require('@react-native-google-signin/google-signin');
+        await RNGoogleSignIn.GoogleSignin.hasPlayServices();
+        const signInResult = await RNGoogleSignIn.GoogleSignin.signIn();
+        const idToken = signInResult?.data?.idToken;
+        if (!idToken) {
+          return { error: 'Could not get ID token from Google.' };
+        }
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
+        return {};
+      } catch (e: any) {
+        if (e.code === 'SIGN_IN_CANCELLED') return {};
+        return { error: e.message || 'Google sign-in failed' };
+      }
+    }
+
+    if (!googlePromptRef.current) {
+      return { error: 'Google Sign-In is still loading. Please try again.' };
     }
 
     try {
-      const RNGoogleSignIn = require('@react-native-google-signin/google-signin');
-      await RNGoogleSignIn.GoogleSignin.hasPlayServices();
-      const signInResult = await RNGoogleSignIn.GoogleSignin.signIn();
-      const idToken = signInResult?.data?.idToken;
-      if (!idToken) {
-        return { error: 'Could not get ID token from Google.' };
+      const result = await googlePromptRef.current();
+      if (!result) return { error: 'Google sign-in was interrupted.' };
+
+      if (result.type === 'success') {
+        const { params } = result;
+        const idToken = params?.id_token;
+        if (idToken) {
+          const credential = GoogleAuthProvider.credential(idToken);
+          await signInWithCredential(auth, credential);
+          return {};
+        }
+        return { error: 'Could not get sign-in token from Google.' };
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
+        return {};
       }
-      const credential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, credential);
-      return {};
+      return { error: 'Google sign-in was interrupted.' };
     } catch (e: any) {
-      if (e.code === 'SIGN_IN_CANCELLED') return {};
+      console.log('Expo Auth Google sign-in error:', e);
       return { error: e.message || 'Google sign-in failed' };
     }
   }, [nativeAvailable]);
@@ -138,7 +187,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut,
   }), [user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {useExpoAuth && <GoogleAuthInner onGooglePrompt={handleGooglePrompt} />}
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
