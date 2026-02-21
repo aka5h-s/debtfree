@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
+import { Icon } from '@/components/Icon';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { NeoPopButton } from '@/components/NeoPopButton';
@@ -46,7 +46,7 @@ export default function AddTransactionScreen() {
             <Text style={styles.personLabel}>with {personName}</Text>
           </View>
           <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={Colors.white} />
+            <Icon name="close" size={24} color={Colors.white} />
           </Pressable>
         </View>
 

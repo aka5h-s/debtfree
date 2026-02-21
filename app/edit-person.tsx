@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
@@ -47,7 +47,7 @@ export default function EditPersonScreen() {
             <Text style={styles.title}>Edit Person</Text>
           </View>
           <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={Colors.white} />
+            <Icon name="close" size={24} color={Colors.white} />
           </Pressable>
         </View>
 

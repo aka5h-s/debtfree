@@ -2,8 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, Platform, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Icon } from '@/components/Icon';
 import Animated, { useAnimatedStyle, useSharedValue, interpolate, Extrapolation } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
@@ -127,7 +127,7 @@ export default function CardsScreen() {
       </View>
 
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color={Colors.textMuted} />
+        <Icon name="search" size={18} color={Colors.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search cards..."
@@ -137,14 +137,14 @@ export default function CardsScreen() {
         />
         {search.length > 0 && (
           <Pressable onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+            <Icon name="close-circle" size={18} color={Colors.textMuted} />
           </Pressable>
         )}
       </View>
 
       {filteredCards.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="card-outline" size={56} color={Colors.textMuted} />
+          <Icon name="card-outline" size={56} color={Colors.textMuted} />
           <Text style={styles.emptyText}>{search ? 'No cards found' : 'No cards yet'}</Text>
           <Text style={styles.emptySubtext}>Store your card details securely</Text>
           {!search && (
@@ -184,13 +184,13 @@ export default function CardsScreen() {
 
           {copiedLabel && (
             <View style={styles.copiedBanner}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.positive} />
+              <Icon name="checkmark-circle" size={16} color={Colors.positive} />
               <Text style={styles.copiedText}>{copiedLabel} copied</Text>
             </View>
           )}
 
           <View style={styles.hint}>
-            <Ionicons name="hand-left-outline" size={14} color={Colors.textMuted} />
+            <Icon name="hand-left-outline" size={14} color={Colors.textMuted} />
             <Text style={styles.hintText}>Swipe to browse cards. Tap details to copy.</Text>
           </View>
         </View>
@@ -199,7 +199,7 @@ export default function CardsScreen() {
       {filteredCards.length > 0 && (
         <View style={[styles.addFab, { bottom: Platform.OS === 'web' ? 84 + 34 + 16 : 100 }]}>
           <NeoPopTiltedButton onPress={() => router.push('/add-card')} showShimmer>
-            <Ionicons name="add" size={24} color="#000" />
+            <Icon name="add" size={24} color="#000" />
           </NeoPopTiltedButton>
         </View>
       )}

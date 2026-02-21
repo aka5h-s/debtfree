@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, ActivityIndicator, Platform, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -33,7 +33,7 @@ export default function TransactionHistoryScreen() {
             <Text style={styles.title}>Edit History</Text>
           </View>
           <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={Colors.white} />
+            <Icon name="close" size={24} color={Colors.white} />
           </Pressable>
         </View>
 
@@ -41,7 +41,7 @@ export default function TransactionHistoryScreen() {
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
         ) : history.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={40} color={Colors.textMuted} />
+            <Icon name="document-text-outline" size={40} color={Colors.textMuted} />
             <Text style={styles.emptyText}>No edit history</Text>
             <Text style={styles.emptySubtext}>This transaction has not been modified</Text>
           </View>

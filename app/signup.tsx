@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
+import { Icon } from '@/components/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { NeoPopButton } from '@/components/NeoPopButton';
@@ -57,7 +57,7 @@ export default function SignupScreen() {
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 40 }]} keyboardShouldPersistTaps="handled">
         <View style={styles.logoSection}>
           <View style={styles.logoIcon}>
-            <Ionicons name="wallet" size={40} color={Colors.primary} />
+            <Icon name="wallet" size={40} color={Colors.primary} />
           </View>
           <ShimmerText text="DebtFree" style={styles.appName} />
           <Text style={styles.tagline}>Create your account</Text>
@@ -70,7 +70,7 @@ export default function SignupScreen() {
 
               {error ? (
                 <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle" size={16} color={Colors.negative} />
+                  <Icon name="alert-circle" size={16} color={Colors.negative} />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               ) : null}
@@ -99,7 +99,7 @@ export default function SignupScreen() {
                   autoCapitalize="none"
                 />
                 <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.textMuted} />
+                  <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.textMuted} />
                 </Pressable>
               </View>
 
@@ -138,7 +138,7 @@ export default function SignupScreen() {
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
                     <>
-                      <Ionicons name="logo-google" size={20} color={Colors.white} />
+                      <Icon name="logo-google" size={20} color={Colors.white} />
                       <Text style={styles.googleText}>CONTINUE WITH GOOGLE</Text>
                     </>
                   )}

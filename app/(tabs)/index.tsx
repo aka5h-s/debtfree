@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopCard } from '@/components/NeoPopCard';
@@ -37,7 +37,7 @@ function PersonItem({ person, balance }: { person: any; balance: number }) {
             <Text style={[styles.personBalance, { color: statusColor }]}>
               {balance === 0 ? formatCurrency(0) : formatCurrency(Math.abs(balance))}
             </Text>
-            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+            <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
           </View>
         </View>
       </NeoPopCard>
@@ -116,7 +116,7 @@ export default function DashboardScreen() {
 
       {people.length > 0 && (
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={18} color={Colors.textMuted} />
+          <Icon name="search" size={18} color={Colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by name or phone..."
@@ -126,7 +126,7 @@ export default function DashboardScreen() {
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+              <Icon name="close-circle" size={18} color={Colors.textMuted} />
             </Pressable>
           )}
         </View>
@@ -136,7 +136,7 @@ export default function DashboardScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="people-outline" size={48} color={Colors.textMuted} />
+      <Icon name="people-outline" size={48} color={Colors.textMuted} />
       <Text style={styles.emptyText}>Your circle is empty</Text>
       <Text style={styles.emptySubtext}>Add someone to start tracking</Text>
       <View style={{ marginTop: 20, width: '70%' }}>
@@ -164,7 +164,7 @@ export default function DashboardScreen() {
       {people.length > 0 && (
         <View style={[styles.fab, { bottom: Platform.OS === 'web' ? 84 + 34 + 16 : 100 }]}>
           <NeoPopTiltedButton onPress={() => router.push('/add-person')} showShimmer>
-            <Ionicons name="add" size={24} color="#000" />
+            <Icon name="add" size={24} color="#000" />
           </NeoPopTiltedButton>
         </View>
       )}

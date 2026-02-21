@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icon } from '@/components/Icon';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
@@ -55,7 +55,7 @@ export default function AddCardScreen() {
             <Text style={styles.title}>Add Card</Text>
           </View>
           <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={Colors.white} />
+            <Icon name="close" size={24} color={Colors.white} />
           </Pressable>
         </View>
 
@@ -145,7 +145,7 @@ export default function AddCardScreen() {
                 if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
             >
-              {color === c.value && <Ionicons name="checkmark" size={16} color="#fff" />}
+              {color === c.value && <Icon name="checkmark" size={16} color="#fff" />}
             </Pressable>
           ))}
         </View>

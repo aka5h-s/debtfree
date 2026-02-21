@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import type { CreditCard, CardType } from '@/lib/types';
 import { formatCardNumber } from '@/lib/formatters';
 
@@ -34,7 +34,7 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
     <View style={[styles.card, { backgroundColor: card.color }]}>
       <View style={styles.cardOverlay} />
       <View style={styles.topRow}>
-        <MaterialCommunityIcons name={getCardTypeIcon(card.cardType)} size={32} color="rgba(255,255,255,0.9)" />
+        <Icon family="material-community" name={getCardTypeIcon(card.cardType)} size={32} color="rgba(255,255,255,0.9)" />
         <Text style={styles.cardNameTop}>{card.cardName}</Text>
       </View>
 

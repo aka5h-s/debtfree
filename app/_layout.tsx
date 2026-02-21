@@ -8,7 +8,8 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
 import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Font from "expo-font";
+import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -68,7 +69,7 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,
@@ -77,15 +78,23 @@ export default function RootLayout() {
     DMSerifDisplay_400Regular,
     ...Ionicons.font,
     ...MaterialCommunityIcons.font,
+    ...Feather.font,
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontError) {
+      console.error('Font loading error:', fontError);
+    }
+    if (fontsLoaded || fontError) {
+      const iconFonts = ['ionicons', 'material-community', 'feather'];
+      iconFonts.forEach(name => {
+        console.log(`Font "${name}" loaded:`, Font.isLoaded(name));
+      });
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <ErrorBoundary>

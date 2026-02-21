@@ -2,8 +2,8 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, FlatList, Pressable, Alert, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopCard } from '@/components/NeoPopCard';
@@ -32,13 +32,13 @@ function TransactionItem({ tx, onEdit, onDelete, onHistory }: { tx: Transaction;
             <Text style={styles.txDate}>{formatRelativeDate(tx.date)}</Text>
             <View style={styles.txActions}>
               <Pressable onPress={onHistory} style={styles.txActionBtn} hitSlop={8}>
-                <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+                <Icon name="time-outline" size={16} color={Colors.textMuted} />
               </Pressable>
               <Pressable onPress={onEdit} style={styles.txActionBtn} hitSlop={8}>
-                <Ionicons name="create-outline" size={16} color={Colors.textMuted} />
+                <Icon name="create-outline" size={16} color={Colors.textMuted} />
               </Pressable>
               <Pressable onPress={onDelete} style={styles.txActionBtn} hitSlop={8}>
-                <Ionicons name="trash-outline" size={16} color={Colors.negative} />
+                <Icon name="trash-outline" size={16} color={Colors.negative} />
               </Pressable>
             </View>
           </View>
@@ -64,7 +64,7 @@ export default function PersonDetailScreen() {
     return (
       <View style={[styles.container, { paddingTop: topPad + 16 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          <Icon name="arrow-back" size={24} color={Colors.white} />
         </Pressable>
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>Person not found</Text>
@@ -106,14 +106,14 @@ export default function PersonDetailScreen() {
     <View>
       <View style={[styles.topBar, { paddingTop: topPad + 12 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          <Icon name="arrow-back" size={24} color={Colors.white} />
         </Pressable>
         <View style={styles.topBarRight}>
           <Pressable onPress={() => router.push({ pathname: '/edit-person', params: { personId: person.id } })} style={styles.backBtn}>
-            <Ionicons name="create-outline" size={22} color={Colors.textSecondary} />
+            <Icon name="create-outline" size={22} color={Colors.textSecondary} />
           </Pressable>
           <Pressable onPress={handleDeletePerson} style={styles.backBtn}>
-            <Ionicons name="trash-outline" size={22} color={Colors.negative} />
+            <Icon name="trash-outline" size={22} color={Colors.negative} />
           </Pressable>
         </View>
       </View>
@@ -165,7 +165,7 @@ export default function PersonDetailScreen() {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
+            <Icon name="receipt-outline" size={40} color={Colors.textMuted} />
             <Text style={styles.emptyText}>No transactions yet</Text>
           </View>
         }

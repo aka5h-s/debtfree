@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View, Platform, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { NeoPopCard } from '@/components/NeoPopCard';
 import { NeoPopButton } from '@/components/NeoPopButton';
@@ -72,7 +72,7 @@ export default function ProfileScreen() {
               </View>
             </View>
             <View style={styles.syncBadge}>
-              <Ionicons name="cloud-done" size={14} color={Colors.positive} />
+              <Icon name="cloud-done" size={14} color={Colors.positive} />
               <Text style={styles.syncText}>Synced with Firebase</Text>
             </View>
           </View>
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <NeoPopButton onPress={handleSignOut} variant="secondary">
           <View style={styles.signOutBtn}>
-            <Ionicons name="log-out-outline" size={20} color={Colors.negative} />
+            <Icon name="log-out-outline" size={20} color={Colors.negative} />
             <Text style={styles.signOutText}>SIGN OUT</Text>
           </View>
         </NeoPopButton>

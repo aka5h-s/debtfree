@@ -1,25 +1,25 @@
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
+import { NativeTabs, Icon as NativeIcon, Label } from "expo-router/unstable-native-tabs";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import Colors from "@/constants/colors";
+import { Icon } from "@/components/Icon";
 
 function NativeTabLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
+        <NativeIcon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
         <Label>Dashboard</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="cards">
-        <Icon sf={{ default: "creditcard", selected: "creditcard.fill" }} />
+        <NativeIcon sf={{ default: "creditcard", selected: "creditcard.fill" }} />
         <Label>Cards</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="cloud">
-        <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
+        <NativeIcon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
         <Label>Profile</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
@@ -57,7 +57,7 @@ function ClassicTabLayout() {
         options={{
           title: "Dashboard",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart" size={size} color={color} />
+            <Icon name="stats-chart" size={size} color={color} />
           ),
         }}
       />
@@ -66,7 +66,7 @@ function ClassicTabLayout() {
         options={{
           title: "Cards",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="card" size={size} color={color} />
+            <Icon name="card" size={size} color={color} />
           ),
         }}
       />
@@ -75,7 +75,7 @@ function ClassicTabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
+            <Icon name="person-circle" size={size} color={color} />
           ),
         }}
       />
