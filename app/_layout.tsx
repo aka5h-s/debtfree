@@ -8,8 +8,6 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
 import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
-import * as Font from "expo-font";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
