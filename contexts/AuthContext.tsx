@@ -121,42 +121,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const expoOwner = Constants.expoConfig?.owner || 'anonymous';
-      const expoSlug = Constants.expoConfig?.slug || 'aka5h-s';
-      const proxyRedirectUri = `https://auth.expo.io/@${expoOwner}/${expoSlug}`;
-      const appReturnUrl = `exp://wdh7sre-aka5h-8081.exp.direct/--/expo-auth-session`;
+      const backendDomain = (process.env.EXPO_PUBLIC_DOMAIN || '').replace(/:5000$/, '');
+      const redirectUri = `https://${backendDomain}/auth/google/callback`;
       const nonce = Crypto.randomUUID();
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
-        `&redirect_uri=${encodeURIComponent(proxyRedirectUri)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&response_type=id_token` +
         `&scope=${encodeURIComponent('openid profile email')}` +
         `&nonce=${nonce}` +
         `&prompt=select_account`;
 
-      console.log('Google OAuth redirect_uri:', proxyRedirectUri);
-      console.log('App return URL:', appReturnUrl);
+      console.log('Google OAuth redirect_uri:', redirectUri);
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, appReturnUrl);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'debtfree://auth');
 
-      console.log('Google OAuth result:', JSON.stringify(result));
+      console.log('Google OAuth result type:', result.type);
+      if ('url' in result) console.log('Google OAuth result url:', result.url);
 
       if (result.type === 'success' && result.url) {
         const url = result.url;
-        const fragment = url.split('#')[1];
-        if (fragment) {
-          const params = new URLSearchParams(fragment);
-          const idToken = params.get('id_token');
-          if (idToken) {
-            const credential = GoogleAuthProvider.credential(idToken);
-            await signInWithCredential(auth, credential);
-            return {};
-          }
-        }
-        const query = url.split('?')[1];
-        if (query) {
-          const params = new URLSearchParams(query);
+        const queryString = url.includes('?') ? url.split('?')[1] : '';
+        if (queryString) {
+          const params = new URLSearchParams(queryString.split('#')[0]);
           const idToken = params.get('id_token');
           if (idToken) {
             const credential = GoogleAuthProvider.credential(idToken);
