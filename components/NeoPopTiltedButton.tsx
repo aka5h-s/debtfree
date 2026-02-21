@@ -41,9 +41,11 @@ export function NeoPopTiltedButton({
     ],
   }));
 
-  const plunkStyle = useAnimatedStyle(() => ({
-    height: Math.max(0, 5 - pressed.value * 4),
-  }));
+  const plunkStyle = useAnimatedStyle(() => {
+    'worklet';
+    const h = 5 - pressed.value * 4;
+    return { height: h > 0 ? h : 0 };
+  });
 
   const shimmerStyle = useAnimatedStyle(() => ({
     opacity: shimmerOpacity.value,
