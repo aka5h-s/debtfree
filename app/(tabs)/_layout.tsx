@@ -5,7 +5,7 @@ import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import React from "react";
 import Colors from "@/constants/colors";
-import { Icon } from "@/components/Icon";
+import { Icon as AppIcon } from "@/components/Icon";
 
 function NativeTabLayout() {
   return (
@@ -57,7 +57,7 @@ function ClassicTabLayout() {
         options={{
           title: "Dashboard",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="stats-chart" size={size} color={color} />
+            <AppIcon name="stats-chart" size={size} color={color} />
           ),
         }}
       />
@@ -66,7 +66,7 @@ function ClassicTabLayout() {
         options={{
           title: "Cards",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="card" size={size} color={color} />
+            <AppIcon name="card" size={size} color={color} />
           ),
         }}
       />
@@ -75,7 +75,7 @@ function ClassicTabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="person-circle" size={size} color={color} />
+            <AppIcon name="person-circle" size={size} color={color} />
           ),
         }}
       />
