@@ -58,76 +58,83 @@ const db = getFirestore(app);
 export { auth, db, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, firebaseSignOut, onAuthStateChanged };
 export type { User };
 
-function userDoc(userId: string) {
-  return doc(db, 'users', userId);
+function emailKey(email: string): string {
+  return email.toLowerCase().replace(/[.#$/\[\]]/g, '_');
 }
 
-function userCollection(userId: string, col: string) {
-  return collection(db, 'users', userId, col);
+export async function savePerson(userEmail: string, person: Person): Promise<void> {
+  const key = emailKey(userEmail);
+  await setDoc(doc(db, 'users', key, 'people', person.id), person);
 }
 
-export async function savePerson(userId: string, person: Person): Promise<void> {
-  await setDoc(doc(db, 'users', userId, 'people', person.id), person);
-}
-
-export async function getPeople(userId: string): Promise<Person[]> {
-  const snap = await getDocs(collection(db, 'users', userId, 'people'));
+export async function getPeople(userEmail: string): Promise<Person[]> {
+  const key = emailKey(userEmail);
+  const snap = await getDocs(collection(db, 'users', key, 'people'));
   const items: Person[] = [];
   snap.forEach(d => items.push(d.data() as Person));
   return items.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function deletePerson(userId: string, personId: string): Promise<void> {
-  await deleteDoc(doc(db, 'users', userId, 'people', personId));
+export async function deletePerson(userEmail: string, personId: string): Promise<void> {
+  const key = emailKey(userEmail);
+  await deleteDoc(doc(db, 'users', key, 'people', personId));
   const txSnap = await getDocs(
-    query(collection(db, 'users', userId, 'transactions'), where('personId', '==', personId))
+    query(collection(db, 'users', key, 'transactions'), where('personId', '==', personId))
   );
   const batch = writeBatch(db);
   txSnap.forEach(d => batch.delete(d.ref));
   await batch.commit();
 }
 
-export async function saveTransaction(userId: string, tx: Transaction): Promise<void> {
-  await setDoc(doc(db, 'users', userId, 'transactions', tx.id), tx);
+export async function saveTransaction(userEmail: string, tx: Transaction): Promise<void> {
+  const key = emailKey(userEmail);
+  await setDoc(doc(db, 'users', key, 'transactions', tx.id), tx);
 }
 
-export async function getTransactions(userId: string): Promise<Transaction[]> {
-  const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
+export async function getTransactions(userEmail: string): Promise<Transaction[]> {
+  const key = emailKey(userEmail);
+  const snap = await getDocs(collection(db, 'users', key, 'transactions'));
   const items: Transaction[] = [];
   snap.forEach(d => items.push(d.data() as Transaction));
   return items.sort((a, b) => b.date - a.date);
 }
 
-export async function deleteTransaction(userId: string, txId: string): Promise<void> {
-  await deleteDoc(doc(db, 'users', userId, 'transactions', txId));
+export async function deleteTransaction(userEmail: string, txId: string): Promise<void> {
+  const key = emailKey(userEmail);
+  await deleteDoc(doc(db, 'users', key, 'transactions', txId));
 }
 
-export async function addTransactionHistory(userId: string, entry: TransactionHistory): Promise<void> {
-  await setDoc(doc(db, 'users', userId, 'transactionHistory', entry.id), entry);
+export async function addTransactionHistory(userEmail: string, entry: TransactionHistory): Promise<void> {
+  const key = emailKey(userEmail);
+  await setDoc(doc(db, 'users', key, 'transactionHistory', entry.id), entry);
 }
 
-export async function getHistoryForTransaction(userId: string, txId: string): Promise<TransactionHistory[]> {
+export async function getHistoryForTransaction(userEmail: string, txId: string): Promise<TransactionHistory[]> {
+  const key = emailKey(userEmail);
   const snap = await getDocs(
-    query(collection(db, 'users', userId, 'transactionHistory'), where('transactionId', '==', txId))
+    query(collection(db, 'users', key, 'transactionHistory'), where('transactionId', '==', txId))
   );
   const items: TransactionHistory[] = [];
   snap.forEach(d => items.push(d.data() as TransactionHistory));
   return items.sort((a, b) => b.changedAt - a.changedAt);
 }
 
-export async function saveCard(userId: string, card: CreditCard): Promise<void> {
-  await setDoc(doc(db, 'users', userId, 'cards', card.id), card);
+export async function saveCard(userEmail: string, card: CreditCard): Promise<void> {
+  const key = emailKey(userEmail);
+  await setDoc(doc(db, 'users', key, 'cards', card.id), card);
 }
 
-export async function getCards(userId: string): Promise<CreditCard[]> {
-  const snap = await getDocs(collection(db, 'users', userId, 'cards'));
+export async function getCards(userEmail: string): Promise<CreditCard[]> {
+  const key = emailKey(userEmail);
+  const snap = await getDocs(collection(db, 'users', key, 'cards'));
   const items: CreditCard[] = [];
   snap.forEach(d => items.push(d.data() as CreditCard));
   return items.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function deleteCard(userId: string, cardId: string): Promise<void> {
-  await deleteDoc(doc(db, 'users', userId, 'cards', cardId));
+export async function deleteCard(userEmail: string, cardId: string): Promise<void> {
+  const key = emailKey(userEmail);
+  await deleteDoc(doc(db, 'users', key, 'cards', cardId));
 }
 
 export function calculatePersonBalance(txs: Transaction[]): number {
