@@ -7,10 +7,21 @@ const featherGlyphMap: Record<string, number> = require('@expo/vector-icons/buil
 
 type IconFamily = 'ionicons' | 'material-community' | 'feather';
 
+const isAndroid = Platform.OS === 'android';
+
 const FONT_MAP: Record<IconFamily, { glyphMap: Record<string, number>; fontFamily: string }> = {
-  ionicons: { glyphMap: ioniconsGlyphMap, fontFamily: 'ionicons' },
-  'material-community': { glyphMap: materialCommunityGlyphMap, fontFamily: 'material-community' },
-  feather: { glyphMap: featherGlyphMap, fontFamily: 'feather' },
+  ionicons: {
+    glyphMap: ioniconsGlyphMap,
+    fontFamily: isAndroid ? 'Ionicons' : 'ionicons',
+  },
+  'material-community': {
+    glyphMap: materialCommunityGlyphMap,
+    fontFamily: isAndroid ? 'Material Design Icons' : 'material-community',
+  },
+  feather: {
+    glyphMap: featherGlyphMap,
+    fontFamily: isAndroid ? 'Feather' : 'feather',
+  },
 };
 
 interface IconProps {
