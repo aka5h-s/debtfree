@@ -121,9 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const backendDomain = (process.env.EXPO_PUBLIC_DOMAIN || '').replace(/:5000$/, '');
-      const redirectUri = `https://${backendDomain}/auth/google/callback`;
+      const firebaseAuthDomain = process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '';
+      const redirectUri = `https://${firebaseAuthDomain}/__/auth/handler`;
       const nonce = Crypto.randomUUID();
+      const state = Crypto.randomUUID();
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(GOOGLE_WEB_CLIENT_ID)}` +
@@ -131,26 +132,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `&response_type=id_token` +
         `&scope=${encodeURIComponent('openid profile email')}` +
         `&nonce=${nonce}` +
+        `&state=${state}` +
         `&prompt=select_account`;
 
       console.log('Google OAuth redirect_uri:', redirectUri);
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'debtfree://auth');
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
       console.log('Google OAuth result type:', result.type);
       if ('url' in result) console.log('Google OAuth result url:', result.url);
 
       if (result.type === 'success' && result.url) {
         const url = result.url;
-        const queryString = url.includes('?') ? url.split('?')[1] : '';
-        if (queryString) {
-          const params = new URLSearchParams(queryString.split('#')[0]);
-          const idToken = params.get('id_token');
-          if (idToken) {
-            const credential = GoogleAuthProvider.credential(idToken);
-            await signInWithCredential(auth, credential);
-            return {};
-          }
+        const fragment = url.split('#')[1] || '';
+        const query = url.includes('?') ? url.split('?')[1]?.split('#')[0] || '' : '';
+        const allParams = new URLSearchParams(fragment || query);
+        const idToken = allParams.get('id_token');
+        if (idToken) {
+          const credential = GoogleAuthProvider.credential(idToken);
+          await signInWithCredential(auth, credential);
+          return {};
         }
         return { error: 'Could not get sign-in token from Google.' };
       } else if (result.type === 'cancel' || result.type === 'dismiss') {
