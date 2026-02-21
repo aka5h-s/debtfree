@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import type { Person, Transaction, TransactionHistory, CreditCard } from '@/lib/types';
 import * as FB from '@/lib/firebase';
-import * as Local from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateId } from '@/lib/formatters';
 
@@ -37,35 +36,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const email = user?.email || null;
+  const uid = user?.uid;
 
   const reload = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      if (email) {
-        const [p, t, c] = await Promise.all([
-          FB.getPeople(email),
-          FB.getTransactions(email),
-          FB.getCards(email),
-        ]);
-        setPeople(p);
-        setTransactions(t);
-        setCards(c);
-      } else {
-        const [p, t, c] = await Promise.all([
-          Local.getPeople(),
-          Local.getTransactions(),
-          Local.getCards(),
-        ]);
-        setPeople(p.sort((a, b) => b.createdAt - a.createdAt));
-        setTransactions(t.sort((a, b) => b.date - a.date));
-        setCards(c.sort((a, b) => b.createdAt - a.createdAt));
-      }
-    } catch (e) {
-      console.log('Data reload error:', e);
+    if (!uid) {
+      setPeople([]);
+      setTransactions([]);
+      setCards([]);
+      setIsLoading(false);
+      return;
     }
+    setIsLoading(true);
+    const [p, t, c] = await Promise.all([
+      FB.getPeople(uid),
+      FB.getTransactions(uid),
+      FB.getCards(uid),
+    ]);
+    setPeople(p);
+    setTransactions(t);
+    setCards(c);
     setIsLoading(false);
-  }, [email]);
+  }, [uid]);
 
   useEffect(() => {
     reload();
@@ -98,47 +89,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [people, transactions]);
 
   const addPerson = useCallback(async (name: string, phone: string, notes: string) => {
+    if (!uid) throw new Error('Not authenticated');
     const person: Person = { id: generateId(), name, phone, notes, createdAt: Date.now() };
-    if (email) {
-      await FB.savePerson(email, person);
-    } else {
-      await Local.savePerson(person);
-    }
+    await FB.savePerson(uid, person);
     setPeople(prev => [person, ...prev]);
     return person;
-  }, [email]);
+  }, [uid]);
 
   const updatePerson = useCallback(async (person: Person) => {
-    if (email) {
-      await FB.savePerson(email, person);
-    } else {
-      await Local.savePerson(person);
-    }
+    if (!uid) throw new Error('Not authenticated');
+    await FB.savePerson(uid, person);
     setPeople(prev => prev.map(p => p.id === person.id ? person : p));
-  }, [email]);
+  }, [uid]);
 
   const removePerson = useCallback(async (id: string) => {
-    if (email) {
-      await FB.deletePerson(email, id);
-    } else {
-      await Local.deletePerson(id);
-    }
+    if (!uid) throw new Error('Not authenticated');
+    await FB.deletePerson(uid, id);
     setPeople(prev => prev.filter(p => p.id !== id));
     setTransactions(prev => prev.filter(t => t.personId !== id));
-  }, [email]);
+  }, [uid]);
 
   const addTransaction = useCallback(async (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string) => {
+    if (!uid) throw new Error('Not authenticated');
     const tx: Transaction = { id: generateId(), personId, amount, direction, date: Date.now(), note, createdAt: Date.now() };
-    if (email) {
-      await FB.saveTransaction(email, tx);
-    } else {
-      await Local.saveTransaction(tx);
-    }
+    await FB.saveTransaction(uid, tx);
     setTransactions(prev => [tx, ...prev]);
     return tx;
-  }, [email]);
+  }, [uid]);
 
   const updateTransaction = useCallback(async (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string) => {
+    if (!uid) throw new Error('Not authenticated');
     const historyEntry: TransactionHistory = {
       id: generateId(),
       transactionId: tx.id,
@@ -147,61 +127,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
       previousNote: tx.note,
       changedAt: Date.now(),
     };
+    await FB.addTransactionHistory(uid, historyEntry);
     const updated = { ...tx, amount: newAmount, direction: newDirection, note: newNote };
-    if (email) {
-      await FB.addTransactionHistory(email, historyEntry);
-      await FB.saveTransaction(email, updated);
-    } else {
-      await Local.addTransactionHistory(historyEntry);
-      await Local.saveTransaction(updated);
-    }
+    await FB.saveTransaction(uid, updated);
     setTransactions(prev => prev.map(t => t.id === tx.id ? updated : t));
-  }, [email]);
+  }, [uid]);
 
   const removeTransaction = useCallback(async (id: string) => {
-    if (email) {
-      await FB.deleteTransaction(email, id);
-    } else {
-      await Local.deleteTransaction(id);
-    }
+    if (!uid) throw new Error('Not authenticated');
+    await FB.deleteTransaction(uid, id);
     setTransactions(prev => prev.filter(t => t.id !== id));
-  }, [email]);
+  }, [uid]);
 
   const getTransactionHistory = useCallback(async (txId: string) => {
-    if (email) {
-      return FB.getHistoryForTransaction(email, txId);
-    }
-    return Local.getHistoryForTransaction(txId);
-  }, [email]);
+    if (!uid) return [];
+    return FB.getHistoryForTransaction(uid, txId);
+  }, [uid]);
 
   const addCard = useCallback(async (data: Omit<CreditCard, 'id' | 'createdAt'>) => {
+    if (!uid) throw new Error('Not authenticated');
     const card: CreditCard = { ...data, id: generateId(), createdAt: Date.now() };
-    if (email) {
-      await FB.saveCard(email, card);
-    } else {
-      await Local.saveCard(card);
-    }
+    await FB.saveCard(uid, card);
     setCards(prev => [card, ...prev]);
     return card;
-  }, [email]);
+  }, [uid]);
 
   const updateCard = useCallback(async (card: CreditCard) => {
-    if (email) {
-      await FB.saveCard(email, card);
-    } else {
-      await Local.saveCard(card);
-    }
+    if (!uid) throw new Error('Not authenticated');
+    await FB.saveCard(uid, card);
     setCards(prev => prev.map(c => c.id === card.id ? card : c));
-  }, [email]);
+  }, [uid]);
 
   const removeCard = useCallback(async (id: string) => {
-    if (email) {
-      await FB.deleteCard(email, id);
-    } else {
-      await Local.deleteCard(id);
-    }
+    if (!uid) throw new Error('Not authenticated');
+    await FB.deleteCard(uid, id);
     setCards(prev => prev.filter(c => c.id !== id));
-  }, [email]);
+  }, [uid]);
 
   const value = useMemo(() => ({
     people, transactions, cards, isLoading, reload,

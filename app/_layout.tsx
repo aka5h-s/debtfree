@@ -30,15 +30,18 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const segments = useSegments();
 
   useEffect(() => {
+    if (isLoading) return;
     const inAuth = segments[0] === 'login' || segments[0] === 'signup';
-    if (user && inAuth) {
+    if (!user && !inAuth) {
+      router.replace('/login');
+    } else if (user && inAuth) {
       router.replace('/');
     }
-  }, [user, segments]);
+  }, [user, isLoading, segments]);
 
   return <>{children}</>;
 }

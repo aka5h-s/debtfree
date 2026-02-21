@@ -101,14 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await createUserWithEmailAndPassword(auth, email, password);
       return {};
     } catch (e: any) {
-      console.log('Sign up error:', e.code, e.message);
       let msg = 'Sign up failed';
       if (e.code === 'auth/email-already-in-use') msg = 'Email already in use';
       else if (e.code === 'auth/invalid-email') msg = 'Invalid email address';
       else if (e.code === 'auth/weak-password') msg = 'Password must be at least 6 characters';
-      else if (e.code === 'auth/operation-not-allowed') msg = 'Email/password sign-in is not enabled. Please enable it in your Firebase Console under Authentication > Sign-in method.';
-      else if (e.code === 'auth/network-request-failed') msg = 'Network error. Please check your connection and try again.';
-      else if (e.message) msg = e.message;
       return { error: msg };
     }
   }, []);

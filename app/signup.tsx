@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,19 +47,9 @@ export default function SignupScreen() {
     }
     setError('');
     setLoading(true);
-    try {
-      const result = await signUpEmail(email.trim(), password.trim());
-      setLoading(false);
-      if (result.error) {
-        setError(result.error);
-        Alert.alert('Sign Up Failed', result.error);
-      }
-    } catch (e: any) {
-      setLoading(false);
-      const msg = e.message || 'An unexpected error occurred';
-      setError(msg);
-      Alert.alert('Sign Up Error', msg);
-    }
+    const result = await signUpEmail(email.trim(), password.trim());
+    setLoading(false);
+    if (result.error) setError(result.error);
   };
 
   return (
