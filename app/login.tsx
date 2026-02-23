@@ -9,6 +9,7 @@ import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { NeoPopButton } from '@/components/NeoPopButton';
 import { NeoPopCard } from '@/components/NeoPopCard';
 import { ShimmerText } from '@/components/ShimmerText';
+import { Fonts } from '@/lib/fonts';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -164,13 +165,13 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 36,
-    fontFamily: 'DMSerifDisplay_400Regular',
+    fontFamily: Fonts.serif,
     color: Colors.primary,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   formSection: {
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 20,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 20,
   },
@@ -198,13 +199,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.negative,
     flex: 1,
   },
   label: {
     fontSize: 10,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     color: Colors.white,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     fontSize: 16,
   },
   passwordWrap: {
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     marginHorizontal: 12,
   },
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   },
   googleText: {
     fontSize: 13,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.white,
     letterSpacing: 0.5,
   },
@@ -277,11 +278,11 @@ const styles = StyleSheet.create({
   },
   switchText: {
     fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   switchLink: {
     color: Colors.primary,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
   },
 });

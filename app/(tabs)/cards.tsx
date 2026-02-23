@@ -9,6 +9,7 @@ import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CreditCardVisual } from '@/components/CreditCardVisual';
+import { Fonts } from '@/lib/fonts';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.82;
@@ -221,13 +222,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   cardCount: {
     fontSize: 11,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.primary,
     backgroundColor: 'rgba(229,254,64,0.15)',
     paddingHorizontal: 8,
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     fontSize: 15,
   },
   dots: {
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
   },
   copiedText: {
     fontSize: 13,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.positive,
   },
   hint: {
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 12,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   emptyState: {
@@ -302,20 +303,20 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.textMuted,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 13,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 4,
     opacity: 0.7,
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },

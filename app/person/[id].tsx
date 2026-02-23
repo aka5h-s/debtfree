@@ -12,6 +12,7 @@ import { NeoPopButton } from '@/components/NeoPopButton';
 import { ShimmerText } from '@/components/ShimmerText';
 import { formatCurrency, formatRelativeDate } from '@/lib/formatters';
 import type { Transaction } from '@/lib/types';
+import { Fonts } from '@/lib/fonts';
 
 function TransactionItem({ tx, onEdit, onDelete, onHistory }: { tx: Transaction; onEdit: () => void; onDelete: () => void; onHistory: () => void }) {
   const isLent = tx.direction === 'YOU_LENT';
@@ -213,30 +214,30 @@ const styles = StyleSheet.create({
   },
   largeAvatarText: {
     fontSize: 32,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
   },
   profileName: {
     fontSize: 24,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 4,
   },
   profilePhone: {
     fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginBottom: 8,
   },
   profileStatus: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 2,
     marginBottom: 4,
   },
   profileBalance: {
     fontSize: 36,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
   },
   addTxSection: {
     paddingHorizontal: 40,
@@ -252,13 +253,13 @@ const styles = StyleSheet.create({
   },
   txSectionTitle: {
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   txCount: {
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
   },
   txContainer: {
@@ -284,22 +285,22 @@ const styles = StyleSheet.create({
   },
   txLabel: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 1,
   },
   txAmount: {
     fontSize: 18,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
   },
   txNote: {
     fontSize: 13,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginBottom: 4,
   },
   txDate: {
     fontSize: 12,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginBottom: 8,
   },
@@ -316,13 +317,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.textMuted,
     marginTop: 12,
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },

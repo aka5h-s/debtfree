@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { Icon } from '@/components/Icon';
 import type { CreditCard, CardType } from '@/lib/types';
 import { formatCardNumber } from '@/lib/formatters';
+import { Fonts } from '@/lib/fonts';
 
 interface CreditCardVisualProps {
   card: CreditCard;
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   cardNameTop: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 1,
   },
   numberRow: {
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   cardNumber: {
     color: '#FFFFFF',
     fontSize: 22,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 3,
   },
   bottomRow: {
@@ -112,14 +113,14 @@ const styles = StyleSheet.create({
   infoLabel: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: 9,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     letterSpacing: 1,
     marginBottom: 2,
   },
   infoValue: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
   },
   typeTag: {
     position: 'absolute',
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
   typeText: {
     color: 'rgba(255,255,255,0.4)',
     fontSize: 10,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 2,
   },
 });

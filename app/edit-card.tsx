@@ -9,6 +9,7 @@ import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CARD_COLORS } from '@/lib/types';
 import type { CardType, CardColor } from '@/lib/types';
+import { Fonts } from '@/lib/fonts';
 
 const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY'];
 
@@ -198,13 +199,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 16,
   },
   label: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     color: Colors.white,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     fontSize: 16,
   },
   typeRow: {
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1,
   },
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.negative,
     marginTop: 12,
   },
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },

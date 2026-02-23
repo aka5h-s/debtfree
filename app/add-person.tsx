@@ -7,6 +7,7 @@ import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { NeoPopButton } from '@/components/NeoPopButton';
+import { Fonts } from '@/lib/fonts';
 
 export default function AddPersonScreen() {
   const { addPerson } = useData();
@@ -122,13 +123,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 24,
   },
   label: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     color: Colors.white,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     fontSize: 16,
   },
   inputError: {
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.negative,
     marginTop: 6,
   },
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.white,
     letterSpacing: 1,
   },
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
   },
   phonePrefix: {
     fontSize: 16,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textSecondary,
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
   },
   phoneHint: {
     fontSize: 11,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 4,
   },

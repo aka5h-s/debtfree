@@ -10,6 +10,7 @@ import { NeoPopCard } from '@/components/NeoPopCard';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { ShimmerText } from '@/components/ShimmerText';
 import { formatCurrency } from '@/lib/formatters';
+import { Fonts } from '@/lib/fonts';
 
 function PersonItem({ person, balance }: { person: any; balance: number }) {
   const status = balance > 0 ? 'YOU LENT' : balance < 0 ? 'YOU OWE' : 'SETTLED';
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     fontSize: 28,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     letterSpacing: -0.5,
   },
@@ -201,19 +202,19 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 2,
     marginBottom: 8,
   },
   balanceAmount: {
     fontSize: 40,
-    fontFamily: 'DMSerifDisplay_400Regular',
+    fontFamily: Fonts.serif,
     letterSpacing: -1,
   },
   contextMessage: {
     fontSize: 13,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     marginTop: 8,
     opacity: 0.8,
   },
@@ -224,14 +225,14 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 10,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
   },
   summaryAmount: {
     fontSize: 20,
-    fontFamily: 'DMSerifDisplay_400Regular',
+    fontFamily: Fonts.serif,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -242,13 +243,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   sectionCount: {
     fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
   },
   searchContainer: {
@@ -265,7 +266,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     fontSize: 15,
   },
   listContent: {
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
   },
   personInfo: {
@@ -297,13 +298,13 @@ const styles = StyleSheet.create({
   },
   personName: {
     fontSize: 16,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.white,
     marginBottom: 2,
   },
   statusLabel: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 1,
   },
   personBalanceArea: {
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
   },
   personBalance: {
     fontSize: 16,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
   },
   emptyState: {
     alignItems: 'center',
@@ -322,19 +323,19 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textSecondary,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 4,
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },

@@ -7,6 +7,7 @@ import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import type { TransactionHistory as TxHistory } from '@/lib/types';
+import { Fonts } from '@/lib/fonts';
 
 export default function TransactionHistoryScreen() {
   const { txId } = useLocalSearchParams<{ txId: string }>();
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 24,
   },
@@ -116,13 +117,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textSecondary,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 13,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginTop: 4,
   },
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   },
   changeDate: {
     fontSize: 12,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
     marginBottom: 8,
   },
@@ -169,17 +170,17 @@ const styles = StyleSheet.create({
   },
   changeDirection: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 1,
     marginBottom: 4,
   },
   changeAmount: {
     fontSize: 20,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
   },
   changeNote: {
     fontSize: 13,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginTop: 6,
   },

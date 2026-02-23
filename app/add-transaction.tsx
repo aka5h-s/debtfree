@@ -10,6 +10,7 @@ import { NeoPopButton } from '@/components/NeoPopButton';
 import { formatDate } from '@/lib/formatters';
 import type { TransactionDirection } from '@/lib/types';
 import * as Haptics from 'expo-haptics';
+import { Fonts } from '@/lib/fonts';
 
 export default function AddTransactionScreen() {
   const insets = useSafeAreaInsets();
@@ -131,19 +132,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
   },
   personLabel: {
     fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     marginBottom: 20,
     marginTop: 4,
   },
   label: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 13,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1,
   },
@@ -192,14 +193,14 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: 24,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textSecondary,
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     fontSize: 28,
     paddingVertical: 14,
   },
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     color: Colors.white,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     fontSize: 16,
   },
   inputError: {
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.negative,
     marginTop: 6,
   },
@@ -237,13 +238,13 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
   },
   dateValue: {
     fontSize: 14,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.textSecondary,
   },
   actions: {
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },

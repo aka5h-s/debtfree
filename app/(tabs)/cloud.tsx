@@ -8,6 +8,7 @@ import { NeoPopCard } from '@/components/NeoPopCard';
 import { NeoPopButton } from '@/components/NeoPopButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
+import { Fonts } from '@/lib/fonts';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 20,
   },
@@ -123,18 +124,18 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 28,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.primary,
   },
   userName: {
     fontSize: 20,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   statsCard: {
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 16,
@@ -158,13 +159,13 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 24,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    fontFamily: 'Outfit_400Regular',
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   statDivider: {
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
   },
   syncText: {
     fontSize: 12,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.positive,
   },
   signOutBtn: {
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.negative,
     letterSpacing: 1,
   },
