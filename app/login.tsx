@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { Icon } from '@/components/Icon';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Font from 'expo-font';
 import { useAuth } from '@/contexts/AuthContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { NeoPopButton } from '@/components/NeoPopButton';
@@ -46,6 +48,27 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 40 }]} keyboardShouldPersistTaps="handled">
+        <View style={{ backgroundColor: '#FF0000', padding: 20, marginBottom: 20, borderRadius: 8 }}>
+          <Text style={{ color: '#fff', fontSize: 14, marginBottom: 8 }}>ICON DEBUG (Platform: {Platform.OS})</Text>
+          <Text style={{ color: '#fff', fontSize: 12, marginBottom: 8 }}>
+            ionicons loaded: {String(Font.isLoaded('ionicons'))}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <View style={{ backgroundColor: '#000', padding: 8 }}>
+              <Text style={{ color: '#fff', fontSize: 10 }}>Direct:</Text>
+              <Ionicons name="home" size={32} color="#FFEB34" />
+            </View>
+            <View style={{ backgroundColor: '#000', padding: 8 }}>
+              <Text style={{ color: '#fff', fontSize: 10 }}>Wrapper:</Text>
+              <Icon name="home" size={32} color="#FFEB34" />
+            </View>
+            <View style={{ backgroundColor: '#000', padding: 8 }}>
+              <Text style={{ color: '#fff', fontSize: 10 }}>Glyph:</Text>
+              <Text style={{ fontFamily: 'ionicons', fontSize: 32, color: '#FFEB34' }}>{String.fromCodePoint(0xf448)}</Text>
+            </View>
+          </View>
+        </View>
+
         <View style={styles.logoSection}>
           <View style={styles.logoIcon}>
             <Icon name="wallet" size={40} color={Colors.primary} />
