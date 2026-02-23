@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Icon } from '@/components/Icon';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Font from 'expo-font';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopCard } from '@/components/NeoPopCard';
@@ -147,6 +149,33 @@ export default function DashboardScreen() {
     </View>
   );
 
+  const iconDebug = (
+    <View style={{ backgroundColor: '#FF0000', padding: 16, margin: 16, borderRadius: 8 }}>
+      <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>ICON DEBUG v2 (Platform: {Platform.OS})</Text>
+      <Text style={{ color: '#fff', fontSize: 13, marginBottom: 8 }}>
+        ionicons loaded: {String(Font.isLoaded('ionicons'))}
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ backgroundColor: '#000', padding: 10, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 10, marginBottom: 4 }}>Direct</Text>
+          <Ionicons name="home" size={32} color="#FFEB34" />
+        </View>
+        <View style={{ backgroundColor: '#000', padding: 10, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 10, marginBottom: 4 }}>Wrapper</Text>
+          <Icon name="home" size={32} color="#FFEB34" />
+        </View>
+        <View style={{ backgroundColor: '#000', padding: 10, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 10, marginBottom: 4 }}>Raw Glyph</Text>
+          <Text style={{ fontFamily: 'ionicons', fontSize: 32, color: '#FFEB34' }}>{String.fromCodePoint(0xf448)}</Text>
+        </View>
+        <View style={{ backgroundColor: '#000', padding: 10, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 10, marginBottom: 4 }}>Emoji</Text>
+          <Text style={{ fontSize: 32 }}>🏠</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -155,7 +184,7 @@ export default function DashboardScreen() {
         renderItem={({ item }) => (
           <PersonItem person={item} balance={getPersonBalance(item.id)} />
         )}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={<>{renderHeader}{iconDebug}</>}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={[styles.listContent, { paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }]}
         showsVerticalScrollIndicator={false}
