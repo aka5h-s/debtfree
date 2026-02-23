@@ -6,7 +6,7 @@ import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
-import { useFonts, Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from "@expo-google-fonts/inter";
 import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
@@ -68,11 +68,11 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Outfit_400Regular,
-    Outfit_500Medium,
-    Outfit_600SemiBold,
-    Outfit_700Bold,
-    Outfit_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
     DMSerifDisplay_400Regular,
   });
 

@@ -1,8 +1,8 @@
 export const Fonts = {
-  regular: 'Outfit_400Regular',
-  medium: 'Outfit_500Medium',
-  semibold: 'Outfit_600SemiBold',
-  bold: 'Outfit_700Bold',
-  extraBold: 'Outfit_800ExtraBold',
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+  extraBold: 'Inter_800ExtraBold',
   serif: 'DMSerifDisplay_400Regular',
 };
