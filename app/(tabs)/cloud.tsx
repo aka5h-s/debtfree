@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 20,
   },
@@ -124,12 +124,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 28,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.primary,
   },
   userName: {
     fontSize: 20,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 4,
   },
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     fontSize: 11,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 16,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 24,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 4,
   },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   syncText: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.positive,
   },
   signOutBtn: {
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 14,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.negative,
     letterSpacing: 1,
   },

@@ -6,9 +6,7 @@ import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
-import { useFonts } from "expo-font";
-import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold, Poppins_800ExtraBold, Poppins_900Black } from "@expo-google-fonts/poppins";
-import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
+import { useFonts, Inter_400Regular, Inter_500Medium } from "@expo-google-fonts/inter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -69,17 +67,11 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
     GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
     GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
     CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
-    CirkaRegular: require('../assets/fonts/Cirka-Regular.ttf'),
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-    Poppins_800ExtraBold,
-    Poppins_900Black,
-    DMSerifDisplay_400Regular,
   });
 
   useEffect(() => {

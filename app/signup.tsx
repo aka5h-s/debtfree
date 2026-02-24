@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 20,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 20,
   },
@@ -219,13 +219,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.negative,
     flex: 1,
   },
   label: {
     fontSize: 10,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 12,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     marginHorizontal: 12,
   },
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   },
   googleText: {
     fontSize: 13,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.white,
     letterSpacing: 0.5,
   },
@@ -303,6 +303,6 @@ const styles = StyleSheet.create({
   },
   switchLink: {
     color: Colors.primary,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
   },
 });
