@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.medium,
     fontSize: 15,
   },
   listContent: {
