@@ -1,13 +1,14 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect } from "react";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
-import * as Font from "expo-font";
-import { Asset } from "expo-asset";
+import { useFonts } from "expo-font";
+import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold, Poppins_800ExtraBold, Poppins_900Black } from "@expo-google-fonts/poppins";
+import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -66,47 +67,25 @@ function RootLayoutNav() {
   );
 }
 
-const fontModules = {
-  GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
-  GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
-  CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
-  CirkaRegular: require('../assets/fonts/Cirka-Regular.ttf'),
-};
-
 export default function RootLayout() {
-  const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [fontError, setFontError] = useState<Error | null>(null);
+  const [fontsLoaded, fontError] = useFonts({
+    GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
+    GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
+    CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
+    CirkaRegular: require('../assets/fonts/Cirka-Regular.ttf'),
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
+    Poppins_900Black,
+    DMSerifDisplay_400Regular,
+  });
 
   useEffect(() => {
-    async function loadFonts() {
-      try {
-        const entries = Object.entries(fontModules);
-        const assets = entries.map(([, mod]) => Asset.fromModule(mod));
-        await Promise.all(assets.map((a) => a.downloadAsync()));
-        console.log('Font assets downloaded. URIs:');
-        
-        const fontMap: Record<string, { uri: string }> = {};
-        entries.forEach(([name], i) => {
-          const localUri = assets[i].localUri || assets[i].uri;
-          console.log(`  ${name}: ${localUri}`);
-          fontMap[name] = { uri: localUri };
-        });
-
-        await Font.loadAsync(fontMap);
-        console.log('Fonts loaded via URI. Status:');
-        entries.forEach(([name]) => {
-          console.log(`  ${name}: loaded=${Font.isLoaded(name)}`);
-        });
-        setFontsLoaded(true);
-      } catch (e: any) {
-        console.error('Font loading error:', e);
-        setFontError(e);
-      }
+    if (fontError) {
+      console.error('Font loading error:', fontError);
     }
-    loadFonts();
-  }, []);
-
-  useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
