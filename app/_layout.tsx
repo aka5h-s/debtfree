@@ -66,7 +66,7 @@ function RootLayoutNav() {
   );
 }
 
-const fontAssets = {
+const fontModules = {
   GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
   GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
   CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
@@ -80,16 +80,22 @@ export default function RootLayout() {
   useEffect(() => {
     async function loadFonts() {
       try {
-        const assetModules = Object.values(fontAssets).map(
-          (font) => Asset.fromModule(font)
-        );
-        await Promise.all(assetModules.map((a) => a.downloadAsync()));
-        console.log('Font assets downloaded successfully');
+        const entries = Object.entries(fontModules);
+        const assets = entries.map(([, mod]) => Asset.fromModule(mod));
+        await Promise.all(assets.map((a) => a.downloadAsync()));
+        console.log('Font assets downloaded. URIs:');
+        
+        const fontMap: Record<string, { uri: string }> = {};
+        entries.forEach(([name], i) => {
+          const localUri = assets[i].localUri || assets[i].uri;
+          console.log(`  ${name}: ${localUri}`);
+          fontMap[name] = { uri: localUri };
+        });
 
-        await Font.loadAsync(fontAssets);
-        console.log('Fonts loaded successfully. Checking status:');
-        Object.keys(fontAssets).forEach((name) => {
-          console.log(`  ${name}: ${Font.isLoaded(name)}`);
+        await Font.loadAsync(fontMap);
+        console.log('Fonts loaded via URI. Status:');
+        entries.forEach(([name]) => {
+          console.log(`  ${name}: loaded=${Font.isLoaded(name)}`);
         });
         setFontsLoaded(true);
       } catch (e: any) {

@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const Fonts = {
   regular: 'GilroyBold',
   medium: 'GilroyBold',
