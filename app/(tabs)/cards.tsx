@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   cardCount: {
     fontSize: 11,
-    fontFamily: Fonts.extraBold, fontWeight: "800" as const,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.primary,
     backgroundColor: 'rgba(229,254,64,0.15)',
     paddingHorizontal: 8,

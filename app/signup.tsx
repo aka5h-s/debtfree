@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 14,
-    fontFamily: Fonts.serifRegular,
+    fontFamily: Fonts.regular,
     color: Colors.textMuted,
   },
   formSection: {

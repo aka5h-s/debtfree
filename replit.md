@@ -57,7 +57,6 @@ constants/
 ## Recent Changes
 - 2026-02-23: Replaced font-based icons with SVG icons (react-native-svg) for Android compatibility
 - 2026-02-23: Added platform-aware font system (lib/fonts.ts) - custom fonts on web/iOS, system fonts on Android
-- 2026-02-24: Incorporated custom Gilroy (Bold, Black) + Cirka (Bold) fonts from CRED design system, Inter for regular/medium weights
 - 2026-02-19: Added edit person screen with edit button on person detail
 - 2026-02-19: Added Firebase cloud sync tab with config, upload, download
 - 2026-02-19: Fixed Metro config for Firebase ESM module resolution
@@ -73,5 +72,5 @@ constants/
 - Firebase is configured in-app by user (not hardcoded) via Cloud tab
 - All data persisted locally via AsyncStorage with optional cloud backup
 - Icons use SVG (react-native-svg) instead of @expo/vector-icons due to Android font loading issues in Expo Go
-- Fonts: Custom Gilroy (Bold, Black) + Cirka (Bold) loaded from assets/fonts/, Inter for regular/medium, Android falls back to system fonts (lib/fonts.ts)
+- Fonts use platform-aware system: Outfit/DM Serif Display on web+iOS, Roboto/Serif on Android (lib/fonts.ts)
 - Icon component (components/Icon.tsx) renders all icons as SVG paths — add new icons by adding cases to the switch statement
