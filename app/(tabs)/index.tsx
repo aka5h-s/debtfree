@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     fontSize: 28,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
     letterSpacing: -0.5,
   },
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 2,
     marginBottom: 8,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   contextMessage: {
     fontSize: 13,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     marginTop: 8,
     opacity: 0.8,
   },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 10,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
@@ -243,13 +243,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   sectionCount: {
     fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
   },
   searchContainer: {
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   personInfo: {
@@ -298,13 +298,13 @@ const styles = StyleSheet.create({
   },
   personName: {
     fontSize: 16,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.white,
     marginBottom: 2,
   },
   statusLabel: {
     fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     letterSpacing: 1,
   },
   personBalanceArea: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   personBalance: {
     fontSize: 16,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
   },
   emptyState: {
     alignItems: 'center',
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textSecondary,
     marginTop: 16,
   },
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: '#000',
     letterSpacing: 1,
   },

@@ -187,13 +187,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
     marginBottom: 16,
   },
   label: {
     fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 1,
   },
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: '#000',
     letterSpacing: 1,
   },
