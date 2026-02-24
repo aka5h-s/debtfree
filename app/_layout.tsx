@@ -1,12 +1,13 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
-import { useFonts } from "expo-font";
+import * as Font from "expo-font";
+import { Asset } from "expo-asset";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -65,18 +66,41 @@ function RootLayoutNav() {
   );
 }
 
+const fontAssets = {
+  GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
+  GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
+  CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
+  CirkaRegular: require('../assets/fonts/Cirka-Regular.ttf'),
+};
+
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
-    GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
-    CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
-    CirkaRegular: require('../assets/fonts/Cirka-Regular.ttf'),
-  });
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontError, setFontError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (fontError) {
-      console.error('Font loading error:', fontError);
+    async function loadFonts() {
+      try {
+        const assetModules = Object.values(fontAssets).map(
+          (font) => Asset.fromModule(font)
+        );
+        await Promise.all(assetModules.map((a) => a.downloadAsync()));
+        console.log('Font assets downloaded successfully');
+
+        await Font.loadAsync(fontAssets);
+        console.log('Fonts loaded successfully. Checking status:');
+        Object.keys(fontAssets).forEach((name) => {
+          console.log(`  ${name}: ${Font.isLoaded(name)}`);
+        });
+        setFontsLoaded(true);
+      } catch (e: any) {
+        console.error('Font loading error:', e);
+        setFontError(e);
+      }
     }
+    loadFonts();
+  }, []);
+
+  useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
