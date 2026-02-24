@@ -209,12 +209,12 @@ const styles = StyleSheet.create({
   },
   balanceAmount: {
     fontSize: 40,
-    fontFamily: Fonts.serif,
+    fontFamily: Fonts.extraBold, fontWeight: "800" as const,
     letterSpacing: -1,
   },
   contextMessage: {
     fontSize: 13,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.serifRegular,
     marginTop: 8,
     opacity: 0.8,
   },
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   summaryAmount: {
     fontSize: 20,
-    fontFamily: Fonts.serif,
+    fontFamily: Fonts.extraBold, fontWeight: "800" as const,
   },
   sectionHeader: {
     flexDirection: 'row',

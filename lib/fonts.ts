@@ -9,4 +9,5 @@ export const Fonts = {
   bold: isAndroid ? 'sans-serif-medium' : 'GilroyBold',
   extraBold: isAndroid ? 'sans-serif-medium' : 'GilroyBlack',
   serif: isAndroid ? 'serif' : 'CirkaBold',
+  serifRegular: isAndroid ? 'serif' : 'CirkaRegular',
 };

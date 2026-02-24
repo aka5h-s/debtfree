@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.extraBold, fontWeight: "800" as const,
     color: Colors.white,
     marginBottom: 20,
   },

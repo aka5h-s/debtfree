@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   profileBalance: {
     fontSize: 36,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.extraBold, fontWeight: "800" as const,
   },
   addTxSection: {
     paddingHorizontal: 40,
