@@ -70,11 +70,15 @@ export default function RootLayout() {
     GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
     GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
     CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
+    CirkaRegular: require('../assets/fonts/Cirka-Regular.ttf'),
   });
 
   useEffect(() => {
     if (fontError) {
       console.error('Font loading error:', fontError);
+    }
+    if (fontsLoaded) {
+      console.log('All fonts loaded successfully on platform:', Platform.OS);
     }
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();

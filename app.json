@@ -36,7 +36,17 @@
           "origin": "https://replit.com/"
         }
       ],
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Gilroy-Bold.ttf",
+            "./assets/fonts/Gilroy-Black.ttf",
+            "./assets/fonts/Cirka-Bold.otf",
+            "./assets/fonts/Cirka-Regular.ttf"
+          ]
+        }
+      ],
       "expo-web-browser",
       [
         "@react-native-google-signin/google-signin",
