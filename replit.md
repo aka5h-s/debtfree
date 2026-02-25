@@ -72,5 +72,6 @@ constants/
 - Firebase is configured in-app by user (not hardcoded) via Cloud tab
 - All data persisted locally via AsyncStorage with optional cloud backup
 - Icons use SVG (react-native-svg) instead of @expo/vector-icons due to Android font loading issues in Expo Go
-- Fonts use platform-aware system: Outfit/DM Serif Display on web+iOS, Roboto/Serif on Android (lib/fonts.ts)
+- Fonts: Custom Gilroy (Bold, Black) + Cirka (Bold, Regular) loaded via useFonts with require() in _layout.tsx — works on Android/iOS/Web
+- Font mapping in lib/fonts.ts: regular/medium/semibold/bold → Gilroy-Bold, extraBold → Gilroy-Black, serif → Cirka-Bold, serifRegular → Cirka-Regular
 - Icon component (components/Icon.tsx) renders all icons as SVG paths — add new icons by adding cases to the switch statement
