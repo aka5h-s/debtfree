@@ -71,9 +71,6 @@ export default function RootLayout() {
     'GilroyBlack': require('../assets/fonts/Gilroy-Black.ttf'),
     'CirkaBold': require('../assets/fonts/Cirka-Bold.otf'),
     'CirkaRegular': require('../assets/fonts/Cirka-Regular.ttf'),
-    'Gilroy-Bold': require('../assets/fonts/Gilroy-Bold.ttf'),
-    'Gilroy-Black': require('../assets/fonts/Gilroy-Black.ttf'),
-    'Cirka-Bold': require('../assets/fonts/Cirka-Bold.otf'),
   });
 
   useEffect(() => {

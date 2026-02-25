@@ -214,12 +214,12 @@ const styles = StyleSheet.create({
   },
   largeAvatarText: {
     fontSize: 32,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   profileName: {
     fontSize: 24,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
     marginBottom: 4,
   },
@@ -231,13 +231,13 @@ const styles = StyleSheet.create({
   },
   profileStatus: {
     fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     letterSpacing: 2,
     marginBottom: 4,
   },
   profileBalance: {
     fontSize: 36,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
   },
   addTxSection: {
     paddingHorizontal: 40,
@@ -253,13 +253,13 @@ const styles = StyleSheet.create({
   },
   txSectionTitle: {
     fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   txCount: {
     fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
   },
   txContainer: {
@@ -285,12 +285,12 @@ const styles = StyleSheet.create({
   },
   txLabel: {
     fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     letterSpacing: 1,
   },
   txAmount: {
     fontSize: 18,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
   },
   txNote: {
     fontSize: 13,
@@ -317,13 +317,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: Colors.textMuted,
     marginTop: 12,
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: '#000',
     letterSpacing: 1,
   },
