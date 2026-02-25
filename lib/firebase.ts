@@ -3,11 +3,15 @@ import {
   getAuth,
   initializeAuth,
   GoogleAuthProvider,
+  EmailAuthProvider,
   signInWithCredential,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  linkWithCredential,
+  updateProfile,
+  fetchSignInMethodsForEmail,
   type User,
 } from 'firebase/auth';
 // @ts-ignore - getReactNativePersistence exists at runtime in React Native
@@ -55,7 +59,7 @@ if (Platform.OS === 'web') {
 
 const db = getFirestore(app);
 
-export { auth, db, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, firebaseSignOut, onAuthStateChanged };
+export { auth, db, GoogleAuthProvider, EmailAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, firebaseSignOut, onAuthStateChanged, linkWithCredential, updateProfile, fetchSignInMethodsForEmail };
 export type { User };
 
 function userDoc(userId: string) {

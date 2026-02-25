@@ -66,6 +66,9 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
       return <Svg {...svgProps}><Path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" stroke={color} strokeWidth={2} strokeLinejoin="round" /><Polyline points="10 15 12 17 16 13" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
     case 'log-out-outline':
       return <Svg {...svgProps}><Path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Polyline points="16 17 21 12 16 7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Line x1="21" y1="12" x2="9" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
+    case 'mail':
+    case 'mail-outline':
+      return <Svg {...svgProps}><Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Polyline points="22 6 12 13 2 6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
     case 'logo-google':
       return <Svg {...svgProps}><Path d="M21.8 10.4h-9.4v3.4h5.5c-.5 2.5-2.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6s2.7-6 6-6c1.5 0 2.8.5 3.9 1.4l2.6-2.6C17.2 2.7 14.8 1.6 12.4 1.6c-5.7 0-10 4.3-10 10s4.3 10 10 10c5 0 9.6-3.6 9.6-10 0-.5-.1-1.1-.2-1.6z" fill={color} /></Svg>;
     case 'eye':

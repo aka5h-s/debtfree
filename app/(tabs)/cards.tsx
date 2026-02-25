@@ -123,7 +123,7 @@ export default function CardsScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: topPad + 16 }]}>
-        <Text style={styles.title}>MY CARDS</Text>
+        <Text style={styles.title}>My Cards</Text>
         <Text style={styles.cardCount}>{cards.length}</Text>
       </View>
 
@@ -221,10 +221,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
-    color: Colors.textMuted,
-    letterSpacing: 2,
+    fontSize: 28,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    color: Colors.white,
+    letterSpacing: 1,
   },
   cardCount: {
     fontSize: 11,

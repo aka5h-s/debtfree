@@ -55,6 +55,12 @@ constants/
 ```
 
 ## Recent Changes
+- 2026-02-25: Added edit/delete buttons to credit card visual component
+- 2026-02-25: Made "My Cards" title bigger (28px bold)
+- 2026-02-25: Improved auth error handling - detects Google-only accounts and shows helpful message
+- 2026-02-25: Added profile editing (display name) on Profile tab
+- 2026-02-25: Shows auth provider badges (Google/Email) on profile
+- 2026-02-25: Added mail icon to Icon.tsx SVG component
 - 2026-02-23: Replaced font-based icons with SVG icons (react-native-svg) for Android compatibility
 - 2026-02-23: Added platform-aware font system (lib/fonts.ts) - custom fonts on web/iOS, system fonts on Android
 - 2026-02-19: Added edit person screen with edit button on person detail
@@ -72,5 +78,7 @@ constants/
 - Firebase is configured in-app by user (not hardcoded) via Cloud tab
 - All data persisted locally via AsyncStorage with optional cloud backup
 - Icons use SVG (react-native-svg) instead of @expo/vector-icons due to Android font loading issues in Expo Go
-- Fonts use platform-aware system: Outfit/DM Serif Display on web+iOS, Roboto/Serif on Android (lib/fonts.ts)
+- Fonts use platform-aware system: Inter/DM Serif Display on web+iOS, Roboto/Serif on Android (lib/fonts.ts)
+- Auth supports both Google OAuth and email/password; improved error messages guide users to correct sign-in method
+- Profile screen allows editing display name via Firebase updateProfile
 - Icon component (components/Icon.tsx) renders all icons as SVG paths — add new icons by adding cases to the switch statement

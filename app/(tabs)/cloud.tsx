@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, Platform, Pressable, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, Platform, Pressable, Alert, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Icon } from '@/components/Icon';
@@ -12,12 +12,17 @@ import { Fonts } from '@/lib/fonts';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateUserProfile } = useAuth();
   const { people, transactions, cards } = useData();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
   const topPad = Math.max(insets.top, webTopInset);
   const bottomPad = Math.max(insets.bottom, webBottomInset) + 80;
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(user?.displayName || '');
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const handleSignOut = () => {
     const doSignOut = () => {
@@ -34,10 +39,37 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) {
+      setEditError('Name cannot be empty');
+      return;
+    }
+    setEditError('');
+    setSaving(true);
+    const result = await updateUserProfile({ displayName: editName.trim() });
+    setSaving(false);
+    if (result.error) {
+      setEditError(result.error);
+    } else {
+      setIsEditing(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const handleStartEdit = () => {
+    setEditName(user?.displayName || '');
+    setEditError('');
+    setIsEditing(true);
+  };
+
   const initial = user?.displayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?';
 
+  const providerIds = user?.providerData?.map(p => p.providerId) || [];
+  const hasGoogle = providerIds.includes('google.com');
+  const hasPassword = providerIds.includes('password');
+
   return (
-    <View style={[styles.container, { paddingTop: topPad + 16, paddingBottom: bottomPad }]}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: topPad + 16, paddingBottom: bottomPad }}>
       <Text style={styles.title}>Profile</Text>
 
       <View style={styles.section}>
@@ -46,8 +78,64 @@ export default function ProfileScreen() {
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{initial}</Text>
             </View>
-            <Text style={styles.userName}>{user?.displayName || 'DebtFree User'}</Text>
-            <Text style={styles.userEmail}>{user?.email || ''}</Text>
+
+            {isEditing ? (
+              <View style={styles.editSection}>
+                <Text style={styles.editLabel}>DISPLAY NAME</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editName}
+                  onChangeText={(t) => { setEditName(t); setEditError(''); }}
+                  placeholder="Your name"
+                  placeholderTextColor={Colors.textMuted}
+                  autoFocus
+                />
+
+                {editError ? (
+                  <Text style={styles.editErrorText}>{editError}</Text>
+                ) : null}
+
+                <View style={styles.editActions}>
+                  {saving ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <>
+                      <Pressable onPress={() => setIsEditing(false)} style={styles.cancelBtn}>
+                        <Text style={styles.cancelText}>Cancel</Text>
+                      </Pressable>
+                      <Pressable onPress={handleSaveProfile} style={styles.saveBtn}>
+                        <Text style={styles.saveText}>Save</Text>
+                      </Pressable>
+                    </>
+                  )}
+                </View>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.userName}>{user?.displayName || 'DebtFree User'}</Text>
+                <Text style={styles.userEmail}>{user?.email || ''}</Text>
+
+                <View style={styles.providerRow}>
+                  {hasGoogle && (
+                    <View style={styles.providerBadge}>
+                      <Icon name="logo-google" size={12} color={Colors.white} />
+                      <Text style={styles.providerText}>Google</Text>
+                    </View>
+                  )}
+                  {hasPassword && (
+                    <View style={styles.providerBadge}>
+                      <Icon name="mail" size={12} color={Colors.white} />
+                      <Text style={styles.providerText}>Email</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Pressable onPress={handleStartEdit} style={styles.editProfileBtn}>
+                  <Icon name="create-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.editProfileText}>Edit Profile</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </NeoPopCard>
       </View>
@@ -88,7 +176,7 @@ export default function ProfileScreen() {
           </View>
         </NeoPopButton>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -115,7 +203,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(255, 235, 52, 0.15)',
+    backgroundColor: 'rgba(229, 254, 64, 0.15)',
     borderWidth: 2,
     borderColor: Colors.primary,
     alignItems: 'center',
@@ -137,6 +225,96 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.regular,
     color: Colors.textMuted,
+  },
+  providerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  providerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  providerText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    color: Colors.textSecondary,
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  editProfileText: {
+    fontSize: 13,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    color: Colors.primary,
+  },
+  editSection: {
+    width: '100%',
+    paddingHorizontal: 4,
+  },
+  editLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    color: Colors.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  editInput: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 14,
+    color: Colors.white,
+    fontFamily: Fonts.regular,
+    fontSize: 16,
+  },
+  editErrorText: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.negative,
+    marginTop: 6,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 16,
+  },
+  cancelBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: Colors.surface,
+  },
+  cancelText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    color: Colors.textMuted,
+  },
+  saveBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+  },
+  saveText: {
+    fontSize: 14,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    color: '#000',
   },
   statsCard: {
     padding: 20,

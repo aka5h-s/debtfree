@@ -67,6 +67,23 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
       <View style={styles.typeTag}>
         <Text style={styles.typeText}>{card.cardType}</Text>
       </View>
+
+      {(onEdit || onDelete) && (
+        <View style={styles.actionRow}>
+          {onEdit && (
+            <Pressable onPress={onEdit} style={styles.actionBtn}>
+              <Icon name="create-outline" size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.actionText}>Edit</Text>
+            </Pressable>
+          )}
+          {onDelete && (
+            <Pressable onPress={onDelete} style={[styles.actionBtn, styles.deleteBtn]}>
+              <Icon name="trash-outline" size={16} color="#EE4D37" />
+              <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -75,7 +92,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     padding: 24,
-    aspectRatio: 1.586,
+    minHeight: 200,
     justifyContent: 'space-between',
     overflow: 'hidden',
     position: 'relative',
@@ -132,5 +149,34 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 2,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  deleteBtn: {
+    backgroundColor: 'rgba(238,77,55,0.15)',
+  },
+  actionText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  deleteText: {
+    color: '#EE4D37',
   },
 });
