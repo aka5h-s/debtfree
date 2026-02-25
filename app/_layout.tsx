@@ -6,7 +6,8 @@ import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
-import { useFonts } from "expo-font";
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from "@expo-google-fonts/inter";
+import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -67,10 +68,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    'Gilroy-Bold': require('../assets/fonts/Gilroy-Bold.ttf'),
-    'Gilroy-Black': require('../assets/fonts/Gilroy-Black.ttf'),
-    'Cirka-Bold': require('../assets/fonts/Cirka-Bold.otf'),
-    'Cirka-Regular': require('../assets/fonts/Cirka-Regular.ttf'),
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    DMSerifDisplay_400Regular,
   });
 
   useEffect(() => {

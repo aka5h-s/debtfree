@@ -1,9 +1,8 @@
 export const Fonts = {
-  regular: 'Gilroy-Bold',
-  medium: 'Gilroy-Bold',
-  semibold: 'Gilroy-Bold',
-  bold: 'Gilroy-Bold',
-  extraBold: 'Gilroy-Black',
-  serif: 'Cirka-Bold',
-  serifRegular: 'Cirka-Regular',
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+  extraBold: 'Inter_800ExtraBold',
+  serif: 'DMSerifDisplay_400Regular',
 };
