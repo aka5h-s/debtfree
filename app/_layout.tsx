@@ -67,18 +67,21 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    GilroyBold: require('../assets/fonts/Gilroy-Bold.ttf'),
-    GilroyBlack: require('../assets/fonts/Gilroy-Black.ttf'),
-    CirkaBold: require('../assets/fonts/Cirka-Bold.otf'),
-    CirkaRegular: require('../assets/fonts/Cirka-Regular.ttf'),
+    'GilroyBold': require('../assets/fonts/Gilroy-Bold.ttf'),
+    'GilroyBlack': require('../assets/fonts/Gilroy-Black.ttf'),
+    'CirkaBold': require('../assets/fonts/Cirka-Bold.otf'),
+    'CirkaRegular': require('../assets/fonts/Cirka-Regular.ttf'),
+    'Gilroy-Bold': require('../assets/fonts/Gilroy-Bold.ttf'),
+    'Gilroy-Black': require('../assets/fonts/Gilroy-Black.ttf'),
+    'Cirka-Bold': require('../assets/fonts/Cirka-Bold.otf'),
   });
 
   useEffect(() => {
     if (fontError) {
-      console.error('Font loading error:', fontError);
+      console.error('Font loading error:', JSON.stringify(fontError));
     }
     if (fontsLoaded) {
-      console.log('All fonts loaded successfully on platform:', Platform.OS);
+      console.log('Fonts loaded on:', Platform.OS, 'loaded:', fontsLoaded);
     }
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
