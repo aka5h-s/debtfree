@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
     marginBottom: 24,
   },
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textSecondary,
     marginTop: 16,
   },
@@ -170,13 +170,13 @@ const styles = StyleSheet.create({
   },
   changeDirection: {
     fontSize: 11,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     letterSpacing: 1,
     marginBottom: 4,
   },
   changeAmount: {
     fontSize: 20,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
   },
   changeNote: {
     fontSize: 13,

@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.white,
   },
   personLabel: {
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 13,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1,
   },
@@ -203,14 +203,14 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: 24,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textSecondary,
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     fontSize: 28,
     paddingVertical: 14,
   },
@@ -248,13 +248,13 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     fontSize: 11,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
   },
   dateValue: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.textSecondary,
   },
   actions: {
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },

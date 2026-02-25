@@ -222,13 +222,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 12,
-    fontFamily: Fonts.semibold,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   cardCount: {
     fontSize: 11,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: Colors.primary,
     backgroundColor: 'rgba(229,254,64,0.15)',
     paddingHorizontal: 8,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   copiedText: {
     fontSize: 13,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.positive,
   },
   hint: {
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
     color: Colors.textMuted,
     marginTop: 16,
   },
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.bold, fontWeight: "700" as const,
     color: '#000',
     letterSpacing: 1,
   },
