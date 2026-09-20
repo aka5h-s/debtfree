@@ -256,7 +256,6 @@ const styles = StyleSheet.create({
   screenLabel: {
     fontSize: 11,
     fontFamily: Fonts.semibold,
-    fontWeight: '600' as const,
     color: Colors.textMuted,
     letterSpacing: 2.5,
     marginBottom: 6,
@@ -282,7 +281,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontFamily: Fonts.semibold,
-    fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
   emptySubtext: {
@@ -314,7 +312,6 @@ const styles = StyleSheet.create({
   currentPill: {
     fontSize: 9,
     fontFamily: Fonts.bold,
-    fontWeight: '700' as const,
     color: Colors.textMuted,
     letterSpacing: 2,
     backgroundColor: '#222',
@@ -342,7 +339,6 @@ const styles = StyleSheet.create({
   entryChangeLabel: {
     fontSize: 12,
     fontFamily: Fonts.medium,
-    fontWeight: '500' as const,
     color: Colors.textSecondary,
     textTransform: 'capitalize' as const,
   },
@@ -388,7 +384,6 @@ const styles = StyleSheet.create({
   entryDirection: {
     fontSize: 10,
     fontFamily: Fonts.semibold,
-    fontWeight: '600' as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 4,
@@ -424,7 +419,6 @@ const styles = StyleSheet.create({
   restoreText: {
     fontSize: 12,
     fontFamily: Fonts.medium,
-    fontWeight: '500' as const,
     color: Colors.textMuted,
     letterSpacing: 0.3,
   },

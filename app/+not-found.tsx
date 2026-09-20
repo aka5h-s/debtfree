@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.white,
   },
   link: {
@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 16,
     color: Colors.primary,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
   },
 });

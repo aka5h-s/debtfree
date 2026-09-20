@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
     letterSpacing: 1,
   },
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   copiedText: {
     fontSize: 13,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: Colors.positive,
   },
   hint: {
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: Colors.textMuted,
     marginTop: 16,
   },
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 14,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: '#000',
     letterSpacing: 1,
   },

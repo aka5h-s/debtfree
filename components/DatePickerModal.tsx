@@ -280,7 +280,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: Colors.white,
     fontFamily: Fonts.semibold,
-    fontWeight: '600',
     lineHeight: 26,
   },
   navArrowDisabled: {
@@ -304,7 +303,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 11,
     fontFamily: Fonts.semibold,
-    fontWeight: '600',
     color: Colors.textMuted,
     letterSpacing: 0.5,
   },
@@ -377,7 +375,6 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 13,
     fontFamily: Fonts.semibold,
-    fontWeight: '600',
     color: Colors.textMuted,
     letterSpacing: 1,
   },
@@ -391,7 +388,6 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 13,
     fontFamily: Fonts.bold,
-    fontWeight: '700',
     color: '#000',
     letterSpacing: 1,
   },
@@ -421,7 +417,6 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 11,
     fontFamily: Fonts.semibold,
-    fontWeight: '600',
     color: Colors.textMuted,
     letterSpacing: 2,
   },
@@ -437,7 +432,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
     fontFamily: Fonts.medium,
-    fontWeight: '500',
   },
   noteBody: {
     padding: 20,

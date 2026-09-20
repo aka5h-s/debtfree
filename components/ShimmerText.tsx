@@ -36,7 +36,6 @@ export function ShimmerText({ text, style, shimmerColor = '#FFEB34' }: ShimmerTe
 const styles = StyleSheet.create({
   text: {
     fontSize: 24,
-    fontWeight: '700' as const,
     color: '#FFFFFF',
   },
 });

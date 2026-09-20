@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
     marginBottom: 20,
   },
@@ -319,12 +319,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 28,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
   },
   userName: {
     fontSize: 20,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.bold,
     color: Colors.white,
     marginBottom: 4,
   },
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   providerText: {
     fontSize: 11,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: Colors.textSecondary,
   },
   editProfileBtn: {
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   },
   editProfileText: {
     fontSize: 13,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.primary,
   },
   editSection: {
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   editLabel: {
     fontSize: 10,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 14,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: Colors.textMuted,
   },
   saveBtn: {
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 14,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: '#000',
   },
   statsCard: {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 16,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 24,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.serif,
     color: Colors.white,
     marginBottom: 4,
   },
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   },
   syncText: {
     fontSize: 12,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: Colors.positive,
   },
   signOutBtn: {
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 14,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.negative,
     letterSpacing: 1,
   },
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   },
   passwordBtnText: {
     fontSize: 13,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.white,
   },
   passwordHint: {
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   },
   passwordSuccessText: {
     fontSize: 12,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: Colors.positive,
     marginTop: 8,
     textAlign: 'center',
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   },
   syncNowText: {
     fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     color: Colors.primary,
     letterSpacing: 1,
   },

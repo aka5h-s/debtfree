@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   cardNameTop: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     letterSpacing: 1,
   },
   numberRow: {
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   typeText: {
     color: 'rgba(255,255,255,0.4)',
     fontSize: 10,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.semibold,
     letterSpacing: 2,
   },
   actionRow: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 12,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontFamily: Fonts.medium,
     color: 'rgba(255,255,255,0.8)',
   },
   deleteText: {
