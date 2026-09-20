@@ -1,7 +1,8 @@
 diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml
+index 66a611f..7e2f10f 100644
 --- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml
 +++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml
-@@ -1,6 +1,6 @@
+@@ -1,5 +1,5 @@
  <?xml version="1.0" encoding="utf-8"?>
  <translate xmlns:android="http://schemas.android.com/apk/res/android"
 -    android:duration="@android:integer/config_shortAnimTime"
@@ -9,9 +10,10 @@ diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rn
      android:fromXDelta="-30%"
      android:toXDelta="0%" />
 diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml
+index 1d92c95..4a86e0b 100644
 --- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml
 +++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml
-@@ -1,6 +1,7 @@
+@@ -1,5 +1,6 @@
  <?xml version="1.0" encoding="utf-8"?>
  <translate xmlns:android="http://schemas.android.com/apk/res/android"
 -    android:duration="@android:integer/config_shortAnimTime"
@@ -20,9 +22,10 @@ diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rn
      android:fromXDelta="0%"
      android:toXDelta="-30%" />
 diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml
+index 1073ae6..cf7fddd 100644
 --- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml
 +++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml
-@@ -1,7 +1,7 @@
+@@ -1,6 +1,6 @@
  <?xml version="1.0" encoding="utf-8"?>
  <translate xmlns:android="http://schemas.android.com/apk/res/android"
 -    android:duration="@android:integer/config_shortAnimTime"
@@ -32,9 +35,10 @@ diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rn
      android:fromXDelta="0%"
      android:toXDelta="100%"/>
 diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml
+index e687584..5db11c3 100644
 --- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml
 +++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml
-@@ -1,7 +1,7 @@
+@@ -1,6 +1,6 @@
  <?xml version="1.0" encoding="utf-8"?>
  <translate xmlns:android="http://schemas.android.com/apk/res/android"
 -    android:duration="@android:integer/config_shortAnimTime"
