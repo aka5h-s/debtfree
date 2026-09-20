@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
@@ -48,9 +48,11 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 40 }]} keyboardShouldPersistTaps="handled">
         <View style={styles.logoSection}>
-          <View style={styles.logoIcon}>
-            <Icon name="wallet" size={40} color={Colors.primary} />
-          </View>
+          <Image
+            source={require('@/assets/images/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.appName}>DebtFree</Text>
           <Text style={styles.tagline}>Track every rupee, settle with confidence</Text>
         </View>
@@ -152,16 +154,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 36,
   },
-  logoIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 235, 52, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 22,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 235, 52, 0.2)',
   },
   appName: {
     fontSize: 36,
