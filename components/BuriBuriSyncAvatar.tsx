@@ -94,11 +94,11 @@ export function BuriBuriSyncAvatar() {
         <View style={styles.ringContainer}>
           {isSyncing ? (
             <Animated.View style={[StyleSheet.absoluteFillObject, animatedSpinnerStyle]}>
-              <Svg width={44} height={44} viewBox="0 0 44 44">
+              <Svg width={48} height={48} viewBox="0 0 48 48">
                 <Circle
-                  cx={22}
-                  cy={22}
-                  r={19}
+                  cx={24}
+                  cy={24}
+                  r={21}
                   stroke={ringColor}
                   strokeWidth={2.5}
                   strokeDasharray="40 70"
@@ -108,18 +108,20 @@ export function BuriBuriSyncAvatar() {
               </Svg>
             </Animated.View>
           ) : (
-            <Svg width={44} height={44} viewBox="0 0 44 44">
-              <Circle
-                cx={22}
-                cy={22}
-                r={19}
-                stroke={ringColor}
-                strokeWidth={2.5}
-                strokeDasharray={isOfflineOrPending ? '6 4' : undefined}
-                strokeLinecap="round"
-                fill="none"
-              />
-            </Svg>
+            <View style={StyleSheet.absoluteFillObject}>
+              <Svg width={48} height={48} viewBox="0 0 48 48">
+                <Circle
+                  cx={24}
+                  cy={24}
+                  r={21}
+                  stroke={ringColor}
+                  strokeWidth={2.5}
+                  strokeDasharray={isOfflineOrPending ? '6 4' : undefined}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              </Svg>
+            </View>
           )}
 
           {/* Buri Buri Zaemon Character */}
@@ -285,16 +287,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ringContainer: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   imageWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: '#0D0D0D',
   },
@@ -306,9 +308,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
