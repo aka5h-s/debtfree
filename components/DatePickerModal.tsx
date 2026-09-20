@@ -39,10 +39,18 @@ function WheelColumn({ data, selectedIndex, onSelect, width }: WheelColumnProps)
   const flatRef = useRef<FlatList<any>>(null);
   const scrolling = useRef(false);
 
-  // Scroll to selected when it changes externally
+  // On first mount, scroll to the selected item after layout is ready
   useEffect(() => {
-    if (!scrolling.current && flatRef.current) {
-      flatRef.current.scrollToOffset({ offset: selectedIndex * ITEM_HEIGHT, animated: false });
+    const t = setTimeout(() => {
+      flatRef.current?.scrollToOffset({ offset: selectedIndex * ITEM_HEIGHT, animated: false });
+    }, 50);
+    return () => clearTimeout(t);
+  }, []); // only on mount
+
+  // Scroll to selected when it changes externally (e.g. month changed → clamp day)
+  useEffect(() => {
+    if (!scrolling.current) {
+      flatRef.current?.scrollToOffset({ offset: selectedIndex * ITEM_HEIGHT, animated: true });
     }
   }, [selectedIndex]);
 
@@ -97,7 +105,6 @@ function WheelColumn({ data, selectedIndex, onSelect, width }: WheelColumnProps)
         contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
         style={{ height: PICKER_HEIGHT }}
         getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
-        initialScrollIndex={selectedIndex}
       />
     </View>
   );
