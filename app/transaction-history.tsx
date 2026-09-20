@@ -13,34 +13,27 @@ import type { TransactionHistory as TxHistory } from '@/lib/types';
 import { Fonts } from '@/lib/fonts';
 import * as Haptics from 'expo-haptics';
 
-// Build a human-readable description of what changed between two states
-function buildChangeTags(
+function formatTime(ts: number) {
+  return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+// Build a plain-english one-liner for what changed
+function buildChangeSummary(
   entry: TxHistory,
   afterAmount: number,
   afterDirection: string,
   afterNote: string,
   afterDate: number,
-): string[] {
-  const tags: string[] = [];
-
-  if (entry.previousAmount !== afterAmount) {
-    tags.push(`Amount: ${formatCurrency(entry.previousAmount)} → ${formatCurrency(afterAmount)}`);
-  }
-  if (entry.previousDirection !== afterDirection) {
-    const prev = entry.previousDirection === 'YOU_LENT' ? 'Lent' : 'Borrowed';
-    const next = afterDirection === 'YOU_LENT' ? 'Lent' : 'Borrowed';
-    tags.push(`Type: ${prev} → ${next}`);
-  }
-  if ((entry.previousNote || '') !== (afterNote || '')) {
-    if (!entry.previousNote) tags.push('Note added');
-    else if (!afterNote) tags.push('Note removed');
-    else tags.push('Note changed');
-  }
-  if (entry.previousDate !== afterDate) {
-    tags.push(`Date: ${formatDate(entry.previousDate)} → ${formatDate(afterDate)}`);
-  }
-
-  return tags.length > 0 ? tags : ['No details recorded'];
+): string {
+  const parts: string[] = [];
+  if (entry.previousAmount !== afterAmount) parts.push('amount');
+  if (entry.previousDirection !== afterDirection) parts.push('type');
+  if ((entry.previousNote || '') !== (afterNote || '')) parts.push('note');
+  if (entry.previousDate !== afterDate) parts.push('date');
+  if (parts.length === 0) return 'minor edit';
+  if (parts.length === 1) return `${parts[0]} changed`;
+  if (parts.length === 2) return `${parts[0]} & ${parts[1]} changed`;
+  return parts.slice(0, -1).join(', ') + ' & ' + parts[parts.length - 1] + ' changed';
 }
 
 export default function TransactionHistoryScreen() {
@@ -58,9 +51,7 @@ export default function TransactionHistoryScreen() {
   useEffect(() => {
     (async () => {
       const h = await getTransactionHistory(txId);
-      // Sort newest first
-      const sorted = [...h].sort((a, b) => b.changedAt - a.changedAt);
-      setHistory(sorted);
+      setHistory([...h].sort((a, b) => b.changedAt - a.changedAt));
       setLoading(false);
     })();
   }, [txId]);
@@ -68,10 +59,9 @@ export default function TransactionHistoryScreen() {
   const handleRestore = (entry: TxHistory) => {
     if (!currentTx) return;
 
-    const confirmRestore = () => {
+    const doRestore = () => {
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setRestoring(entry.id);
-      // Restore the transaction to the previous state captured in this history entry
       updateTransaction(
         currentTx,
         entry.previousAmount,
@@ -85,16 +75,14 @@ export default function TransactionHistoryScreen() {
     };
 
     if (Platform.OS === 'web') {
-      if (confirm(`Restore to: ${formatCurrency(entry.previousAmount)} on ${formatDate(entry.previousDate ?? currentTx.date)}?`)) {
-        confirmRestore();
-      }
+      if (confirm('Restore this version?')) doRestore();
     } else {
       Alert.alert(
         'Restore this version?',
-        `This will set the transaction back to:\n\n${entry.previousDirection === 'YOU_LENT' ? 'You Lent' : 'You Borrowed'} ${formatCurrency(entry.previousAmount)}\non ${formatDate(entry.previousDate ?? currentTx.date)}${entry.previousNote ? `\n"${entry.previousNote}"` : ''}`,
+        `The transaction will be set back to:\n\n${entry.previousDirection === 'YOU_LENT' ? 'You Lent' : 'You Borrowed'} ${formatCurrency(entry.previousAmount)}\n${formatDate(entry.previousDate ?? currentTx.date)}`,
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Restore', onPress: confirmRestore },
+          { text: 'Restore', onPress: doRestore },
         ],
       );
     }
@@ -103,118 +91,130 @@ export default function TransactionHistoryScreen() {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 12 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 16 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
         <View style={styles.topBar}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Edit History</Text>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Icon name="arrow-back" size={22} color={Colors.textSecondary} />
+          </Pressable>
+          <View style={styles.titleArea}>
+            <Text style={styles.screenLabel}>HISTORY</Text>
             {currentTx && (
-              <Text style={styles.currentLabel}>
-                Current: {currentTx.direction === 'YOU_LENT' ? 'You Lent' : 'You Borrowed'} {formatCurrency(currentTx.amount)}
+              <Text style={styles.currentAmount}>
+                {formatCurrency(currentTx.amount)}
               </Text>
             )}
           </View>
-          <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Icon name="close" size={24} color={Colors.white} />
-          </Pressable>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={Colors.textMuted} style={{ marginTop: 60 }} />
         ) : history.length === 0 ? (
           <View style={styles.emptyState}>
-            <Icon name="document-text-outline" size={40} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>No edit history</Text>
-            <Text style={styles.emptySubtext}>This transaction has not been modified</Text>
+            <Text style={styles.emptyIcon}>◎</Text>
+            <Text style={styles.emptyText}>No edits made</Text>
+            <Text style={styles.emptySubtext}>This transaction hasn't been modified</Text>
           </View>
         ) : (
-          <View style={styles.timeline}>
-            {/* Current version at the top */}
+          <View style={styles.feed}>
+            {/* Current version pill */}
             {currentTx && (
-              <View style={styles.timelineItem}>
-                <View style={styles.timelineLine}>
-                  <View style={[styles.dot, { backgroundColor: Colors.primary }]} />
-                  <View style={styles.connector} />
+              <View style={styles.currentCard}>
+                <View style={styles.currentCardTop}>
+                  <Text style={styles.currentPill}>CURRENT</Text>
+                  <Text style={styles.entryTime}>{formatDate(currentTx.date)}</Text>
                 </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.changeDate}>NOW (current version)</Text>
-                  <View style={[styles.changeCard, styles.changeCardCurrent]}>
-                    <Text style={[styles.changeDirection, { color: currentTx.direction === 'YOU_LENT' ? Colors.positive : Colors.negative }]}>
+                <View style={styles.currentCardBody}>
+                  <View>
+                    <Text style={styles.entryDirection}>
                       {currentTx.direction === 'YOU_LENT' ? 'YOU LENT' : 'YOU BORROWED'}
                     </Text>
-                    <Text style={[styles.changeAmount, { color: currentTx.direction === 'YOU_LENT' ? Colors.positive : Colors.negative }]}>
+                    <Text style={[
+                      styles.entryAmountLarge,
+                      { color: currentTx.direction === 'YOU_LENT' ? Colors.positive : Colors.negative }
+                    ]}>
                       {formatCurrency(currentTx.amount)}
                     </Text>
-                    <Text style={styles.changeMeta}>{formatDate(currentTx.date)}</Text>
-                    {currentTx.note ? <Text style={styles.changeNote}>"{currentTx.note}"</Text> : null}
                   </View>
                 </View>
+                {currentTx.note ? (
+                  <Text style={styles.entryNote}>"{currentTx.note}"</Text>
+                ) : null}
               </View>
             )}
 
+            {/* Divider with label */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerLabel}>{history.length} edit{history.length !== 1 ? 's' : ''}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* History entries */}
             {history.map((entry, idx) => {
               const isLent = entry.previousDirection === 'YOU_LENT';
-              const color = isLent ? Colors.positive : Colors.negative;
-              const isLast = idx === history.length - 1;
+              const amountColor = isLent ? Colors.positive : Colors.negative;
               const isRestoring = restoring === entry.id;
 
-              // "after" state = what came after this entry was recorded
-              // For idx=0 (newest history): after = currentTx
-              // For idx=1: after = history[0].previous values
               const afterAmount = idx === 0 ? (currentTx?.amount ?? entry.previousAmount) : history[idx - 1].previousAmount;
               const afterDirection = idx === 0 ? (currentTx?.direction ?? entry.previousDirection) : history[idx - 1].previousDirection;
               const afterNote = idx === 0 ? (currentTx?.note ?? entry.previousNote) : history[idx - 1].previousNote;
               const afterDate = idx === 0 ? (currentTx?.date ?? entry.previousDate ?? 0) : (history[idx - 1].previousDate ?? 0);
 
-              const changeTags = buildChangeTags(entry, afterAmount, afterDirection, afterNote, afterDate);
+              const summary = buildChangeSummary(entry, afterAmount, afterDirection, afterNote, afterDate);
 
               return (
-                <View key={entry.id} style={styles.timelineItem}>
-                  <View style={styles.timelineLine}>
-                    <View style={[styles.dot, { backgroundColor: color }]} />
-                    {!isLast && <View style={styles.connector} />}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.changeDate}>
-                      Edited {formatDate(entry.changedAt)}
+                <View key={entry.id} style={styles.historyEntry}>
+                  {/* Meta row */}
+                  <View style={styles.entryMetaRow}>
+                    <Text style={styles.entryChangeLabel}>{summary}</Text>
+                    <Text style={styles.entryTime}>
+                      {formatDate(entry.changedAt)}  {formatTime(entry.changedAt)}
                     </Text>
+                  </View>
 
-                    {/* What changed */}
-                    <View style={styles.changeTagsRow}>
-                      {changeTags.map((tag, i) => (
-                        <View key={i} style={styles.changeTag}>
-                          <Text style={styles.changeTagText}>{tag}</Text>
+                  {/* Snapshot card */}
+                  <View style={styles.snapshotCard}>
+                    {/* Left accent stripe */}
+                    <View style={[styles.accentStripe, { backgroundColor: amountColor }]} />
+
+                    <View style={styles.snapshotBody}>
+                      <View style={styles.snapshotTopRow}>
+                        <View>
+                          <Text style={styles.entryDirection}>
+                            {isLent ? 'YOU LENT' : 'YOU BORROWED'}
+                          </Text>
+                          <Text style={[styles.entryAmountMed, { color: amountColor }]}>
+                            {formatCurrency(entry.previousAmount)}
+                          </Text>
                         </View>
-                      ))}
-                    </View>
+                        <Text style={styles.snapshotDate}>
+                          {formatDate(entry.previousDate ?? 0)}
+                        </Text>
+                      </View>
 
-                    {/* Previous state card */}
-                    <View style={[styles.changeCard, { borderColor: color + '40' }]}>
-                      <Text style={styles.prevLabel}>WAS</Text>
-                      <Text style={[styles.changeDirection, { color }]}>
-                        {isLent ? 'YOU LENT' : 'YOU BORROWED'}
-                      </Text>
-                      <Text style={[styles.changeAmount, { color }]}>
-                        {formatCurrency(entry.previousAmount)}
-                      </Text>
-                      <Text style={styles.changeMeta}>{formatDate(entry.previousDate ?? 0)}</Text>
                       {entry.previousNote ? (
-                        <Text style={styles.changeNote}>"{entry.previousNote}"</Text>
+                        <Text style={styles.entryNote} numberOfLines={2}>
+                          "{entry.previousNote}"
+                        </Text>
                       ) : null}
-                    </View>
 
-                    {/* Restore button */}
-                    <Pressable
-                      style={[styles.restoreBtn, isRestoring && styles.restoreBtnLoading]}
-                      onPress={() => handleRestore(entry)}
-                      disabled={isRestoring}
-                    >
-                      <Icon name="arrow-back" size={13} color={Colors.primary} />
-                      <Text style={styles.restoreBtnText}>
-                        {isRestoring ? 'Restoring…' : 'Restore this version'}
-                      </Text>
-                    </Pressable>
+                      {/* Restore action */}
+                      <Pressable
+                        style={styles.restoreRow}
+                        onPress={() => handleRestore(entry)}
+                        disabled={isRestoring}
+                      >
+                        <Text style={[styles.restoreText, isRestoring && { opacity: 0.4 }]}>
+                          {isRestoring ? 'Restoring…' : 'Restore'}
+                        </Text>
+                        {!isRestoring && (
+                          <Icon name="chevron-forward" size={14} color={Colors.textMuted} />
+                        )}
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
               );
@@ -230,168 +230,222 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-    overflow: 'hidden' as const,
   },
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 60,
   },
+
+  // Header
   topBar: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    justifyContent: 'space-between' as const,
-    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    marginBottom: 32,
   },
-  closeBtn: {
+  backBtn: {
     width: 40,
     height: 40,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
   },
-  title: {
-    fontSize: 24,
-    fontFamily: Fonts.bold, fontWeight: '700' as const,
-    color: Colors.white,
-    marginBottom: 4,
+  titleArea: {
+    flex: 1,
   },
-  currentLabel: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
+  screenLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.semibold,
+    fontWeight: '600' as const,
     color: Colors.textMuted,
-    marginBottom: 24,
+    letterSpacing: 2.5,
+    marginBottom: 6,
   },
+  currentAmount: {
+    fontSize: 34,
+    fontFamily: Fonts.serif,
+    color: Colors.white,
+    letterSpacing: -0.5,
+  },
+
+  // Empty state
   emptyState: {
     alignItems: 'center',
-    paddingTop: 40,
+    paddingTop: 60,
+    gap: 8,
+  },
+  emptyIcon: {
+    fontSize: 36,
+    color: Colors.textMuted,
+    marginBottom: 4,
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: Fonts.semibold, fontWeight: '600' as const,
+    fontFamily: Fonts.semibold,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
-    marginTop: 16,
   },
   emptySubtext: {
     fontSize: 13,
     fontFamily: Fonts.regular,
     color: Colors.textMuted,
-    marginTop: 4,
   },
-  timeline: {
-    paddingBottom: 40,
+
+  // Feed
+  feed: {
+    gap: 0,
   },
-  timelineItem: {
+
+  // Current version card
+  currentCard: {
+    backgroundColor: '#141414',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 0.5,
+    borderColor: '#2A2A2A',
+    marginBottom: 24,
+  },
+  currentCardTop: {
     flexDirection: 'row',
-  },
-  timelineLine: {
+    justifyContent: 'space-between',
     alignItems: 'center',
-    width: 20,
-    marginRight: 16,
+    marginBottom: 14,
   },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  connector: {
-    width: 2,
-    flex: 1,
-    backgroundColor: Colors.border,
-    marginTop: 4,
-    marginBottom: 0,
-    minHeight: 16,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 20,
-  },
-  changeDate: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
+  currentPill: {
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+    fontWeight: '700' as const,
     color: Colors.textMuted,
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  changeTagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 10,
-  },
-  changeTag: {
-    backgroundColor: 'rgba(229,254,64,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(229,254,64,0.2)',
-    borderRadius: 4,
+    letterSpacing: 2,
+    backgroundColor: '#222',
     paddingHorizontal: 8,
     paddingVertical: 3,
+    borderRadius: 4,
   },
-  changeTagText: {
+  currentCardBody: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+
+  // History entries
+  historyEntry: {
+    marginBottom: 20,
+  },
+  entryMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  entryChangeLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+    textTransform: 'capitalize' as const,
+  },
+  entryTime: {
     fontSize: 11,
-    fontFamily: Fonts.medium, fontWeight: '500' as const,
-    color: Colors.primary,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
   },
-  changeCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
-    padding: 14,
+
+  // Snapshot card
+  snapshotCard: {
+    flexDirection: 'row',
+    backgroundColor: '#111111',
+    borderRadius: 12,
+    overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: Colors.border,
+    borderColor: '#1E1E1E',
   },
-  changeCardCurrent: {
-    borderColor: Colors.primary + '40',
-    backgroundColor: 'rgba(229,254,64,0.05)',
+  accentStripe: {
+    width: 3,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   },
-  prevLabel: {
-    fontSize: 9,
-    fontFamily: Fonts.semibold, fontWeight: '600' as const,
+  snapshotBody: {
+    flex: 1,
+    padding: 16,
+    gap: 10,
+  },
+  snapshotTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  snapshotDate: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+
+  // Shared entry text
+  entryDirection: {
+    fontSize: 10,
+    fontFamily: Fonts.semibold,
+    fontWeight: '600' as const,
     color: Colors.textMuted,
     letterSpacing: 1.5,
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  changeDirection: {
-    fontSize: 11,
-    fontFamily: Fonts.semibold, fontWeight: '600' as const,
-    letterSpacing: 1,
-    marginBottom: 2,
+  entryAmountLarge: {
+    fontSize: 32,
+    fontFamily: Fonts.serif,
+    letterSpacing: -0.5,
   },
-  changeAmount: {
-    fontSize: 20,
-    fontFamily: Fonts.bold, fontWeight: '700' as const,
+  entryAmountMed: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    fontWeight: '700' as const,
+    letterSpacing: -0.3,
   },
-  changeMeta: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    marginTop: 4,
-  },
-  changeNote: {
+  entryNote: {
     fontSize: 13,
     fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
-    marginTop: 6,
+    color: '#555',
     fontStyle: 'italic' as const,
+    lineHeight: 18,
   },
-  restoreBtn: {
+
+  // Restore
+  restoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.primary + '50',
-    backgroundColor: 'rgba(229,254,64,0.06)',
-    alignSelf: 'flex-start' as const,
+    gap: 2,
+    paddingTop: 4,
+    borderTopWidth: 0.5,
+    borderTopColor: '#1E1E1E',
+    marginTop: 4,
   },
-  restoreBtnLoading: {
-    opacity: 0.5,
-  },
-  restoreBtnText: {
+  restoreText: {
     fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: '600' as const,
-    color: Colors.primary,
+    fontFamily: Fonts.medium,
+    fontWeight: '500' as const,
+    color: Colors.textMuted,
+    letterSpacing: 0.3,
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 0.5,
+    backgroundColor: '#1E1E1E',
+  },
+  dividerLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     letterSpacing: 0.5,
   },
 });
