@@ -49,18 +49,82 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <AuthGate>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0D0D0D' } }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: '#0D0D0D' },
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animation: 'slide_from_right',
+        }}
+      >
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="person/[id]" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="add-person" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
-        <Stack.Screen name="edit-person" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
-        <Stack.Screen name="add-transaction" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
-        <Stack.Screen name="edit-transaction" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
-        <Stack.Screen name="add-card" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
-        <Stack.Screen name="edit-card" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
-        <Stack.Screen name="transaction-history" options={{ animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom' }} />
+        <Stack.Screen
+          name="person/[id]"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="add-person"
+          options={{
+            animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="edit-person"
+          options={{
+            animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="add-transaction"
+          options={{
+            animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="edit-transaction"
+          options={{
+            animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="add-card"
+          options={{
+            animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="edit-card"
+          options={{
+            animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="transaction-history"
+          options={{
+            animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
       </Stack>
     </AuthGate>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
@@ -26,6 +26,7 @@ export default function AddCardScreen() {
   const [cvv, setCvv] = useState('');
   const [color, setColor] = useState<CardColor>(CARD_COLORS[0].value);
   const [error, setError] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
 
   const formatCardInput = (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, 16);
@@ -44,8 +45,15 @@ export default function AddCardScreen() {
       setError('All fields are required. Card number must be 16 digits, expiry MM/YY, CVV 3 digits.');
       return;
     }
+    Keyboard.dismiss();
+    setIsSaved(true);
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
     await addCard({ cardName: cardName.trim(), cardNumber: cleanNumber, cardType, nameOnCard: nameOnCard.trim(), expiry, cvv, color });
-    router.back();
+    setTimeout(() => {
+      router.back();
+    }, 150);
   };
 
   return (
@@ -154,8 +162,8 @@ export default function AddCardScreen() {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <View style={styles.actions}>
-          <NeoPopTiltedButton onPress={handleSave} showShimmer>
-            <Text style={styles.ctaText}>SAVE</Text>
+          <NeoPopTiltedButton onPress={handleSave} showShimmer={!isSaved}>
+            <Text style={styles.ctaText}>{isSaved ? 'SAVED ✓' : 'SAVE'}</Text>
           </NeoPopTiltedButton>
         </View>
       </ScrollView>

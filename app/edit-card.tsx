@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
@@ -30,6 +30,7 @@ export default function EditCardScreen() {
   const [cvv, setCvv] = useState(card?.cvv || '');
   const [color, setColor] = useState<CardColor>(card?.color || CARD_COLORS[0].value);
   const [error, setError] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
 
   if (!card) {
     return (
@@ -56,8 +57,15 @@ export default function EditCardScreen() {
       setError('All fields are required. Card number must be 16 digits, expiry MM/YY, CVV 3 digits.');
       return;
     }
+    Keyboard.dismiss();
+    setIsSaved(true);
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
     await updateCard({ ...card, cardName: cardName.trim(), cardNumber: cleanNumber, cardType, nameOnCard: nameOnCard.trim(), expiry, cvv, color });
-    router.back();
+    setTimeout(() => {
+      router.back();
+    }, 150);
   };
 
   return (
@@ -167,7 +175,7 @@ export default function EditCardScreen() {
 
         <View style={styles.actions}>
           <NeoPopTiltedButton onPress={handleSave} showShimmer>
-            <Text style={styles.ctaText}>UPDATE</Text>
+            <Text style={styles.ctaText}>{isSaved ? 'UPDATED ✓' : 'UPDATE'}</Text>
           </NeoPopTiltedButton>
         </View>
       </ScrollView>

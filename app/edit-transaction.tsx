@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
@@ -25,6 +25,7 @@ export default function EditTransactionScreen() {
   const [direction, setDirection] = useState<TransactionDirection>(tx?.direction || 'YOU_LENT');
   const [note, setNote] = useState(tx?.note || '');
   const [error, setError] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
 
   if (!tx) {
     return (
@@ -40,8 +41,15 @@ export default function EditTransactionScreen() {
       setError('Enter a valid amount');
       return;
     }
+    Keyboard.dismiss();
+    setIsSaved(true);
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
     await updateTransaction(tx, num, direction, note.trim());
-    router.back();
+    setTimeout(() => {
+      router.back();
+    }, 150);
   };
 
   const toggleDirection = (d: TransactionDirection) => {
@@ -110,8 +118,8 @@ export default function EditTransactionScreen() {
         </View>
 
         <View style={styles.actions}>
-          <NeoPopTiltedButton onPress={handleSave} showShimmer>
-            <Text style={styles.ctaText}>UPDATE</Text>
+          <NeoPopTiltedButton onPress={handleSave} showShimmer={!isSaved}>
+            <Text style={styles.ctaText}>{isSaved ? 'UPDATED ✓' : 'UPDATE'}</Text>
           </NeoPopTiltedButton>
         </View>
       </ScrollView>

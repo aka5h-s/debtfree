@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
@@ -18,14 +19,22 @@ export default function AddPersonScreen() {
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = async () => {
     if (!name.trim()) {
       setError('Name is required');
       return;
     }
+    Keyboard.dismiss();
+    setIsSaved(true);
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
     await addPerson(name.trim(), phone.trim(), notes.trim());
-    router.back();
+    setTimeout(() => {
+      router.back();
+    }, 150);
   };
 
   return (
@@ -84,8 +93,8 @@ export default function AddPersonScreen() {
         />
 
         <View style={styles.actions}>
-          <NeoPopTiltedButton onPress={handleSave} showShimmer>
-            <Text style={styles.ctaText}>SAVE</Text>
+          <NeoPopTiltedButton onPress={handleSave} showShimmer={!isSaved}>
+            <Text style={styles.ctaText}>{isSaved ? 'SAVED ✓' : 'SAVE'}</Text>
           </NeoPopTiltedButton>
           <View style={{ height: 12 }} />
           <NeoPopButton onPress={() => router.back()} variant="secondary">

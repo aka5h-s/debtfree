@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
@@ -22,6 +23,7 @@ export default function EditPersonScreen() {
   const [phone, setPhone] = useState(person?.phone || '');
   const [notes, setNotes] = useState(person?.notes || '');
   const [error, setError] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
 
   if (!person) {
     return (
@@ -36,8 +38,15 @@ export default function EditPersonScreen() {
       setError('Name is required');
       return;
     }
+    Keyboard.dismiss();
+    setIsSaved(true);
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
     await updatePerson({ ...person, name: name.trim(), phone: phone.trim(), notes: notes.trim() });
-    router.back();
+    setTimeout(() => {
+      router.back();
+    }, 150);
   };
 
   return (
@@ -95,8 +104,8 @@ export default function EditPersonScreen() {
         />
 
         <View style={styles.actions}>
-          <NeoPopTiltedButton onPress={handleSave} showShimmer>
-            <Text style={styles.ctaText}>UPDATE</Text>
+          <NeoPopTiltedButton onPress={handleSave} showShimmer={!isSaved}>
+            <Text style={styles.ctaText}>{isSaved ? 'UPDATED ✓' : 'UPDATE'}</Text>
           </NeoPopTiltedButton>
           <View style={{ height: 12 }} />
           <NeoPopButton onPress={() => router.back()} variant="secondary">
