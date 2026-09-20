@@ -135,10 +135,9 @@ export default function PersonDetailScreen() {
         <Text style={styles.profileName}>{person.name}</Text>
         {person.phone ? <Text style={styles.profilePhone}>{person.phone}</Text> : null}
         <Text style={[styles.profileStatus, { color: statusColor }]}>{status}</Text>
-        <ShimmerText
-          text={formatCurrency(Math.abs(balance))}
-          style={[styles.profileBalance, { color: statusColor }]}
-        />
+        <Text style={[styles.profileBalance, { color: statusColor }]}>
+          {formatCurrency(Math.abs(balance))}
+        </Text>
       </View>
 
       <View style={styles.addTxSection}>

@@ -60,7 +60,7 @@ export default function SignupScreen() {
           <View style={styles.logoIcon}>
             <Icon name="wallet" size={40} color={Colors.primary} />
           </View>
-          <ShimmerText text="DebtFree" style={styles.appName} />
+          <Text style={styles.appName}>DebtFree</Text>
           <Text style={styles.tagline}>Create your account</Text>
         </View>
 

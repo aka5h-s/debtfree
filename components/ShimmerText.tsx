@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TextStyle, StyleProp } from 'react-native';
+import { Text, TextStyle, StyleProp } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming, Easing } from 'react-native-reanimated';
 
 interface ShimmerTextProps {
@@ -8,7 +8,7 @@ interface ShimmerTextProps {
   shimmerColor?: string;
 }
 
-export function ShimmerText({ text, style, shimmerColor = '#FFEB34' }: ShimmerTextProps) {
+export function ShimmerText({ text, style }: ShimmerTextProps) {
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -28,14 +28,7 @@ export function ShimmerText({ text, style, shimmerColor = '#FFEB34' }: ShimmerTe
 
   return (
     <Animated.View style={animatedStyle}>
-      <Text style={[styles.text, style]}>{text}</Text>
+      <Text style={style}>{text}</Text>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  text: {
-    fontSize: 24,
-    color: '#FFFFFF',
-  },
-});

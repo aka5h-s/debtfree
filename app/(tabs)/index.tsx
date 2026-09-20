@@ -129,11 +129,18 @@ export default function DashboardScreen() {
 
       <View style={styles.balanceSection}>
         <Text style={styles.balanceLabel}>NET BALANCE</Text>
-        <ShimmerText
-          text={formatCurrency(Math.abs(globalBalance))}
-          style={[styles.balanceAmount, { color: balanceColor }]}
-        />
-        <Text style={[styles.contextMessage, { color: balanceColor }]}>{contextMessage}</Text>
+        <Text style={[styles.balanceAmount, { color: balanceColor }]}>
+          {formatCurrency(Math.abs(globalBalance))}
+        </Text>
+        {globalBalance !== 0 ? (
+          <Text style={[styles.contextMessage, { color: balanceColor }]}>
+            {globalBalance > 0 ? 'You will receive ' : 'You are in debt. Pay '}
+            <Text style={styles.contextAmount}>{formatCurrency(Math.abs(globalBalance))}</Text>
+            {globalBalance < 0 ? ' to be debt-free' : ''}
+          </Text>
+        ) : (
+          <Text style={[styles.contextMessage, { color: balanceColor }]}>All debts settled!</Text>
+        )}
       </View>
 
       <View style={styles.summaryRow}>
@@ -328,6 +335,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     marginTop: 8,
     opacity: 0.8,
+  },
+  contextAmount: {
+    fontFamily: Fonts.serif,
+    fontSize: 14,
   },
   summaryRow: {
     flexDirection: 'row',

@@ -51,7 +51,7 @@ export default function LoginScreen() {
           <View style={styles.logoIcon}>
             <Icon name="wallet" size={40} color={Colors.primary} />
           </View>
-          <ShimmerText text="DebtFree" style={styles.appName} />
+          <Text style={styles.appName}>DebtFree</Text>
           <Text style={styles.tagline}>Track every rupee, settle with confidence</Text>
         </View>
 
