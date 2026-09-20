@@ -19,6 +19,7 @@ function getCardTypeIcon(type: CardType) {
     case 'VISA': return 'credit-card';
     case 'MASTERCARD': return 'credit-card-multiple';
     case 'RUPAY': return 'credit-card-chip';
+    case 'AMEX': return 'credit-card';
   }
 }
 
@@ -40,7 +41,7 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
       </View>
 
       <Pressable onPress={() => copyToClipboard(card.cardNumber, 'Card number')} style={styles.numberRow}>
-        <Text style={styles.cardNumber}>{formatCardNumber(card.cardNumber)}</Text>
+        <Text style={styles.cardNumber}>{formatCardNumber(card.cardNumber, card.cardType)}</Text>
       </Pressable>
 
       <View style={styles.bottomRow}>

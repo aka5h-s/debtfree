@@ -11,7 +11,7 @@ import { CARD_COLORS } from '@/lib/types';
 import type { CardType, CardColor } from '@/lib/types';
 import { Fonts } from '@/lib/fonts';
 
-const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY'];
+const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY', 'AMEX'];
 
 export default function EditCardScreen() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
@@ -22,9 +22,25 @@ export default function EditCardScreen() {
 
   const card = cards.find(c => c.id === cardId);
 
+  const formatCardInput = (text: string, type: CardType) => {
+    const digits = text.replace(/\D/g, '');
+    const isAmex = type === 'AMEX';
+    const maxLen = isAmex ? 15 : 16;
+    const sliced = digits.slice(0, maxLen);
+    if (isAmex) {
+      const p1 = sliced.slice(0, 4);
+      const p2 = sliced.slice(4, 10);
+      const p3 = sliced.slice(10, 15);
+      return [p1, p2, p3].filter(Boolean).join(' ');
+    }
+    return sliced.replace(/(.{4})/g, '$1 ').trim();
+  };
+
   const [cardName, setCardName] = useState(card?.cardName || '');
-  const [cardNumber, setCardNumber] = useState(card ? card.cardNumber.replace(/(.{4})/g, '$1 ').trim() : '');
   const [cardType, setCardType] = useState<CardType>(card?.cardType || 'VISA');
+  const [cardNumber, setCardNumber] = useState(
+    card ? formatCardInput(card.cardNumber, card.cardType) : ''
+  );
   const [nameOnCard, setNameOnCard] = useState(card?.nameOnCard || '');
   const [expiry, setExpiry] = useState(card?.expiry || '');
   const [cvv, setCvv] = useState(card?.cvv || '');
@@ -40,9 +56,26 @@ export default function EditCardScreen() {
     );
   }
 
-  const formatCardInput = (text: string) => {
-    const digits = text.replace(/\D/g, '').slice(0, 16);
-    return digits.replace(/(.{4})/g, '$1 ').trim();
+  const handleCardNumberChange = (text: string) => {
+    const raw = text.replace(/\D/g, '');
+    let targetType = cardType;
+    if ((raw.startsWith('34') || raw.startsWith('37')) && cardType !== 'AMEX') {
+      targetType = 'AMEX';
+      setCardType('AMEX');
+    }
+    setCardNumber(formatCardInput(text, targetType));
+    setError('');
+  };
+
+  const handleCardTypeSelect = (t: CardType) => {
+    setCardType(t);
+    if (cardNumber) {
+      setCardNumber(formatCardInput(cardNumber, t));
+    }
+    if (t !== 'AMEX' && cvv.length > 3) {
+      setCvv(cvv.slice(0, 3));
+    }
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const formatExpiryInput = (text: string) => {
@@ -53,8 +86,16 @@ export default function EditCardScreen() {
 
   const handleSave = async () => {
     const cleanNumber = cardNumber.replace(/\s/g, '');
-    if (!cardName.trim() || cleanNumber.length !== 16 || !nameOnCard.trim() || expiry.length !== 5 || cvv.length !== 3) {
-      setError('All fields are required. Card number must be 16 digits, expiry MM/YY, CVV 3 digits.');
+    const isAmex = cardType === 'AMEX';
+    const reqDigits = isAmex ? 15 : 16;
+    const reqCvv = isAmex ? 4 : 3;
+
+    if (!cardName.trim() || cleanNumber.length !== reqDigits || !nameOnCard.trim() || expiry.length !== 5 || cvv.length !== reqCvv) {
+      setError(
+        isAmex
+          ? 'Amex card number must be 15 digits, expiry MM/YY, CVV 4 digits.'
+          : 'Card number must be 16 digits, expiry MM/YY, CVV 3 digits.'
+      );
       return;
     }
     if (Platform.OS !== 'web') {
@@ -89,11 +130,11 @@ export default function EditCardScreen() {
         <TextInput
           style={styles.input}
           value={cardNumber}
-          onChangeText={(t) => setCardNumber(formatCardInput(t))}
-          placeholder="XXXX XXXX XXXX XXXX"
+          onChangeText={handleCardNumberChange}
+          placeholder={cardType === 'AMEX' ? "XXXX XXXXXX XXXXX" : "XXXX XXXX XXXX XXXX"}
           placeholderTextColor={Colors.textMuted}
           keyboardType="number-pad"
-          maxLength={19}
+          maxLength={cardType === 'AMEX' ? 17 : 19}
         />
 
         <Text style={styles.label}>CARD TYPE</Text>
@@ -102,10 +143,7 @@ export default function EditCardScreen() {
             <Pressable
               key={t}
               style={[styles.typeBtn, cardType === t && styles.typeBtnActive]}
-              onPress={() => {
-                setCardType(t);
-                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
+              onPress={() => handleCardTypeSelect(t)}
             >
               <Text style={[styles.typeText, cardType === t && styles.typeTextActive]}>{t}</Text>
             </Pressable>
@@ -137,15 +175,15 @@ export default function EditCardScreen() {
           </View>
           <View style={{ width: 12 }} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>CVV</Text>
+            <Text style={styles.label}>{cardType === 'AMEX' ? 'CVV (4 DIGITS)' : 'CVV'}</Text>
             <TextInput
               style={styles.input}
               value={cvv}
-              onChangeText={(t) => setCvv(t.replace(/\D/g, '').slice(0, 3))}
-              placeholder="***"
+              onChangeText={(t) => setCvv(t.replace(/\D/g, '').slice(0, cardType === 'AMEX' ? 4 : 3))}
+              placeholder={cardType === 'AMEX' ? "****" : "***"}
               placeholderTextColor={Colors.textMuted}
               keyboardType="number-pad"
-              maxLength={3}
+              maxLength={cardType === 'AMEX' ? 4 : 3}
               secureTextEntry
             />
           </View>

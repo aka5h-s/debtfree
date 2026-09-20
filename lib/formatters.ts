@@ -32,13 +32,25 @@ export function formatDate(timestamp: number): string {
   });
 }
 
-export function formatCardNumber(num: string): string {
-  const cleaned = num.replace(/\s/g, '');
-  return cleaned.replace(/(.{4})/g, '$1 ').trim();
+export function formatCardNumber(num: string, cardType?: string): string {
+  const cleaned = num.replace(/\D/g, '');
+  const isAmex = cardType === 'AMEX' || (!cardType && (cleaned.startsWith('34') || cleaned.startsWith('37')));
+  if (isAmex) {
+    const p1 = cleaned.slice(0, 4);
+    const p2 = cleaned.slice(4, 10);
+    const p3 = cleaned.slice(10, 15);
+    return [p1, p2, p3].filter(Boolean).join(' ');
+  }
+  return cleaned.slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
 }
 
-export function maskCardNumber(num: string): string {
-  const cleaned = num.replace(/\s/g, '');
+export function maskCardNumber(num: string, cardType?: string): string {
+  const cleaned = num.replace(/\D/g, '');
+  const isAmex = cardType === 'AMEX' || (!cardType && (cleaned.startsWith('34') || cleaned.startsWith('37')));
+  if (isAmex) {
+    if (cleaned.length < 9) return formatCardNumber(cleaned, 'AMEX');
+    return cleaned.slice(0, 4) + ' ****** ' + cleaned.slice(-5);
+  }
   if (cleaned.length < 8) return formatCardNumber(cleaned);
   const masked = cleaned.slice(0, 4) + ' **** **** ' + cleaned.slice(-4);
   return masked;
