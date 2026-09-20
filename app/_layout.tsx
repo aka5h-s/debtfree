@@ -6,6 +6,8 @@ import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
+import { ThemeProvider, DarkTheme } from "@react-navigation/native";
+import * as SystemUI from "expo-system-ui";
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from "@expo-google-fonts/inter";
 import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -14,6 +16,18 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 
 SplashScreen.preventAutoHideAsync();
+SystemUI.setBackgroundColorAsync('#0D0D0D').catch(() => {});
+
+const AppDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: '#0D0D0D',
+    card: '#0D0D0D',
+    text: '#FFFFFF',
+    border: '#1A1A1A',
+  },
+};
 
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const style = document.createElement('style');
@@ -101,15 +115,17 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={{ flex: 1, overflow: 'hidden' }}>
-          <KeyboardProvider>
-            <AuthProvider>
-              <DataProvider>
-                <StatusBar style="light" />
-                <RootLayoutNav />
-              </DataProvider>
-            </AuthProvider>
-          </KeyboardProvider>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0D0D0D' }}>
+          <ThemeProvider value={AppDarkTheme}>
+            <KeyboardProvider>
+              <AuthProvider>
+                <DataProvider>
+                  <StatusBar style="light" />
+                  <RootLayoutNav />
+                </DataProvider>
+              </AuthProvider>
+            </KeyboardProvider>
+          </ThemeProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </ErrorBoundary>
