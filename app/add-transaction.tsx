@@ -30,15 +30,11 @@ export default function AddTransactionScreen() {
       setError('Enter a valid amount');
       return;
     }
-    Keyboard.dismiss();
-    setIsSaved(true);
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    await addTransaction(personId, num, direction, note.trim());
-    setTimeout(() => {
-      router.back();
-    }, 150);
+    router.back();
+    addTransaction(personId, num, direction, note.trim());
   };
 
   const toggleDirection = (d: TransactionDirection) => {

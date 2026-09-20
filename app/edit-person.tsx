@@ -38,15 +38,11 @@ export default function EditPersonScreen() {
       setError('Name is required');
       return;
     }
-    Keyboard.dismiss();
-    setIsSaved(true);
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    await updatePerson({ ...person, name: name.trim(), phone: phone.trim(), notes: notes.trim() });
-    setTimeout(() => {
-      router.back();
-    }, 150);
+    router.back();
+    updatePerson({ ...person, name: name.trim(), phone: phone.trim(), notes: notes.trim() });
   };
 
   return (

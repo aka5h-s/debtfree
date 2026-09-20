@@ -57,15 +57,11 @@ export default function EditCardScreen() {
       setError('All fields are required. Card number must be 16 digits, expiry MM/YY, CVV 3 digits.');
       return;
     }
-    Keyboard.dismiss();
-    setIsSaved(true);
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    await updateCard({ ...card, cardName: cardName.trim(), cardNumber: cleanNumber, cardType, nameOnCard: nameOnCard.trim(), expiry, cvv, color });
-    setTimeout(() => {
-      router.back();
-    }, 150);
+    router.back();
+    updateCard({ ...card, cardName: cardName.trim(), cardNumber: cleanNumber, cardType, nameOnCard: nameOnCard.trim(), expiry, cvv, color });
   };
 
   return (

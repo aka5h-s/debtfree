@@ -26,15 +26,11 @@ export default function AddPersonScreen() {
       setError('Name is required');
       return;
     }
-    Keyboard.dismiss();
-    setIsSaved(true);
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    await addPerson(name.trim(), phone.trim(), notes.trim());
-    setTimeout(() => {
-      router.back();
-    }, 150);
+    router.back();
+    addPerson(name.trim(), phone.trim(), notes.trim());
   };
 
   return (
