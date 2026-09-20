@@ -240,8 +240,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   profilePhone: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontSize: 15,
+    fontFamily: Fonts.serif,
     color: Colors.textSecondary,
     marginBottom: 8,
   },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   profileBalance: {
     fontSize: 36,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.serif,
   },
   addTxSection: {
     paddingHorizontal: 40,
@@ -274,8 +274,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   txCount: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontSize: 13,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
   },
   txContainer: {
@@ -305,8 +305,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   txAmount: {
-    fontSize: 18,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontSize: 20,
+    fontFamily: Fonts.serif,
   },
   txNote: {
     fontSize: 13,
@@ -322,8 +322,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   txDate: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
+    fontSize: 13,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
     marginBottom: 8,
   },

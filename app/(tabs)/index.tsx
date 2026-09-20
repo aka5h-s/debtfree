@@ -359,8 +359,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   sectionCount: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontSize: 13,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
   },
   sectionHeaderRight: {
@@ -481,8 +481,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   personBalance: {
-    fontSize: 16,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontSize: 17,
+    fontFamily: Fonts.serif,
   },
   emptyState: {
     alignItems: 'center',

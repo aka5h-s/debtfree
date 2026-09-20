@@ -9,6 +9,13 @@ import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, DarkTheme } from "@react-navigation/native";
 import * as SystemUI from "expo-system-ui";
 import { useFonts } from "expo-font";
+import {
+  Outfit_400Regular,
+  Outfit_500Medium,
+  Outfit_600SemiBold,
+  Outfit_700Bold,
+  Outfit_800ExtraBold,
+} from "@expo-google-fonts/outfit";
 import { DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
@@ -92,6 +99,11 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
+    Outfit_800ExtraBold,
     DMSerifDisplay_400Regular,
   });
 

@@ -287,9 +287,8 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   calTitle: {
-    fontSize: 16,
-    fontFamily: Fonts.semibold,
-    fontWeight: '600',
+    fontSize: 17,
+    fontFamily: Fonts.serif,
     color: Colors.white,
     letterSpacing: 0.5,
   },
@@ -332,20 +331,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   cellText: {
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
+    fontSize: 16,
+    fontFamily: Fonts.serif,
     color: Colors.textSecondary,
   },
   cellTextSelected: {
     color: '#000',
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
+    fontFamily: Fonts.serif,
   },
   cellTextToday: {
     color: Colors.primary,
-    fontFamily: Fonts.semibold,
-    fontWeight: '600',
+    fontFamily: Fonts.serif,
   },
   cellTextFuture: {
     color: Colors.border,
@@ -359,9 +355,8 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   selectedLabel: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
+    fontSize: 15,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: 14,

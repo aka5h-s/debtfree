@@ -223,14 +223,14 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: 24,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.serif,
     color: Colors.textSecondary,
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     color: Colors.white,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontFamily: Fonts.serif,
     fontSize: 28,
     paddingVertical: 14,
   },
@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   dateValue: {
-    fontSize: 14,
-    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    fontSize: 15,
+    fontFamily: Fonts.serif,
     color: Colors.primary,
   },
   actions: {

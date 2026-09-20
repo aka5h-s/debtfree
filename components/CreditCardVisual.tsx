@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   cardNumber: {
     color: '#FFFFFF',
     fontSize: 22,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.serif,
     letterSpacing: 3,
   },
   bottomRow: {
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   infoValue: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    fontFamily: Fonts.serif,
   },
   typeTag: {
     position: 'absolute',

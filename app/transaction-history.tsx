@@ -347,8 +347,8 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize' as const,
   },
   entryTime: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
+    fontSize: 12,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
   },
 
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   },
   snapshotDate: {
     fontSize: 12,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
     textAlign: 'right',
     marginTop: 2,
@@ -400,8 +400,7 @@ const styles = StyleSheet.create({
   },
   entryAmountMed: {
     fontSize: 22,
-    fontFamily: Fonts.bold,
-    fontWeight: '700' as const,
+    fontFamily: Fonts.serif,
     letterSpacing: -0.3,
   },
   entryNote: {
@@ -443,8 +442,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E1E1E',
   },
   dividerLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
+    fontSize: 12,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
     letterSpacing: 0.5,
   },

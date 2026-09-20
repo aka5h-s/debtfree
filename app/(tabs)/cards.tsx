@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   cardCount: {
-    fontSize: 11,
-    fontFamily: Fonts.bold, fontWeight: "700" as const,
+    fontSize: 12,
+    fontFamily: Fonts.serif,
     color: Colors.primary,
     backgroundColor: 'rgba(229,254,64,0.15)',
     paddingHorizontal: 8,
