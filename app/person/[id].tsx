@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, Pressable, Alert, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,8 +13,9 @@ import { ShimmerText } from '@/components/ShimmerText';
 import { formatCurrency, formatRelativeDate } from '@/lib/formatters';
 import type { Transaction } from '@/lib/types';
 import { Fonts } from '@/lib/fonts';
+import { NoteModal } from '@/components/DatePickerModal';
 
-function TransactionItem({ tx, onEdit, onDelete, onHistory }: { tx: Transaction; onEdit: () => void; onDelete: () => void; onHistory: () => void }) {
+function TransactionItem({ tx, onEdit, onDelete, onHistory, onViewNote }: { tx: Transaction; onEdit: () => void; onDelete: () => void; onHistory: () => void; onViewNote: () => void }) {
   const isLent = tx.direction === 'YOU_LENT';
   const color = isLent ? Colors.positive : Colors.negative;
   const label = isLent ? 'YOU LENT' : 'YOU BORROWED';
@@ -29,7 +30,12 @@ function TransactionItem({ tx, onEdit, onDelete, onHistory }: { tx: Transaction;
               <Text style={[styles.txLabel, { color }]}>{label}</Text>
               <Text style={[styles.txAmount, { color }]}>{formatCurrency(tx.amount)}</Text>
             </View>
-            {tx.note ? <Text style={styles.txNote} numberOfLines={2}>{tx.note}</Text> : null}
+            {tx.note ? (
+              <Pressable onPress={onViewNote} style={styles.txNoteRow}>
+                <Text style={styles.txNote} numberOfLines={2}>{tx.note}</Text>
+                <Icon name="expand-outline" size={14} color={Colors.textMuted} />
+              </Pressable>
+            ) : null}
             <Text style={styles.txDate}>{formatRelativeDate(tx.date)}</Text>
             <View style={styles.txActions}>
               <Pressable onPress={onHistory} style={styles.txActionBtn} hitSlop={8}>
@@ -48,6 +54,7 @@ function TransactionItem({ tx, onEdit, onDelete, onHistory }: { tx: Transaction;
     </View>
   );
 }
+
 
 export default function PersonDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,6 +80,8 @@ export default function PersonDetailScreen() {
       </View>
     );
   }
+
+  const [noteToView, setNoteToView] = useState<string | null>(null);
 
   const status = balance > 0 ? 'YOU LENT' : balance < 0 ? 'YOU OWE' : 'SETTLED';
   const statusColor = balance > 0 ? Colors.positive : balance < 0 ? Colors.negative : Colors.settled;
@@ -161,6 +170,7 @@ export default function PersonDetailScreen() {
             onEdit={() => router.push({ pathname: '/edit-transaction', params: { txId: item.id } })}
             onDelete={() => handleDeleteTx(item.id)}
             onHistory={() => router.push({ pathname: '/transaction-history', params: { txId: item.id } })}
+            onViewNote={() => item.note ? setNoteToView(item.note) : null}
           />
         )}
         ListHeaderComponent={renderHeader}
@@ -172,6 +182,12 @@ export default function PersonDetailScreen() {
         }
         contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 34 : 40 }}
         showsVerticalScrollIndicator={false}
+      />
+
+      <NoteModal
+        visible={noteToView !== null}
+        note={noteToView ?? ''}
+        onClose={() => setNoteToView(null)}
       />
     </View>
   );
@@ -296,6 +312,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Fonts.regular,
     color: Colors.textSecondary,
+    flex: 1,
+    marginBottom: 4,
+  },
+  txNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
     marginBottom: 4,
   },
   txDate: {

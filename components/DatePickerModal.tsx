@@ -1,12 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Modal,
   View,
   Text,
   Pressable,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Platform,
+  ListRenderItemInfo,
 } from 'react-native';
 import Colors from '@/constants/colors';
 import { Fonts } from '@/lib/fonts';
@@ -16,86 +17,93 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const ITEM_HEIGHT = 48;
+const ITEM_HEIGHT = 52;
 const VISIBLE_ITEMS = 5;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
 
 function range(start: number, end: number): number[] {
-  const arr = [];
+  const arr: number[] = [];
   for (let i = start; i <= end; i++) arr.push(i);
   return arr;
 }
 
-interface WheelPickerProps {
-  items: (string | number)[];
+// ── Wheel Column ──────────────────────────────────────────────────────────────
+interface WheelColumnProps {
+  data: (string | number)[];
   selectedIndex: number;
   onSelect: (index: number) => void;
+  width?: number;
 }
 
-function WheelPicker({ items, selectedIndex, onSelect }: WheelPickerProps) {
-  const scrollRef = useRef<ScrollView>(null);
-  const [initialized, setInitialized] = useState(false);
+function WheelColumn({ data, selectedIndex, onSelect, width }: WheelColumnProps) {
+  const flatRef = useRef<FlatList<any>>(null);
+  const scrolling = useRef(false);
 
+  // Scroll to selected when it changes externally
   useEffect(() => {
-    if (scrollRef.current && !initialized) {
-      scrollRef.current.scrollTo({ y: selectedIndex * ITEM_HEIGHT, animated: false });
-      setInitialized(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (scrollRef.current && initialized) {
-      scrollRef.current.scrollTo({ y: selectedIndex * ITEM_HEIGHT, animated: true });
+    if (!scrolling.current && flatRef.current) {
+      flatRef.current.scrollToOffset({ offset: selectedIndex * ITEM_HEIGHT, animated: false });
     }
   }, [selectedIndex]);
 
-  const handleScroll = (y: number) => {
-    const idx = Math.round(y / ITEM_HEIGHT);
-    const clamped = Math.max(0, Math.min(idx, items.length - 1));
-    if (clamped !== selectedIndex) {
-      onSelect(clamped);
-    }
-  };
+  const handleMomentumEnd = useCallback((e: any) => {
+    scrolling.current = false;
+    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+    const clamped = Math.max(0, Math.min(idx, data.length - 1));
+    onSelect(clamped);
+  }, [data.length, onSelect]);
+
+  const handleScrollBegin = useCallback(() => {
+    scrolling.current = true;
+  }, []);
+
+  const renderItem = useCallback(({ item, index }: ListRenderItemInfo<string | number>) => {
+    const isSelected = index === selectedIndex;
+    return (
+      <Pressable
+        style={styles.wheelItem}
+        onPress={() => {
+          onSelect(index);
+          flatRef.current?.scrollToOffset({ offset: index * ITEM_HEIGHT, animated: true });
+        }}
+      >
+        <Text
+          style={[
+            styles.wheelItemText,
+            isSelected && styles.wheelItemSelected,
+          ]}
+          numberOfLines={1}
+        >
+          {String(item)}
+        </Text>
+      </Pressable>
+    );
+  }, [selectedIndex, onSelect]);
 
   return (
-    <View style={styles.wheelContainer}>
-      {/* Selection highlight */}
+    <View style={[styles.wheelContainer, width ? { width } : { flex: 1 }]}>
+      {/* Centre highlight bar */}
       <View style={styles.selectionBar} pointerEvents="none" />
-      <ScrollView
-        ref={scrollRef}
+      <FlatList
+        ref={flatRef}
+        data={data as any[]}
+        keyExtractor={(_, i) => String(i)}
+        renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => handleScroll(e.nativeEvent.contentOffset.y)}
-        onScrollEndDrag={(e) => handleScroll(e.nativeEvent.contentOffset.y)}
-        contentContainerStyle={{
-          paddingVertical: ITEM_HEIGHT * 2,
-        }}
+        onScrollBeginDrag={handleScrollBegin}
+        onMomentumScrollEnd={handleMomentumEnd}
+        contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
         style={{ height: PICKER_HEIGHT }}
-      >
-        {items.map((item, idx) => {
-          const isSelected = idx === selectedIndex;
-          return (
-            <Pressable
-              key={`${item}-${idx}`}
-              style={styles.wheelItem}
-              onPress={() => {
-                onSelect(idx);
-                scrollRef.current?.scrollTo({ y: idx * ITEM_HEIGHT, animated: true });
-              }}
-            >
-              <Text style={[styles.wheelItemText, isSelected && styles.wheelItemSelected]}>
-                {String(item).padStart(typeof item === 'number' ? 2 : 0, '0')}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+        getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
+        initialScrollIndex={selectedIndex}
+      />
     </View>
   );
 }
 
+// ── DatePickerModal ───────────────────────────────────────────────────────────
 interface DatePickerModalProps {
   visible: boolean;
   value: Date;
@@ -110,29 +118,16 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
   const years = range(minYear, maxYear);
 
   const [selectedYear, setSelectedYear] = useState(value.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(value.getMonth()); // 0-indexed
+  const [selectedMonth, setSelectedMonth] = useState(value.getMonth());
   const [selectedDay, setSelectedDay] = useState(value.getDate() - 1); // 0-indexed
 
-  // Recalculate valid days when month/year changes
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const days = range(1, daysInMonth);
 
-  // Clamp day if needed
-  useEffect(() => {
-    if (selectedDay >= daysInMonth) {
-      setSelectedDay(daysInMonth - 1);
-    }
-  }, [selectedMonth, selectedYear, daysInMonth]);
+  // Clamp day if needed when month/year changes
+  const clampedDay = Math.min(selectedDay, daysInMonth - 1);
 
-  const handleConfirm = () => {
-    const d = selectedDay < daysInMonth ? selectedDay : daysInMonth - 1;
-    const date = new Date(selectedYear, selectedMonth, d + 1);
-    // Don't allow future dates
-    const capped = date > today ? today : date;
-    onConfirm(capped);
-  };
-
-  // Sync state when modal opens
+  // Re-sync when modal opens
   useEffect(() => {
     if (visible) {
       setSelectedYear(value.getFullYear());
@@ -141,7 +136,11 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
     }
   }, [visible]);
 
-  const yearIndex = years.indexOf(selectedYear);
+  const handleConfirm = () => {
+    const date = new Date(selectedYear, selectedMonth, clampedDay + 1, 12, 0, 0);
+    const capped = date > today ? today : date;
+    onConfirm(capped);
+  };
 
   return (
     <Modal
@@ -157,34 +156,27 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
 
         <View style={styles.pickers}>
           {/* Day */}
-          <View style={styles.pickerColumn}>
-            <Text style={styles.pickerLabel}>DAY</Text>
-            <WheelPicker
-              items={days}
-              selectedIndex={Math.min(selectedDay, daysInMonth - 1)}
-              onSelect={setSelectedDay}
-            />
-          </View>
+          <WheelColumn
+            data={days}
+            selectedIndex={clampedDay}
+            onSelect={setSelectedDay}
+            width={56}
+          />
 
           {/* Month */}
-          <View style={[styles.pickerColumn, { flex: 2 }]}>
-            <Text style={styles.pickerLabel}>MONTH</Text>
-            <WheelPicker
-              items={MONTHS}
-              selectedIndex={selectedMonth}
-              onSelect={setSelectedMonth}
-            />
-          </View>
+          <WheelColumn
+            data={MONTHS}
+            selectedIndex={selectedMonth}
+            onSelect={setSelectedMonth}
+          />
 
           {/* Year */}
-          <View style={styles.pickerColumn}>
-            <Text style={styles.pickerLabel}>YEAR</Text>
-            <WheelPicker
-              items={years}
-              selectedIndex={yearIndex >= 0 ? yearIndex : years.length - 1}
-              onSelect={(idx) => setSelectedYear(years[idx])}
-            />
-          </View>
+          <WheelColumn
+            data={years}
+            selectedIndex={Math.max(0, years.indexOf(selectedYear))}
+            onSelect={(idx) => setSelectedYear(years[idx])}
+            width={72}
+          />
         </View>
 
         <View style={styles.actions}>
@@ -200,6 +192,38 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
   );
 }
 
+// ── NoteModal ─────────────────────────────────────────────────────────────────
+interface NoteModalProps {
+  visible: boolean;
+  note: string;
+  onClose: () => void;
+}
+
+export function NoteModal({ visible, note, onClose }: NoteModalProps) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.noteBackdrop} onPress={onClose} />
+      <View style={styles.noteSheet}>
+        <View style={styles.noteHeader}>
+          <Text style={styles.noteTitle}>NOTE</Text>
+          <Pressable onPress={onClose} style={styles.noteCloseBtn}>
+            <Text style={styles.noteCloseText}>✕</Text>
+          </Pressable>
+        </View>
+        <View style={styles.noteBody}>
+          <Text style={styles.noteText} selectable>{note || '(no note)'}</Text>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
@@ -211,7 +235,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   handle: {
     width: 40,
@@ -228,28 +252,16 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     letterSpacing: 2,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   pickers: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 24,
-  },
-  pickerColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  pickerLabel: {
-    fontSize: 9,
-    fontFamily: Fonts.semibold,
-    fontWeight: '600',
-    color: Colors.textMuted,
-    letterSpacing: 1.5,
-    marginBottom: 8,
+    gap: 4,
+    marginBottom: 20,
+    overflow: 'hidden',
   },
   wheelContainer: {
-    position: 'relative',
-    width: '100%',
+    alignItems: 'center',
   },
   selectionBar: {
     position: 'absolute',
@@ -257,27 +269,29 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: ITEM_HEIGHT,
-    backgroundColor: 'rgba(229, 254, 64, 0.08)',
+    backgroundColor: 'rgba(229, 254, 64, 0.07)',
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(229, 254, 64, 0.2)',
+    borderColor: 'rgba(229, 254, 64, 0.18)',
     borderRadius: 6,
     zIndex: 1,
+    pointerEvents: 'none',
   },
   wheelItem: {
     height: ITEM_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   wheelItemText: {
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    color: Colors.textMuted,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.3)',
+    textAlign: 'center',
   },
   wheelItemSelected: {
     color: Colors.white,
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: Fonts.semibold,
     fontWeight: '600',
   },
@@ -314,5 +328,57 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
     letterSpacing: 1,
+  },
+  // Note modal
+  noteBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  noteSheet: {
+    backgroundColor: '#1A1A1A',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '75%',
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+  },
+  noteTitle: {
+    fontSize: 11,
+    fontFamily: Fonts.semibold,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    letterSpacing: 2,
+  },
+  noteCloseBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+  },
+  noteCloseText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+  },
+  noteBody: {
+    padding: 20,
+  },
+  noteText: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    lineHeight: 26,
   },
 });

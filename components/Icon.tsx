@@ -81,7 +81,28 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
       return <Svg {...svgProps}><Rect x="2" y="6" width="18" height="14" rx="2" stroke={color} strokeWidth={2} /><Line x1="2" y1="12" x2="20" y2="12" stroke={color} strokeWidth={2} /><Path d="M6 4h14a2 2 0 012 2v1" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
     case 'credit-card-chip':
       return <Svg {...svgProps}><Rect x="2" y="4" width="20" height="16" rx="2" stroke={color} strokeWidth={2} /><Line x1="2" y1="10" x2="22" y2="10" stroke={color} strokeWidth={2} /><Rect x="5" y="13" width="4" height="3" rx="0.5" stroke={color} strokeWidth={1.5} /></Svg>;
+    case 'funnel-outline':
+    case 'filter':
+      return <Svg {...svgProps}><Path d="M4 6h16M7 12h10M10 18h4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'trending-up':
+      return <Svg {...svgProps}><Polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Polyline points="17 6 23 6 23 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'trending-down':
+      return <Svg {...svgProps}><Polyline points="23 18 13.5 8.5 8.5 13.5 1 6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Polyline points="17 18 23 18 23 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'text':
+    case 'sort-alpha':
+      return <Svg {...svgProps}><Line x1="4" y1="6" x2="20" y2="6" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="4" y1="12" x2="14" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="4" y1="18" x2="10" y2="18" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
+    case 'checkmark-circle-outline':
+      return <Svg {...svgProps}><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} /><Polyline points="8 12 11 15 16 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'calendar-outline':
+      return <Svg {...svgProps}><Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth={2} /><Line x1="16" y1="2" x2="16" y2="6" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="8" y1="2" x2="8" y2="6" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="3" y1="10" x2="21" y2="10" stroke={color} strokeWidth={2} /></Svg>;
+    case 'expand-outline':
+    case 'expand':
+      return <Svg {...svgProps}><Path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'person-outline':
+    case 'user':
+      return <Svg {...svgProps}><Circle cx="12" cy="8" r="4" stroke={color} strokeWidth={2} /><Path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
     default:
+
       return <Svg {...svgProps}><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} /><Line x1="12" y1="8" x2="12" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" /><Circle cx="12" cy="16" r="1" fill={color} /></Svg>;
   }
 }
