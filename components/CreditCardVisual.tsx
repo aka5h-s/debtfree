@@ -7,20 +7,13 @@ import type { CreditCard, CardType } from '@/lib/types';
 import { formatCardNumber } from '@/lib/formatters';
 import { Fonts } from '@/lib/fonts';
 
+import { CardNetworkSymbol } from '@/components/CardNetworkSymbol';
+
 interface CreditCardVisualProps {
   card: CreditCard;
   onCopy?: (label: string) => void;
   onEdit?: () => void;
   onDelete?: () => void;
-}
-
-function getCardTypeIcon(type: CardType) {
-  switch (type) {
-    case 'VISA': return 'credit-card';
-    case 'MASTERCARD': return 'credit-card-multiple';
-    case 'RUPAY': return 'credit-card-chip';
-    case 'AMEX': return 'credit-card';
-  }
 }
 
 export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardVisualProps) {
@@ -36,8 +29,8 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
     <View style={[styles.card, { backgroundColor: card.color }]}>
       <View style={styles.cardOverlay} />
       <View style={styles.topRow}>
-        <Icon family="material-community" name={getCardTypeIcon(card.cardType)} size={32} color="rgba(255,255,255,0.9)" />
         <Text style={styles.cardNameTop}>{card.cardName}</Text>
+        <CardNetworkSymbol type={card.cardType} width={50} height={28} />
       </View>
 
       <Pressable onPress={() => copyToClipboard(card.cardNumber, 'Card number')} style={styles.numberRow}>
@@ -63,10 +56,6 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
             <Text style={styles.infoValue} numberOfLines={1}>{card.nameOnCard.toUpperCase()}</Text>
           </Pressable>
         </View>
-      </View>
-
-      <View style={styles.typeTag}>
-        <Text style={styles.typeText}>{card.cardType}</Text>
       </View>
 
       {(onEdit || onDelete) && (
@@ -139,17 +128,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontFamily: Fonts.serif,
-  },
-  typeTag: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-  },
-  typeText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 10,
-    fontFamily: Fonts.semibold,
-    letterSpacing: 2,
   },
   actionRow: {
     flexDirection: 'row',

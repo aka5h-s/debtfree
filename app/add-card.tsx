@@ -10,6 +10,7 @@ import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CARD_COLORS } from '@/lib/types';
 import type { CardType, CardColor } from '@/lib/types';
 import { Fonts } from '@/lib/fonts';
+import { CardNetworkSymbol } from '@/components/CardNetworkSymbol';
 
 const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY', 'AMEX'];
 
@@ -124,16 +125,14 @@ export default function AddCardScreen() {
         />
 
         <Text style={styles.label}>CARD TYPE</Text>
-        <View style={styles.typeGrid}>
+        <View style={styles.typeRow}>
           {CARD_TYPES.map(t => (
             <Pressable
               key={t}
               style={[styles.typeBtn, cardType === t && styles.typeBtnActive]}
               onPress={() => handleCardTypeSelect(t)}
             >
-              <Text style={[styles.typeText, cardType === t && styles.typeTextActive]} numberOfLines={1}>
-                {t}
-              </Text>
+              <CardNetworkSymbol type={t} width={42} height={24} />
             </Pressable>
           ))}
         </View>
@@ -251,15 +250,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     fontSize: 16,
   },
-  typeGrid: {
+  typeRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
+    gap: 8,
   },
   typeBtn: {
-    width: '48.5%',
-    paddingVertical: 13,
+    flex: 1,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.surface,
@@ -269,16 +266,7 @@ const styles = StyleSheet.create({
   },
   typeBtnActive: {
     borderColor: Colors.primary,
-    backgroundColor: 'rgba(255, 235, 52, 0.1)',
-  },
-  typeText: {
-    fontSize: 13,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 1,
-  },
-  typeTextActive: {
-    color: Colors.primary,
+    backgroundColor: 'rgba(255, 235, 52, 0.12)',
   },
   rowFields: {
     flexDirection: 'row',
