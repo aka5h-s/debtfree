@@ -8,11 +8,21 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "ORG_GRADLE_PROJECT_android.enableMinifyInReleaseBuilds": "true",
+        "ORG_GRADLE_PROJECT_android.enableShrinkResourcesInReleaseBuilds": "true"
       }
     },
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "ORG_GRADLE_PROJECT_android.enableMinifyInReleaseBuilds": "true",
+        "ORG_GRADLE_PROJECT_android.enableShrinkResourcesInReleaseBuilds": "true"
       }
     }
   },
