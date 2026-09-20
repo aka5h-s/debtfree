@@ -69,7 +69,7 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#0D0D0D' },
-          animation: 'slide_from_right',
+          animation: 'ios_from_right',
           gestureEnabled: true,
           fullScreenGestureEnabled: false,
         }}
