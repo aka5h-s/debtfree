@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
@@ -10,6 +10,7 @@ import { formatDate } from '@/lib/formatters';
 import type { TransactionDirection } from '@/lib/types';
 import * as Haptics from 'expo-haptics';
 import { Fonts } from '@/lib/fonts';
+import { DatePickerModal } from '@/components/DatePickerModal';
 
 export default function EditTransactionScreen() {
   const { txId } = useLocalSearchParams<{ txId: string }>();
@@ -26,6 +27,8 @@ export default function EditTransactionScreen() {
   const [note, setNote] = useState(tx?.note || '');
   const [error, setError] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [txDate, setTxDate] = useState(new Date(tx?.date ?? Date.now()));
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   if (!tx) {
     return (
@@ -45,7 +48,7 @@ export default function EditTransactionScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     router.back();
-    updateTransaction(tx, num, direction, note.trim());
+    updateTransaction(tx, num, direction, note.trim(), txDate.getTime());
   };
 
   const toggleDirection = (d: TransactionDirection) => {
@@ -104,14 +107,20 @@ export default function EditTransactionScreen() {
           placeholder="What was this for?"
           placeholderTextColor={Colors.textMuted}
           multiline
-          numberOfLines={2}
+          scrollEnabled
           textAlignVertical="top"
         />
 
-        <View style={styles.dateRow}>
+        <Pressable
+          style={styles.dateRow}
+          onPress={() => setShowDatePicker(true)}
+        >
           <Text style={styles.dateLabel}>DATE</Text>
-          <Text style={styles.dateValue}>{formatDate(tx.date)}</Text>
-        </View>
+          <View style={styles.dateValueRow}>
+            <Text style={styles.dateValue}>{formatDate(txDate.getTime())}</Text>
+            <Icon name="calendar-outline" size={16} color={Colors.textMuted} />
+          </View>
+        </Pressable>
 
         <View style={styles.actions}>
           <NeoPopTiltedButton onPress={handleSave} showShimmer={!isSaved}>
@@ -119,6 +128,13 @@ export default function EditTransactionScreen() {
           </NeoPopTiltedButton>
         </View>
       </ScrollView>
+
+      <DatePickerModal
+        visible={showDatePicker}
+        value={txDate}
+        onConfirm={(date) => { setTxDate(date); setShowDatePicker(false); }}
+        onClose={() => setShowDatePicker(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -232,7 +248,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.negative,
   },
   multiline: {
-    height: 60,
+    height: 120,
     paddingTop: 14,
   },
   errorText: {
@@ -247,8 +263,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     paddingVertical: 12,
+    paddingHorizontal: 2,
     borderTopWidth: 0.5,
     borderTopColor: Colors.border,
+  },
+  dateValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   dateLabel: {
     fontSize: 11,
@@ -259,7 +281,7 @@ const styles = StyleSheet.create({
   dateValue: {
     fontSize: 14,
     fontFamily: Fonts.medium, fontWeight: "500" as const,
-    color: Colors.textSecondary,
+    color: Colors.primary,
   },
   actions: {
     marginTop: 24,

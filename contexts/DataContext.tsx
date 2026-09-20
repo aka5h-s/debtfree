@@ -33,8 +33,8 @@ interface DataContextValue {
   removePerson: (id: string) => Promise<void>;
   getPersonTransactions: (personId: string) => Transaction[];
   getPersonBalance: (personId: string) => number;
-  addTransaction: (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string) => Promise<Transaction>;
-  updateTransaction: (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string) => Promise<void>;
+  addTransaction: (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string, date?: number) => Promise<Transaction>;
+  updateTransaction: (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string, newDate?: number) => Promise<void>;
   removeTransaction: (id: string) => Promise<void>;
   getTransactionHistory: (txId: string) => Promise<TransactionHistory[]>;
   addCard: (card: Omit<CreditCard, 'id' | 'createdAt'>) => Promise<CreditCard>;
@@ -249,9 +249,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [uid, people, transactions, persistState, queueSyncAction]);
 
   // Optimistic Add Transaction (Instant UI)
-  const addTransaction = useCallback(async (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string) => {
+  const addTransaction = useCallback(async (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string, date?: number) => {
     if (!uid) throw new Error('Not authenticated');
-    const tx: Transaction = { id: generateId(), personId, amount, direction, date: Date.now(), note, createdAt: Date.now() };
+    const txDate = date ?? Date.now();
+    const tx: Transaction = { id: generateId(), personId, amount, direction, date: txDate, note, createdAt: Date.now() };
     const nextTxs = [tx, ...transactions];
     setTransactions(nextTxs);
     persistState(undefined, nextTxs);
@@ -265,7 +266,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [uid, transactions, persistState, queueSyncAction]);
 
   // Optimistic Update Transaction (Instant UI)
-  const updateTransaction = useCallback(async (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string) => {
+  const updateTransaction = useCallback(async (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string, newDate?: number) => {
     if (!uid) throw new Error('Not authenticated');
     const historyEntry: TransactionHistory = {
       id: generateId(),
@@ -275,7 +276,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       previousNote: tx.note,
       changedAt: Date.now(),
     };
-    const updated = { ...tx, amount: newAmount, direction: newDirection, note: newNote };
+    const updated = { ...tx, amount: newAmount, direction: newDirection, note: newNote, ...(newDate !== undefined ? { date: newDate } : {}) };
     const nextTxs = transactions.map(t => t.id === tx.id ? updated : t);
     setTransactions(nextTxs);
     persistState(undefined, nextTxs);

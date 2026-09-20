@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -46,25 +46,56 @@ function PersonItem({ person, balance }: { person: any; balance: number }) {
   );
 }
 
+type SortType = 'balance_high' | 'balance_low' | 'name_az' | 'name_za' | 'newest' | 'settled_last';
+
+const SORT_OPTIONS: { key: SortType; label: string; icon: string }[] = [
+  { key: 'balance_high', label: 'Highest Balance', icon: 'trending-up' },
+  { key: 'balance_low', label: 'Lowest Balance', icon: 'trending-down' },
+  { key: 'name_az', label: 'Name A → Z', icon: 'text' },
+  { key: 'name_za', label: 'Name Z → A', icon: 'text' },
+  { key: 'newest', label: 'Newest First', icon: 'time-outline' },
+  { key: 'settled_last', label: 'Settled Last', icon: 'checkmark-circle-outline' },
+];
+
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed, isOnline, isSyncing, pendingSyncCount } = useData();
   const [search, setSearch] = useState('');
+  const [sortType, setSortType] = useState<SortType>('balance_high');
+  const [showSort, setShowSort] = useState(false);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
 
   const sortedPeople = useMemo(() => {
-    return [...people]
-      .filter(p => {
-        if (!search.trim()) return true;
-        const q = search.toLowerCase();
-        return p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q));
-      })
-      .sort((a, b) => {
-        return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
-      });
-  }, [people, search, getPersonBalance]);
+    const filtered = [...people].filter(p => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q));
+    });
+
+    switch (sortType) {
+      case 'balance_high':
+        return filtered.sort((a, b) => Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id)));
+      case 'balance_low':
+        return filtered.sort((a, b) => Math.abs(getPersonBalance(a.id)) - Math.abs(getPersonBalance(b.id)));
+      case 'name_az':
+        return filtered.sort((a, b) => a.name.localeCompare(b.name));
+      case 'name_za':
+        return filtered.sort((a, b) => b.name.localeCompare(a.name));
+      case 'newest':
+        return filtered.sort((a, b) => b.createdAt - a.createdAt);
+      case 'settled_last':
+        return filtered.sort((a, b) => {
+          const aSettled = getPersonBalance(a.id) === 0 ? 1 : 0;
+          const bSettled = getPersonBalance(b.id) === 0 ? 1 : 0;
+          if (aSettled !== bSettled) return aSettled - bSettled;
+          return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
+        });
+      default:
+        return filtered;
+    }
+  }, [people, search, sortType, getPersonBalance]);
 
   const balanceColor = globalBalance > 0 ? Colors.positive : globalBalance < 0 ? Colors.negative : Colors.settled;
   const contextMessage = globalBalance > 0
@@ -123,10 +154,17 @@ export default function DashboardScreen() {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>YOUR CIRCLE</Text>
-        <Text style={styles.sectionCount}>{people.length}</Text>
+        <View style={styles.sectionHeaderRight}>
+          <Text style={styles.sectionCount}>{people.length}</Text>
+          {people.length > 0 && (
+            <Pressable onPress={() => setShowSort(true)} style={styles.sortBtn}>
+              <Icon name="funnel-outline" size={16} color={Colors.textMuted} />
+            </Pressable>
+          )}
+        </View>
       </View>
     </View>
-  ), [topPad, isOnline, pendingSyncCount, isSyncing, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, people.length]);
+  ), [topPad, isOnline, pendingSyncCount, isSyncing, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, people.length, setShowSort]);
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
@@ -189,6 +227,35 @@ export default function DashboardScreen() {
           </NeoPopTiltedButton>
         </View>
       )}
+
+      {/* Sort Sheet */}
+      <Modal visible={showSort} transparent animationType="slide" onRequestClose={() => setShowSort(false)}>
+        <Pressable style={styles.sortBackdrop} onPress={() => setShowSort(false)} />
+        <View style={styles.sortSheet}>
+          <View style={styles.sortHandle} />
+          <Text style={styles.sortSheetTitle}>SORT BY</Text>
+          {SORT_OPTIONS.map((opt) => {
+            const isActive = sortType === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                style={[styles.sortOption, isActive && styles.sortOptionActive]}
+                onPress={() => {
+                  setSortType(opt.key);
+                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowSort(false);
+                }}
+              >
+                <Icon name={opt.icon as any} size={18} color={isActive ? Colors.primary : Colors.textMuted} />
+                <Text style={[styles.sortOptionText, isActive && styles.sortOptionTextActive]}>
+                  {opt.label}
+                </Text>
+                {isActive && <Icon name="checkmark" size={18} color={Colors.primary} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -295,6 +362,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.textMuted,
+  },
+  sectionHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sortBtn: {
+    padding: 4,
+  },
+  sortBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  sortSheet: {
+    backgroundColor: '#181818',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    paddingHorizontal: 20,
+  },
+  sortHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sortSheetTitle: {
+    fontSize: 11,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    color: Colors.textMuted,
+    letterSpacing: 2,
+    marginBottom: 12,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+  },
+  sortOptionActive: {
+    // subtle highlight handled via text/icon color
+  },
+  sortOptionText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    color: Colors.textSecondary,
+  },
+  sortOptionTextActive: {
+    color: Colors.primary,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
   },
   searchContainer: {
     flexDirection: 'row',

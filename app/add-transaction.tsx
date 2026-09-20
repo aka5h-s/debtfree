@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
+import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { Icon } from '@/components/Icon';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
-import { NeoPopButton } from '@/components/NeoPopButton';
 import { formatDate } from '@/lib/formatters';
 import type { TransactionDirection } from '@/lib/types';
 import * as Haptics from 'expo-haptics';
 import { Fonts } from '@/lib/fonts';
+import { DatePickerModal } from '@/components/DatePickerModal';
 
 export default function AddTransactionScreen() {
   const insets = useSafeAreaInsets();
@@ -21,6 +21,8 @@ export default function AddTransactionScreen() {
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [txDate, setTxDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
 
@@ -34,7 +36,7 @@ export default function AddTransactionScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     router.back();
-    addTransaction(personId, num, direction, note.trim());
+    addTransaction(personId, num, direction, note.trim(), txDate.getTime());
   };
 
   const toggleDirection = (d: TransactionDirection) => {
@@ -93,14 +95,20 @@ export default function AddTransactionScreen() {
           placeholder="What was this for?"
           placeholderTextColor={Colors.textMuted}
           multiline
-          numberOfLines={2}
+          scrollEnabled
           textAlignVertical="top"
         />
 
-        <View style={styles.dateRow}>
+        <Pressable
+          style={styles.dateRow}
+          onPress={() => setShowDatePicker(true)}
+        >
           <Text style={styles.dateLabel}>DATE</Text>
-          <Text style={styles.dateValue}>{formatDate(Date.now())}</Text>
-        </View>
+          <View style={styles.dateValueRow}>
+            <Text style={styles.dateValue}>{formatDate(txDate.getTime())}</Text>
+            <Icon name="calendar-outline" size={16} color={Colors.textMuted} />
+          </View>
+        </Pressable>
 
         <View style={styles.actions}>
           <NeoPopTiltedButton onPress={handleSave} showShimmer={!isSaved}>
@@ -108,6 +116,13 @@ export default function AddTransactionScreen() {
           </NeoPopTiltedButton>
         </View>
       </ScrollView>
+
+      <DatePickerModal
+        visible={showDatePicker}
+        value={txDate}
+        onConfirm={(date) => { setTxDate(date); setShowDatePicker(false); }}
+        onClose={() => setShowDatePicker(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -222,7 +237,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.negative,
   },
   multiline: {
-    height: 60,
+    height: 120,
     paddingTop: 14,
   },
   errorText: {
@@ -237,8 +252,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     paddingVertical: 12,
+    paddingHorizontal: 2,
     borderTopWidth: 0.5,
     borderTopColor: Colors.border,
+  },
+  dateValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   dateLabel: {
     fontSize: 11,
@@ -249,7 +270,7 @@ const styles = StyleSheet.create({
   dateValue: {
     fontSize: 14,
     fontFamily: Fonts.medium, fontWeight: "500" as const,
-    color: Colors.textSecondary,
+    color: Colors.primary,
   },
   actions: {
     marginTop: 24,
