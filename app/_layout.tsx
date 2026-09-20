@@ -69,8 +69,7 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#0D0D0D' },
-          animation: isAndroid ? 'slide_from_right' : 'default',
-          animationDuration: 220,
+          animation: 'slide_from_right',
           gestureEnabled: true,
           fullScreenGestureEnabled: false,
         }}
