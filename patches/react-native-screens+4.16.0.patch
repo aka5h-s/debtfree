@@ -1,0 +1,45 @@
+diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml
+--- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml
++++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_close.xml
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <translate xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:duration="@android:integer/config_shortAnimTime"
++    android:duration="350"
+     android:fromXDelta="-30%"
+     android:toXDelta="0%" />
+diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml
+--- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml
++++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_background_open.xml
+@@ -1,6 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <translate xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:duration="@android:integer/config_shortAnimTime"
++    android:duration="350"
++    android:interpolator="@android:interpolator/decelerate_cubic"
+     android:fromXDelta="0%"
+     android:toXDelta="-30%" />
+diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml
+--- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml
++++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_close.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <translate xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:duration="@android:integer/config_shortAnimTime"
+-    android:interpolator="@android:interpolator/accelerate_decelerate"
++    android:duration="350"
++    android:interpolator="@android:interpolator/accelerate_cubic"
+     android:fromXDelta="0%"
+     android:toXDelta="100%"/>
+diff --git a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml
+--- a/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml
++++ b/node_modules/react-native-screens/android/src/main/res/base/anim/rns_ios_from_right_foreground_open.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <translate xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:duration="@android:integer/config_shortAnimTime"
+-    android:interpolator="@android:interpolator/accelerate_decelerate"
++    android:duration="350"
++    android:interpolator="@android:interpolator/decelerate_cubic"
+     android:fromXDelta="100%"
+     android:toXDelta="0%" />
