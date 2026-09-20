@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,21 +48,23 @@ function PersonItem({ person, balance }: { person: any; balance: number }) {
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed } = useData();
+  const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed, isOnline, isSyncing, pendingSyncCount } = useData();
   const [search, setSearch] = useState('');
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
 
-  const sortedPeople = [...people]
-    .filter(p => {
-      if (!search.trim()) return true;
-      const q = search.toLowerCase();
-      return p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q));
-    })
-    .sort((a, b) => {
-      return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
-    });
+  const sortedPeople = useMemo(() => {
+    return [...people]
+      .filter(p => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q));
+      })
+      .sort((a, b) => {
+        return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
+      });
+  }, [people, search, getPersonBalance]);
 
   const balanceColor = globalBalance > 0 ? Colors.positive : globalBalance < 0 ? Colors.negative : Colors.settled;
   const contextMessage = globalBalance > 0
@@ -71,19 +73,28 @@ export default function DashboardScreen() {
     ? `You are in debt. Pay ${formatCurrency(Math.abs(globalBalance))} to be debt-free`
     : 'You are free of debt!';
 
-  if (isLoading) {
-    return (
-      <View style={[styles.container, { paddingTop: topPad }]}>
-        <ActivityIndicator color={Colors.primary} size="large" style={{ marginTop: 100 }} />
-      </View>
-    );
-  }
-
-  const renderHeader = () => (
+  const renderHeader = useMemo(() => (
     <View>
       <View style={[styles.header, { paddingTop: topPad + 16 }]}>
         <Text style={styles.appTitle}>DebtFree</Text>
       </View>
+
+      {(!isOnline || pendingSyncCount > 0 || isSyncing) && (
+        <View style={[styles.offlineBanner, !isOnline && styles.offlineBannerRed]}>
+          <Icon
+            name={isSyncing ? 'sync' : !isOnline ? 'cloud-offline' : 'cloud-upload'}
+            size={14}
+            color={!isOnline ? Colors.negative : Colors.primary}
+          />
+          <Text style={[styles.offlineBannerText, !isOnline && { color: Colors.negative }]}>
+            {isSyncing
+              ? 'Backing up changes...'
+              : !isOnline
+              ? `Working offline • ${pendingSyncCount} changes not yet backed up`
+              : `${pendingSyncCount} changes pending cloud backup`}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.balanceSection}>
         <Text style={styles.balanceLabel}>NET BALANCE</Text>
@@ -114,28 +125,10 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>YOUR CIRCLE</Text>
         <Text style={styles.sectionCount}>{people.length}</Text>
       </View>
-
-      {people.length > 0 && (
-        <View style={styles.searchContainer}>
-          <Icon name="search" size={18} color={Colors.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by name or phone..."
-            placeholderTextColor={Colors.textMuted}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <Pressable onPress={() => setSearch('')}>
-              <Icon name="close-circle" size={18} color={Colors.textMuted} />
-            </Pressable>
-          )}
-        </View>
-      )}
     </View>
-  );
+  ), [topPad, isOnline, pendingSyncCount, isSyncing, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, people.length]);
 
-  const renderEmpty = () => (
+  const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
       <Icon name="people-outline" size={48} color={Colors.textMuted} />
       <Text style={styles.emptyText}>Your circle is empty</Text>
@@ -146,18 +139,45 @@ export default function DashboardScreen() {
         </NeoPopTiltedButton>
       </View>
     </View>
-  );
+  ), []);
+
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <PersonItem person={item} balance={getPersonBalance(item.id)} />
+  ), [getPersonBalance]);
 
   return (
     <View style={styles.container}>
       <FlatList
         data={sortedPeople}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PersonItem person={item} balance={getPersonBalance(item.id)} />
-        )}
-        ListHeaderComponent={renderHeader}
+        renderItem={renderItem}
+        ListHeaderComponent={
+          <>
+            {renderHeader}
+            {people.length > 0 && (
+              <View style={styles.searchContainer}>
+                <Icon name="search" size={18} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search by name or phone..."
+                  placeholderTextColor={Colors.textMuted}
+                  value={search}
+                  onChangeText={setSearch}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+                {search.length > 0 && (
+                  <Pressable onPress={() => setSearch('')}>
+                    <Icon name="close-circle" size={18} color={Colors.textMuted} />
+                  </Pressable>
+                )}
+              </View>
+            )}
+          </>
+        }
         ListEmptyComponent={renderEmpty}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.listContent, { paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }]}
         showsVerticalScrollIndicator={false}
       />
@@ -194,6 +214,30 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 16,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(229, 254, 64, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 254, 64, 0.2)',
+    gap: 6,
+  },
+  offlineBannerRed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  offlineBannerText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    color: Colors.primary,
   },
   balanceSection: {
     alignItems: 'center',

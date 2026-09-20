@@ -12,8 +12,8 @@ import { Fonts } from '@/lib/fonts';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, signOut, updateUserProfile } = useAuth();
-  const { people, transactions, cards } = useData();
+  const { user, signOut, updateUserProfile, setAccountPassword } = useAuth();
+  const { people, transactions, cards, isOnline, isSyncing, pendingSyncCount, reload } = useData();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
   const topPad = Math.max(insets.top, webTopInset);
@@ -23,6 +23,13 @@ export default function ProfileScreen() {
   const [editName, setEditName] = useState(user?.displayName || '');
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
+
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   const handleSignOut = () => {
     const doSignOut = () => {
@@ -68,6 +75,34 @@ export default function ProfileScreen() {
   const hasGoogle = providerIds.includes('google.com');
   const hasPassword = providerIds.includes('password');
 
+  const handleSavePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    setPasswordError('');
+    setPasswordSuccess('');
+    setPasswordSaving(true);
+    const result = await setAccountPassword(newPassword);
+    setPasswordSaving(false);
+    if (result.error) {
+      setPasswordError(result.error);
+    } else {
+      setPasswordSuccess(hasPassword ? 'Password updated successfully!' : 'Password set! You can now log in with email and password.');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        setIsSettingPassword(false);
+        setPasswordSuccess('');
+      }, 2500);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: topPad + 16, paddingBottom: bottomPad }}>
       <Text style={styles.title}>Profile</Text>
@@ -110,6 +145,54 @@ export default function ProfileScreen() {
                   )}
                 </View>
               </View>
+            ) : isSettingPassword ? (
+              <View style={styles.editSection}>
+                <Text style={styles.editLabel}>{hasPassword ? 'CHANGE PASSWORD' : 'SET PASSWORD'}</Text>
+                <Text style={styles.passwordHint}>
+                  {hasPassword ? 'Update your password for email login' : 'Create a password so you can also log in directly using your email and password.'}
+                </Text>
+
+                <TextInput
+                  style={styles.editInput}
+                  value={newPassword}
+                  onChangeText={(t) => { setNewPassword(t); setPasswordError(''); }}
+                  placeholder="New password (min 6 chars)"
+                  placeholderTextColor={Colors.textMuted}
+                  secureTextEntry
+                />
+
+                <TextInput
+                  style={[styles.editInput, { marginTop: 10 }]}
+                  value={confirmPassword}
+                  onChangeText={(t) => { setConfirmPassword(t); setPasswordError(''); }}
+                  placeholder="Confirm password"
+                  placeholderTextColor={Colors.textMuted}
+                  secureTextEntry
+                />
+
+                {passwordError ? (
+                  <Text style={styles.editErrorText}>{passwordError}</Text>
+                ) : null}
+
+                {passwordSuccess ? (
+                  <Text style={styles.passwordSuccessText}>{passwordSuccess}</Text>
+                ) : null}
+
+                <View style={styles.editActions}>
+                  {passwordSaving ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <>
+                      <Pressable onPress={() => { setIsSettingPassword(false); setPasswordError(''); }} style={styles.cancelBtn}>
+                        <Text style={styles.cancelText}>Cancel</Text>
+                      </Pressable>
+                      <Pressable onPress={handleSavePassword} style={styles.saveBtn}>
+                        <Text style={styles.saveText}>Save Password</Text>
+                      </Pressable>
+                    </>
+                  )}
+                </View>
+              </View>
             ) : (
               <>
                 <Text style={styles.userName}>{user?.displayName || 'DebtFree User'}</Text>
@@ -130,10 +213,17 @@ export default function ProfileScreen() {
                   )}
                 </View>
 
-                <Pressable onPress={handleStartEdit} style={styles.editProfileBtn}>
-                  <Icon name="create-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.editProfileText}>Edit Profile</Text>
-                </Pressable>
+                <View style={styles.profileButtonRow}>
+                  <Pressable onPress={handleStartEdit} style={styles.editProfileBtn}>
+                    <Icon name="create-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.editProfileText}>Edit Profile</Text>
+                  </Pressable>
+
+                  <Pressable onPress={() => { setIsSettingPassword(true); setPasswordError(''); setPasswordSuccess(''); }} style={styles.passwordBtn}>
+                    <Icon name="key-outline" size={16} color={Colors.white} />
+                    <Text style={styles.passwordBtnText}>{hasPassword ? 'Change Password' : 'Set Password'}</Text>
+                  </Pressable>
+                </View>
               </>
             )}
           </View>
@@ -161,9 +251,26 @@ export default function ProfileScreen() {
               </View>
             </View>
             <View style={styles.syncBadge}>
-              <Icon name="cloud-done" size={14} color={Colors.positive} />
-              <Text style={styles.syncText}>Synced with Firebase</Text>
+              <Icon
+                name={isSyncing ? 'sync' : isOnline ? 'cloud-done' : 'cloud-offline'}
+                size={14}
+                color={isSyncing ? Colors.primary : isOnline ? (pendingSyncCount > 0 ? '#F59E0B' : Colors.positive) : Colors.negative}
+              />
+              <Text style={[styles.syncText, !isOnline && { color: Colors.negative }]}>
+                {isSyncing
+                  ? 'Backing up to cloud...'
+                  : !isOnline
+                  ? `Offline • ${pendingSyncCount} changes not yet backed up`
+                  : pendingSyncCount > 0
+                  ? `${pendingSyncCount} changes pending sync`
+                  : 'Synced with Firebase'}
+              </Text>
             </View>
+            {isOnline && pendingSyncCount > 0 && (
+              <Pressable onPress={reload} style={styles.syncNowBtn}>
+                <Text style={styles.syncNowText}>Sync Now</Text>
+              </Pressable>
+            )}
           </View>
         </NeoPopCard>
       </View>
@@ -377,6 +484,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semibold, fontWeight: "600" as const,
     color: Colors.negative,
+    letterSpacing: 1,
+  },
+  profileButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  passwordBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.border,
+  },
+  passwordBtnText: {
+    fontSize: 13,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    color: Colors.white,
+  },
+  passwordHint: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  passwordSuccessText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium, fontWeight: "500" as const,
+    color: Colors.positive,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  syncNowBtn: {
+    marginTop: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    backgroundColor: 'rgba(229, 254, 64, 0.1)',
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  syncNowText: {
+    fontSize: 11,
+    fontFamily: Fonts.semibold, fontWeight: "600" as const,
+    color: Colors.primary,
     letterSpacing: 1,
   },
 });

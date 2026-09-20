@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
   EmailAuthProvider,
   linkWithCredential,
+  updatePassword,
   updateProfile,
   fetchSignInMethodsForEmail,
   type User,
@@ -29,6 +30,7 @@ interface AuthContextValue {
   signInGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateUserProfile: (data: { displayName?: string }) => Promise<{ error?: string }>;
+  setAccountPassword: (password: string) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -206,6 +208,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setAccountPassword = useCallback(async (password: string) => {
+    if (!auth.currentUser) return { error: 'Not signed in' };
+    if (!auth.currentUser.email) return { error: 'No email found on current account' };
+    if (password.length < 6) return { error: 'Password must be at least 6 characters' };
+
+    try {
+      const providers = auth.currentUser.providerData.map(p => p.providerId);
+      if (providers.includes('password')) {
+        await updatePassword(auth.currentUser, password);
+      } else {
+        const cred = EmailAuthProvider.credential(auth.currentUser.email, password);
+        await linkWithCredential(auth.currentUser, cred);
+      }
+      setUser({ ...auth.currentUser } as User);
+      return {};
+    } catch (e: any) {
+      if (e.code === 'auth/requires-recent-login') {
+        return { error: 'For security, please log out and log back in, then set your password.' };
+      }
+      return { error: e.message || 'Failed to set password' };
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     if (nativeAvailable) {
       try {
@@ -217,8 +242,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [nativeAvailable]);
 
   const value = useMemo(() => ({
-    user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut, updateUserProfile,
-  }), [user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut, updateUserProfile]);
+    user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut, updateUserProfile, setAccountPassword,
+  }), [user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut, updateUserProfile, setAccountPassword]);
 
   return (
     <AuthContext.Provider value={value}>
