@@ -138,14 +138,16 @@ export default function EditCardScreen() {
         />
 
         <Text style={styles.label}>CARD TYPE</Text>
-        <View style={styles.typeRow}>
+        <View style={styles.typeGrid}>
           {CARD_TYPES.map(t => (
             <Pressable
               key={t}
               style={[styles.typeBtn, cardType === t && styles.typeBtnActive]}
               onPress={() => handleCardTypeSelect(t)}
             >
-              <Text style={[styles.typeText, cardType === t && styles.typeTextActive]}>{t}</Text>
+              <Text style={[styles.typeText, cardType === t && styles.typeTextActive]} numberOfLines={1}>
+                {t}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -263,25 +265,28 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     fontSize: 16,
   },
-  typeRow: {
+  typeGrid: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   typeBtn: {
-    flex: 1,
-    paddingVertical: 12,
+    width: '48.5%',
+    paddingVertical: 13,
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   typeBtnActive: {
     borderColor: Colors.primary,
     backgroundColor: 'rgba(255, 235, 52, 0.1)',
   },
   typeText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 1,
