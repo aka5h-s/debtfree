@@ -1,0 +1,310 @@
+Build me a Flutter mobile application called "DebtFree" — a personal debt and lending tracker with a credit card wallet feature.
+
+For the UI, use CRED's NeoPop design system by adding the neopop package (neopop: ^1.0.2) from pub.dev. NeoPop provides 3D elevated buttons, tilted floating buttons, shimmer effects, and 3D cards — all with a dark, premium aesthetic inspired by the CRED app.
+
+Below are all the functional requirements, design specifications, and NeoPop usage guidelines.
+
+DESIGN SYSTEM — NEOPOP (CRED-STYLE)
+The entire app must use the NeoPop design language. Here are the core components and how to use them:
+
+Overall Aesthetic
+Dark theme throughout — backgrounds should be near-black (Color(0xFF0D0D0D) or similar dark colors)
+Premium, luxury fintech feel similar to CRED app
+Clean typography with white/light text on dark backgrounds
+Haptic feedback on button taps (HapticFeedback.lightImpact())
+NeoPop Buttons (NeoPopButton)
+Use for all standard action buttons (Save, Delete, Edit, Add, etc.):
+
+// Primary button (white, elevated)
+NeoPopButton(
+  color: Colors.white,
+  onTapUp: () => HapticFeedback.lightImpact(),
+  onTapDown: () => HapticFeedback.lightImpact(),
+  depth: 3.0,
+  child: Padding(
+    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [Text("SAVE", style: TextStyle(fontWeight: FontWeight.bold))],
+    ),
+  ),
+)
+// Secondary button (dark with green border, stroke style)
+NeoPopButton(
+  color: Color(0xFF0D0D0D),
+  bottomShadowColor: Color(0xFF3F6915),
+  rightShadowColor: Color(0xFF629F25),
+  depth: 3.0,
+  onTapUp: () {},
+  border: Border.all(color: Color(0xFF8DD04A), width: 0.5),
+  child: Padding(
+    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+    child: Text("CANCEL", style: TextStyle(color: Colors.white)),
+  ),
+)
+Use buttonPosition: Position.center for flat (non-elevated) buttons
+Use buttonPosition: Position.fullBottom when stacking buttons vertically or horizontally
+Set parentColor and grandparentColor when button sits inside a colored container (for correct shadow computation)
+NeoPop Tilted Buttons (NeoPopTiltedButton)
+Use for primary CTAs — the most important action on each screen (e.g., "ADD PERSON", "NEW TRANSACTION", "PAY NOW"):
+
+// Floating tilted button with shimmer (highest emphasis)
+NeoPopTiltedButton(
+  isFloating: true,
+  onTapUp: () => HapticFeedback.lightImpact(),
+  onTapDown: () => HapticFeedback.lightImpact(),
+  decoration: NeoPopTiltedButtonDecoration(
+    color: Color(0xFFFFEB34),        // NeoPop yellow
+    plunkColor: Color(0xFFC0A441),   // darker yellow for depth
+    shadowColor: Color(0xFF242424),
+    showShimmer: true,
+  ),
+  child: Padding(
+    padding: EdgeInsets.symmetric(horizontal: 70, vertical: 15),
+    child: Text("ADD PERSON", style: TextStyle(fontWeight: FontWeight.bold)),
+  ),
+)
+// Non-floating tilted button (medium emphasis)
+NeoPopTiltedButton(
+  color: Colors.white,
+  onTapUp: () {},
+  child: Padding(
+    padding: EdgeInsets.symmetric(horizontal: 60, vertical: 15),
+    child: Text("VIEW DETAILS"),
+  ),
+)
+// Tilted stroke button (dark with green border)
+NeoPopTiltedButton(
+  isFloating: true,
+  onTapUp: () {},
+  decoration: NeoPopTiltedButtonDecoration(
+    color: Color(0xFF0D0D0D),
+    plunkColor: Color(0xFF3F6915),
+    shadowColor: Colors.black,
+    border: Border.fromBorderSide(BorderSide(color: Color(0xFF8DD04A), width: 1)),
+  ),
+  child: Text('SCAN', style: TextStyle(color: Colors.white)),
+)
+NeoPop Cards (NeoPopCard)
+Use for all card-like containers (person cards, summary cards, transaction items, credit card display):
+
+NeoPopCard(
+  color: Color(0xFF274806),           // dark green card
+  depth: 3.0,
+  vShadowColor: Color(0xFF1D3703),    // vertical shadow
+  hShadowColor: Color(0xFF40641C),    // horizontal shadow
+  child: Padding(
+    padding: EdgeInsets.all(16),
+    child: YourContent(),
+  ),
+)
+Shadow colors are auto-derived from the card color using ColorUtils.getHorizontalShadow() and ColorUtils.getVerticalShadow() if not specified
+Use borderColor parameter to add borders
+NeoPop Shimmer (NeoPopShimmer)
+Use for highlighting important text or amounts:
+
+NeoPopShimmer(
+  shimmerColor: Colors.yellow,
+  child: Text("₹1,23,456", style: TextStyle(fontSize: 24, color: Colors.white)),
+)
+Color Palette
+const kBackgroundColor = Color(0xFF0D0D0D);          // App background (near black)
+const kPrimaryButtonColor = Color(0xFFFFFFFF);        // White buttons
+const kSecondaryButtonColor = Color(0xFF0D0D0D);      // Dark buttons
+const kPopYellowColor = Color(0xFFFFEB34);            // Primary CTA yellow
+const kPlunkColorYellow = Color(0xFFC0A441);          // Yellow plunk/depth
+const kBorderColorGreen = Color(0xFF8DD04A);          // Green borders/accents
+const kShadowColorGreen = Color(0xFF629F25);          // Green shadows
+const kShadowColorDarkGreen = Color(0xFF3F6915);      // Darker green shadows
+const kCardColor = Color(0xFF274806);                 // Card backgrounds
+const kPositiveColor = Color(0xFF8DD04A);             // Amounts you're owed (green)
+const kNegativeColor = Color(0xFFFF6B6B);             // Amounts you owe (red)
+const kSettledColor = Color(0xFF8A8A8A);              // Settled/neutral (gray)
+const kButtonBorderWidth = 0.5;
+const kButtonDepth = 3.0;
+1. AUTHENTICATION
+Email/password signup (fields: email, password, confirm password; minimum 6 character password)
+Email/password login
+Google Sign-In option
+Logout functionality
+Auth state persistence (stay logged in across app restarts)
+User-friendly error messages for: wrong password, email already in use, invalid email, weak password, network errors
+Loading/spinner states during all auth operations
+Two navigation flows: unauthenticated users see Login/Signup screens; authenticated users see the main app
+Use Firebase Auth for the backend
+Auth screens should use the dark NeoPop theme with NeoPopTiltedButton (floating, yellow, with shimmer) for the primary login/signup action, and NeoPopButton (stroke style with green border) for secondary actions
+2. DASHBOARD (Main Screen)
+Global Net Balance Display at the top — shows the user's overall net balance across all people:
+Green (kPositiveColor) if positive (others owe you overall)
+Red (kNegativeColor) if negative (you owe others overall)
+Use NeoPopShimmer on the balance amount for emphasis
+Dynamic contextual message: "You are in debt. Pay ₹X to be debt-free" / "You will receive ₹X" / "You are free of debt!"
+Two Summary Cards side by side using NeoPopCard:
+Total YOU LENT (green-tinted card) — sum of all positive per-person balances
+Total YOU BORROWED (red-tinted card) — sum of all negative per-person balances
+People List ("Your Circle") — scrollable list of all people, sorted by absolute balance (highest first). Each item rendered inside a NeoPopCard showing:
+Avatar with first letter of the person's name (color varies by balance status)
+Person's name
+Status label: "YOU LENT" / "YOU OWE" / "SETTLED"
+Balance amount (color-coded: green=lent, red=owe, gray=settled)
+Tappable to navigate to Person Detail
+Empty State — when no people exist, show "Your circle is empty" with a NeoPopTiltedButton (floating, yellow, shimmer) labeled "ADD SOMEONE"
+Floating Action Button — use a NeoPopTiltedButton (floating, yellow) as a "+" FAB to add a new person
+Navigation link to Credit Card Wallet in the app bar
+3. PERSON MANAGEMENT
+Add Person (modal bottom sheet or new screen):
+Name (required)
+Phone number (optional)
+Notes (optional, multiline)
+Validation: name is required
+Save button: NeoPopTiltedButton (floating, yellow, shimmer)
+Cancel button: NeoPopButton (stroke style, green border)
+On save: persist to database
+Person Detail Screen — shows:
+Large avatar with first initial (border color reflects balance status)
+Person name and phone number (white text on dark background)
+Current net balance with NeoPopShimmer on the amount, color-coded, with status label (SETTLED / YOU OWE / YOU LENT)
+"NEW TRANSACTION" NeoPopTiltedButton (floating, yellow, shimmer)
+List of all transactions with this person (newest first), each in a NeoPopCard
+4. TRANSACTION MANAGEMENT
+Add Transaction:
+Person name displayed (read-only context)
+Amount input (numeric, supports decimals)
+Direction toggle: "YOU LENT" vs "YOU BORROWED" — use two adjacent NeoPopButtons with buttonPosition: Position.fullBottom to create a toggle pair
+Note (optional, multiline)
+Date (auto-set to today, displayed in formatted form)
+Save: NeoPopTiltedButton (floating, yellow, shimmer)
+Edit Transaction — same form pre-filled with existing transaction data; "UPDATE" button
+Delete Transaction — confirmation dialog before deleting
+Transaction List Items displayed in NeoPopCards:
+Color-coded left indicator (green=lent, red=borrowed)
+Direction label: "YOU LENT" / "YOU BORROWED"
+Amount (color-coded)
+Note (if present)
+Relative date: "Today", "Yesterday", or formatted date
+Action buttons using NeoPopButtons: View History, Edit, Delete
+5. TRANSACTION EDIT HISTORY (Audit Trail)
+When a transaction is edited, save the previous values to a history/audit table before updating
+View History — modal/bottom sheet showing chronological edit history with:
+Timeline visual (dots and connecting lines, styled to match NeoPop dark theme)
+Each entry shows: previous direction, previous amount, previous note, timestamp of change
+If no edits have been made, show "No edit history" empty state
+6. CREDIT CARD WALLET / MANAGER
+Cards Screen:
+Header showing card count: "MY CARDS (X)"
+Search bar to filter cards by card name, card number, holder name, or card type
+Visual card display — show cards in a swipeable card stack or carousel with pan gesture animations
+Empty state with "ADD YOUR FIRST CARD" NeoPopTiltedButton (floating, yellow, shimmer)
+Footer actions: "EDIT CARD" and "REMOVE CARD" using NeoPopButtons
+Card Visual Display — realistic credit card layout inside a NeoPopCard:
+Custom background color (user-selectable)
+"DEBTFREE BANK" label at top
+Card name
+Card number (formatted as groups of 4 digits: XXXX XXXX XXXX XXXX)
+Expiry date and CVV
+Cardholder name
+Card type icon/logo: Visa, Mastercard, or RuPay
+Copy to Clipboard — tapping card number, expiry, CVV, or holder name copies the value to clipboard with a SnackBar notification
+Add Card (modal or screen):
+Card name (e.g., "HDFC Millennia")
+Card number (auto-format with spaces every 4 digits, max 16 digits)
+Card type selector: VISA / MASTERCARD / RUPAY
+Name on card
+Expiry date (formatted as MM/YY)
+CVV (max 3 digits)
+Card color picker (preset options: Black, Midnight Blue, Purple, Green, Orange, Dark Red)
+Validation: all fields required
+Save: NeoPopTiltedButton (floating, yellow, shimmer)
+Edit Card — same form pre-filled with existing data
+Delete Card — confirmation dialog before deletion
+7. BALANCE CALCULATION LOGIC
+Per-Person Net Balance: sum of all "YOU LENT" amounts minus sum of all "YOU BORROWED" amounts for that person
+Positive = they owe you (display in green, label "YOU LENT")
+Negative = you owe them (display in red, label "YOU OWE")
+Zero = settled (display in gray, label "SETTLED")
+Global Balance: sum of all per-person net balances
+Also compute: total lent (sum of positive balances), total borrowed (sum of absolute value of negative balances)
+Dynamic message describing debt-free status
+8. DATA PERSISTENCE
+Use SQLite (sqflite package) for local database storage
+Use Firebase Firestore for cloud sync/backup
+Dual storage: save all data to both local SQLite and Firebase Firestore
+Initial sync on login: sync all local data to cloud
+Download from cloud: merge cloud data with local SQLite (add missing records)
+Real-time Firestore listeners: live sync for cards, people, and transactions collections — automatically sync changes from other devices (handle added, modified, removed documents)
+Graceful fallback: if Firestore is unavailable, app continues working with local-only storage
+Per-user data isolation: all cloud data organized under users/{userId}/ in Firestore
+Database Schema (4 tables):
+Person — id (INTEGER PRIMARY KEY AUTOINCREMENT), name (TEXT NOT NULL), phone (TEXT), notes (TEXT), created_at (INTEGER NOT NULL)
+TransactionTable — id (INTEGER PRIMARY KEY AUTOINCREMENT), person_id (INTEGER NOT NULL, FOREIGN KEY references Person(id) ON DELETE CASCADE), amount (REAL NOT NULL), direction (TEXT NOT NULL, CHECK IN ('YOU_GAVE', 'YOU_GOT')), date (INTEGER NOT NULL), note (TEXT), created_at (INTEGER NOT NULL)
+TransactionHistory — id (INTEGER PRIMARY KEY AUTOINCREMENT), transaction_id (INTEGER NOT NULL, FOREIGN KEY references TransactionTable(id) ON DELETE CASCADE), previous_amount (REAL NOT NULL), previous_direction (TEXT NOT NULL), previous_date (INTEGER NOT NULL), previous_note (TEXT), changed_at (INTEGER NOT NULL)
+Cards — id (INTEGER PRIMARY KEY AUTOINCREMENT), cardName (TEXT NOT NULL), cardNumber (TEXT NOT NULL), cardType (TEXT NOT NULL, CHECK IN ('VISA', 'MASTERCARD', 'RUPAY')), nameOnCard (TEXT NOT NULL), expiry (TEXT NOT NULL), cvv (TEXT NOT NULL), color (TEXT NOT NULL), created_at (INTEGER NOT NULL)
+Create an index on TransactionTable(person_id) for faster queries
+Foreign key constraints ensure cascade deletion
+9. FORMATTING & UTILITIES
+Currency: Format all amounts in Indian Rupees (₹) with proper Indian comma grouping (e.g., ₹1,23,456.00)
+Dates: Display dates in Indian locale format (en-IN); use relative labels ("Today", "Yesterday") when applicable
+Clipboard: Copy-to-clipboard with SnackBar feedback
+10. NAVIGATION STRUCTURE
+Unauthenticated: Login screen and Signup screen
+Authenticated: Bottom tab navigation with:
+Dashboard tab (with icon)
+Cards tab (with icon)
+Dashboard Stack: Dashboard Main → Person Detail → Add/Edit Transaction
+Cards Stack: Cards Main
+Bottom navigation bar should use dark theme consistent with NeoPop aesthetic
+11. PROJECT STRUCTURE
+lib/
+├── main.dart
+├── types/
+│   └── types.dart               # All data models and enums
+├── screens/
+│   ├── login_screen.dart
+│   ├── signup_screen.dart
+│   ├── dashboard_screen.dart
+│   ├── person_detail_screen.dart
+│   ├── add_transaction_screen.dart
+│   └── cards_screen.dart
+├── components/
+│   ├── add_person_modal.dart
+│   ├── add_card_modal.dart
+│   ├── transaction_history_modal.dart
+│   ├── credit_card_widget.dart
+│   └── card_stack.dart
+├── services/
+│   └── firebase_service.dart     # All Firestore sync logic
+├── database/
+│   ├── database.dart             # SQLite init, table creation
+│   ├── person_repository.dart
+│   ├── transaction_repository.dart
+│   └── card_repository.dart
+├── utils/
+│   ├── formatters.dart           # Currency, date formatting
+│   ├── balance_calculator.dart
+│   └── clipboard_util.dart
+├── navigation/
+│   └── app_navigator.dart
+└── styles/
+    └── theme.dart                # NeoPop color constants and theme
+12. KEY PACKAGES
+dependencies:
+  flutter:
+    sdk: flutter
+  neopop: ^1.0.2                  # NeoPop UI components
+  firebase_core: latest
+  firebase_auth: latest
+  cloud_firestore: latest
+  google_sign_in: latest
+  sqflite: latest
+  path: latest
+13. ADDITIONAL REQUIREMENTS
+Show loading/skeleton states while data is being fetched
+Show confirmation dialogs before any destructive action (delete person, delete transaction, delete card)
+All forms should have proper validation with visible error messages
+Use haptic feedback (HapticFeedback.lightImpact()) on all NeoPop button taps
+All text inputs should use dark-themed styling (dark background, light text, subtle borders)
+The app should work offline with local SQLite and sync when online
+Per-user data isolation — each user only sees their own data
+Do not use placeholder or mock data
+Build this as a complete, working Flutter application with all features listed above, using the NeoPop package for all UI components (buttons, cards, shimmer). The app should have a dark, premium, CRED-like aesthetic throughout.
+
