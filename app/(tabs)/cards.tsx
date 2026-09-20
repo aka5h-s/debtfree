@@ -1,14 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, TextInput, Alert, Platform, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ScrollView, Pressable, TextInput, Alert, Platform, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { Icon } from '@/components/Icon';
 import Animated, { useAnimatedStyle, useSharedValue, interpolate, Extrapolation, type SharedValue } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { CreditCardVisual } from '@/components/CreditCardVisual';
+import { CardNetworkSymbol } from '@/components/CardNetworkSymbol';
 import { Fonts } from '@/lib/fonts';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -64,6 +66,7 @@ export default function CardsScreen() {
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
+  const [showCvv, setShowCvv] = useState(false);
   const scrollX = useSharedValue(0);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
@@ -77,9 +80,19 @@ export default function CardsScreen() {
       c.cardType.toLowerCase().includes(q);
   });
 
+  const activeCard = filteredCards[activeIndex] || filteredCards[0];
+
   const handleCopy = (label: string) => {
     setCopiedLabel(label);
-    setTimeout(() => setCopiedLabel(null), 2000);
+    setTimeout(() => setCopiedLabel(null), 2500);
+  };
+
+  const copyToClipboard = async (value: string, label: string) => {
+    await Clipboard.setStringAsync(value);
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    handleCopy(label);
   };
 
   const handleDelete = (cardId: string, cardName: string) => {
@@ -105,6 +118,7 @@ export default function CardsScreen() {
     const idx = Math.round(e.nativeEvent.contentOffset.x / CARD_WIDTH);
     if (idx !== activeIndex && idx >= 0 && idx < filteredCards.length) {
       setActiveIndex(idx);
+      setShowCvv(false);
     }
   }, [activeIndex, filteredCards.length]);
 
@@ -143,6 +157,13 @@ export default function CardsScreen() {
         )}
       </View>
 
+      {copiedLabel && (
+        <View style={styles.copiedToast}>
+          <Icon name="checkmark-circle" size={16} color="#000" />
+          <Text style={styles.copiedToastText}>{copiedLabel} copied</Text>
+        </View>
+      )}
+
       {filteredCards.length === 0 ? (
         <View style={styles.emptyState}>
           <Icon name="card-outline" size={56} color={Colors.textMuted} />
@@ -157,7 +178,12 @@ export default function CardsScreen() {
           )}
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollBody}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Card Carousel */}
           <FlatList
             data={filteredCards}
             keyExtractor={(item) => item.id}
@@ -177,24 +203,117 @@ export default function CardsScreen() {
             })}
           />
 
+          {/* Dots */}
           <View style={styles.dots}>
             {filteredCards.map((_, i) => (
               <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
             ))}
           </View>
 
-          {copiedLabel && (
-            <View style={styles.copiedBanner}>
-              <Icon name="checkmark-circle" size={16} color={Colors.positive} />
-              <Text style={styles.copiedText}>{copiedLabel} copied</Text>
+          {/* Active Card Quick Actions & Details Hub */}
+          {activeCard && (
+            <View style={styles.hubContainer}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionHeading}>QUICK ACTIONS</Text>
+                <Text style={styles.sectionSub}>Tap any tile to copy</Text>
+              </View>
+
+              {/* Quick Copy Tiles Row */}
+              <View style={styles.quickTilesRow}>
+                {/* Card Number Tile */}
+                <Pressable
+                  style={styles.quickTile}
+                  onPress={() => copyToClipboard(activeCard.cardNumber, 'Card number')}
+                >
+                  <View style={styles.tileTop}>
+                    <Icon name="card-outline" size={16} color={Colors.primary} />
+                    <Icon name="copy-outline" size={13} color={Colors.textMuted} />
+                  </View>
+                  <Text style={styles.tileValue} numberOfLines={1}>
+                    •••• {activeCard.cardNumber.replace(/\s/g, '').slice(-4)}
+                  </Text>
+                  <Text style={styles.tileLabel}>CARD NUMBER</Text>
+                </Pressable>
+
+                {/* CVV Tile */}
+                <Pressable
+                  style={styles.quickTile}
+                  onPress={() => {
+                    setShowCvv(true);
+                    copyToClipboard(activeCard.cvv, 'CVV');
+                    setTimeout(() => setShowCvv(false), 4000);
+                  }}
+                >
+                  <View style={styles.tileTop}>
+                    <Icon name={showCvv ? "eye-outline" : "eye-off-outline"} size={16} color={Colors.primary} />
+                    <Icon name="copy-outline" size={13} color={Colors.textMuted} />
+                  </View>
+                  <Text style={styles.tileValue}>
+                    {showCvv ? activeCard.cvv : '•••'}
+                  </Text>
+                  <Text style={styles.tileLabel}>{showCvv ? 'REVEALED' : 'CVV'}</Text>
+                </Pressable>
+
+                {/* Expiry Tile */}
+                <Pressable
+                  style={styles.quickTile}
+                  onPress={() => copyToClipboard(activeCard.expiry, 'Expiry')}
+                >
+                  <View style={styles.tileTop}>
+                    <Icon name="calendar-outline" size={16} color={Colors.primary} />
+                    <Icon name="copy-outline" size={13} color={Colors.textMuted} />
+                  </View>
+                  <Text style={styles.tileValue}>
+                    {activeCard.expiry}
+                  </Text>
+                  <Text style={styles.tileLabel}>EXPIRES</Text>
+                </Pressable>
+              </View>
+
+              {/* Card Specs Card */}
+              <View style={styles.detailsCard}>
+                <View style={styles.detailsCardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.detailsCardTitle}>{activeCard.cardName}</Text>
+                    <Text style={styles.detailsCardSubtitle}>{activeCard.cardType} Credit Card</Text>
+                  </View>
+                  <CardNetworkSymbol type={activeCard.cardType} />
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>CARDHOLDER</Text>
+                    <Text style={styles.detailValue} numberOfLines={1}>
+                      {activeCard.nameOnCard ? activeCard.nameOnCard.toUpperCase() : 'NOT SPECIFIED'}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>VAULT STATUS</Text>
+                    <View style={styles.statusBadge}>
+                      <View style={styles.statusDot} />
+                      <Text style={styles.statusText}>Active • Encrypted</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Security Shield Box */}
+              <View style={styles.securityBox}>
+                <View style={styles.securityIconCircle}>
+                  <Icon name="shield-checkmark" size={18} color={Colors.primary} />
+                </View>
+                <View style={styles.securityTextBox}>
+                  <Text style={styles.securityTitle}>On-Device Vault Protection</Text>
+                  <Text style={styles.securityDesc}>
+                    Card credentials are encrypted on this device and never leave your phone.
+                  </Text>
+                </View>
+              </View>
             </View>
           )}
-
-          <View style={styles.hint}>
-            <Icon name="hand-left-outline" size={14} color={Colors.textMuted} />
-            <Text style={styles.hintText}>Swipe to browse cards. Tap details to copy.</Text>
-          </View>
-        </View>
+        </ScrollView>
       )}
 
       {filteredCards.length > 0 && (
@@ -269,31 +388,181 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     width: 18,
   },
-  copiedBanner: {
+  scrollBody: {
+    paddingBottom: 110,
+  },
+  hubContainer: {
+    marginHorizontal: 20,
+    marginTop: 18,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionHeading: {
+    fontSize: 11,
+    fontFamily: Fonts.semibold,
+    color: Colors.textMuted,
+    letterSpacing: 1.5,
+  },
+  sectionSub: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  quickTilesRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  quickTile: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    minHeight: 80,
+  },
+  tileTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  tileValue: {
+    color: Colors.white,
+    fontFamily: Fonts.serif,
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+  tileLabel: {
+    color: Colors.textMuted,
+    fontSize: 9,
+    fontFamily: Fonts.semibold,
+    letterSpacing: 1,
+    marginTop: 4,
+  },
+  detailsCard: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 14,
+  },
+  detailsCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailsCardTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+  },
+  detailsCardSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginVertical: 14,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detailItem: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 9,
+    fontFamily: Fonts.semibold,
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: Colors.white,
+  },
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
-    marginTop: 8,
   },
-  copiedText: {
-    fontSize: 13,
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: Colors.positive,
+  },
+  statusText: {
+    fontSize: 12,
     fontFamily: Fonts.medium,
     color: Colors.positive,
   },
-  hint: {
+  securityBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 16,
-    paddingHorizontal: 20,
+    backgroundColor: 'rgba(229, 254, 64, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 254, 64, 0.15)',
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 14,
+    gap: 12,
   },
-  hintText: {
-    fontSize: 12,
+  securityIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(229, 254, 64, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  securityTextBox: {
+    flex: 1,
+  },
+  securityTitle: {
+    fontSize: 13,
+    fontFamily: Fonts.semibold,
+    color: Colors.white,
+    marginBottom: 2,
+  },
+  securityDesc: {
+    fontSize: 11,
     fontFamily: Fonts.regular,
     color: Colors.textMuted,
+    lineHeight: 16,
+  },
+  copiedToast: {
+    position: 'absolute',
+    top: 54,
+    alignSelf: 'center',
+    zIndex: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+    elevation: 8,
+  },
+  copiedToastText: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: '#000000',
+    letterSpacing: 0.5,
   },
   emptyState: {
     flex: 1,
