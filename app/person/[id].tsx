@@ -60,6 +60,7 @@ export default function PersonDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { people, getPersonTransactions, getPersonBalance, removeTransaction, removePerson } = useData();
+  const [noteToView, setNoteToView] = useState<string | null>(null);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
@@ -68,10 +69,18 @@ export default function PersonDetailScreen() {
   const transactions = useMemo(() => person ? getPersonTransactions(person.id) : [], [person, getPersonTransactions]);
   const balance = person ? getPersonBalance(person.id) : 0;
 
+  const handleSafeBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   if (!person) {
     return (
       <View style={[styles.container, { paddingTop: topPad + 16 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={handleSafeBack} style={styles.backBtn}>
           <Icon name="arrow-back" size={24} color={Colors.white} />
         </Pressable>
         <View style={styles.emptyState}>
@@ -80,8 +89,6 @@ export default function PersonDetailScreen() {
       </View>
     );
   }
-
-  const [noteToView, setNoteToView] = useState<string | null>(null);
 
   const status = balance > 0 ? 'YOU LENT' : balance < 0 ? 'YOU OWE' : 'SETTLED';
   const statusColor = balance > 0 ? Colors.positive : balance < 0 ? Colors.negative : Colors.settled;
@@ -99,15 +106,22 @@ export default function PersonDetailScreen() {
   };
 
   const handleDeletePerson = () => {
+    const doDelete = () => {
+      const personId = person.id;
+      handleSafeBack();
+      setTimeout(() => {
+        removePerson(personId);
+      }, 100);
+    };
+
     if (Platform.OS === 'web') {
       if (confirm(`Delete "${person.name}" and all transactions?`)) {
-        removePerson(person.id);
-        router.back();
+        doDelete();
       }
     } else {
       Alert.alert('Delete Person', `Delete "${person.name}" and all their transactions?`, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => { removePerson(person.id); router.back(); } },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
       ]);
     }
   };
@@ -115,7 +129,7 @@ export default function PersonDetailScreen() {
   const renderHeader = () => (
     <View>
       <View style={[styles.topBar, { paddingTop: topPad + 12 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={handleSafeBack} style={styles.backBtn}>
           <Icon name="arrow-back" size={24} color={Colors.white} />
         </Pressable>
         <View style={styles.topBarRight}>
