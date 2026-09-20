@@ -132,7 +132,7 @@ export default function AddCardScreen() {
               style={[styles.typeBtn, cardType === t && styles.typeBtnActive]}
               onPress={() => handleCardTypeSelect(t)}
             >
-              <CardNetworkSymbol type={t} width={42} height={24} />
+              <CardNetworkSymbol type={t} width={t === 'RUPAY' ? 52 : 42} height={22} />
             </Pressable>
           ))}
         </View>

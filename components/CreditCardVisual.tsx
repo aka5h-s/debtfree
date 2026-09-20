@@ -30,7 +30,7 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
       <View style={styles.cardOverlay} />
       <View style={styles.topRow}>
         <Text style={styles.cardNameTop}>{card.cardName}</Text>
-        <CardNetworkSymbol type={card.cardType} width={50} height={28} />
+        <CardNetworkSymbol type={card.cardType} />
       </View>
 
       <Pressable onPress={() => copyToClipboard(card.cardNumber, 'Card number')} style={styles.numberRow}>
@@ -62,13 +62,13 @@ export function CreditCardVisual({ card, onCopy, onEdit, onDelete }: CreditCardV
         <View style={styles.actionRow}>
           {onEdit && (
             <Pressable onPress={onEdit} style={styles.actionBtn}>
-              <Icon name="create-outline" size={16} color="rgba(255,255,255,0.8)" />
+              <Icon name="create-outline" size={15} color="#FFFFFF" />
               <Text style={styles.actionText}>Edit</Text>
             </Pressable>
           )}
           {onDelete && (
             <Pressable onPress={onDelete} style={[styles.actionBtn, styles.deleteBtn]}>
-              <Icon name="trash-outline" size={16} color="#EE4D37" />
+              <Icon name="trash-outline" size={15} color="#FF6B6B" />
               <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
             </Pressable>
           )}
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     padding: 24,
-    minHeight: 200,
+    minHeight: 220,
     justifyContent: 'space-between',
     overflow: 'hidden',
     position: 'relative',
@@ -133,29 +133,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
-    marginTop: 12,
+    marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopColor: 'rgba(255,255,255,0.15)',
   },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   deleteBtn: {
-    backgroundColor: 'rgba(238,77,55,0.15)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.45)',
   },
   actionText: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: 'rgba(255,255,255,0.8)',
+    fontFamily: Fonts.semibold,
+    color: '#FFFFFF',
   },
   deleteText: {
-    color: '#EE4D37',
+    color: '#FF6B6B',
   },
 });

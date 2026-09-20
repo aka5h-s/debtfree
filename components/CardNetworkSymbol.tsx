@@ -1,30 +1,35 @@
 import React from 'react';
-import Svg, { Circle, Rect, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Rect, Path, Text as SvgText, G } from 'react-native-svg';
 import type { CardType } from '@/lib/types';
 
 interface CardNetworkSymbolProps {
   type: CardType;
   width?: number;
   height?: number;
-  monochrome?: boolean;
 }
 
 export function CardNetworkSymbol({
   type,
-  width = 44,
-  height = 26,
-  monochrome = false,
+  width,
+  height,
 }: CardNetworkSymbolProps) {
   switch (type) {
     case 'VISA':
       return (
-        <Svg width={width} height={height} viewBox="0 0 48 26" fill="none">
+        <Svg
+          width={width ?? 52}
+          height={height ?? 24}
+          viewBox="0 0 54 24"
+          fill="none"
+        >
+          {/* Authentic Visa gold flick on top left of V */}
+          <Path d="M7 6L11 6L9 11Z" fill="#F7B600" />
           <SvgText
-            x="24"
+            x="30"
             y="18"
             textAnchor="middle"
-            fill={monochrome ? '#FFFFFF' : '#1A1F71'}
-            fontSize="16"
+            fill="#FFFFFF"
+            fontSize="17"
             fontWeight="bold"
             fontStyle="italic"
             letterSpacing="2"
@@ -36,58 +41,72 @@ export function CardNetworkSymbol({
 
     case 'MASTERCARD':
       return (
-        <Svg width={width} height={height} viewBox="0 0 44 26" fill="none">
-          <Circle cx="16" cy="13" r="11" fill={monochrome ? '#FFFFFF' : '#EB001B'} />
-          <Circle
-            cx="28"
-            cy="13"
-            r="11"
-            fill={monochrome ? '#FFFFFF' : '#F79E1B'}
-            fillOpacity={monochrome ? 0.6 : 0.9}
-          />
+        <Svg
+          width={width ?? 46}
+          height={height ?? 26}
+          viewBox="0 0 46 26"
+          fill="none"
+        >
+          {/* Authentic Mastercard overlapping dual circles */}
+          <Circle cx="16" cy="13" r="11" fill="#EB001B" />
+          <Circle cx="30" cy="13" r="11" fill="#F79E1B" fillOpacity="0.9" />
         </Svg>
       );
 
     case 'RUPAY':
       return (
-        <Svg width={width} height={height} viewBox="0 0 54 26" fill="none">
-          <Path
-            d="M5 4L13 4L10 22L2 22Z"
-            fill={monochrome ? '#FFFFFF' : '#0972B8'}
-          />
-          <Path
-            d="M13 4L21 4L18 22L10 22Z"
-            fill={monochrome ? '#FFFFFF' : '#F37021'}
-          />
+        <Svg
+          width={width ?? 68}
+          height={height ?? 24}
+          viewBox="0 0 68 24"
+          fill="none"
+        >
+          {/* Authentic RuPay wordmark in white */}
           <SvgText
-            x="23"
-            y="18"
-            fill={monochrome ? '#FFFFFF' : '#FFFFFF'}
-            fontSize="12"
+            x="24"
+            y="17"
+            textAnchor="middle"
+            fill="#FFFFFF"
+            fontSize="14"
             fontWeight="bold"
+            fontStyle="italic"
             letterSpacing="0.5"
           >
             RuPay
           </SvgText>
+          {/* Authentic RuPay dual fast-forward chevrons: Orange & Green */}
+          <Path
+            d="M48 6L54 12L48 18L52 18L58 12L52 6Z"
+            fill="#F47920"
+          />
+          <Path
+            d="M56 6L62 12L56 18L60 18L66 12L60 6Z"
+            fill="#018C45"
+          />
         </Svg>
       );
 
     case 'AMEX':
       return (
-        <Svg width={width} height={height} viewBox="0 0 46 26" fill="none">
+        <Svg
+          width={width ?? 48}
+          height={height ?? 24}
+          viewBox="0 0 48 24"
+          fill="none"
+        >
           <Rect
             x="1"
             y="2"
-            width="44"
-            height="22"
+            width="46"
+            height="20"
             rx="4"
-            fill={monochrome ? '#333333' : '#006FCF'}
-            stroke={monochrome ? '#FFFFFF' : '#005CA8'}
+            fill="#006FCF"
+            stroke="#005CA8"
             strokeWidth="1"
           />
           <SvgText
-            x="23"
-            y="17"
+            x="24"
+            y="16"
             textAnchor="middle"
             fill="#FFFFFF"
             fontSize="10"
