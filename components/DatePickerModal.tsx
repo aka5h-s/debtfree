@@ -1,116 +1,47 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
   Text,
   Pressable,
-  FlatList,
   StyleSheet,
   Platform,
-  ListRenderItemInfo,
 } from 'react-native';
 import Colors from '@/constants/colors';
 import { Fonts } from '@/lib/fonts';
 
-const MONTHS = [
+const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const ITEM_HEIGHT = 52;
-const VISIBLE_ITEMS = 5;
-const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
-
-function range(start: number, end: number): number[] {
-  const arr: number[] = [];
-  for (let i = start; i <= end; i++) arr.push(i);
-  return arr;
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-// ── Wheel Column ──────────────────────────────────────────────────────────────
-interface WheelColumnProps {
-  data: (string | number)[];
-  selectedIndex: number;
-  onSelect: (index: number) => void;
-  width?: number;
+// Returns an array of Date | null for the grid (6 weeks × 7 days)
+function buildCalendarGrid(year: number, month: number): (Date | null)[] {
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (Date | null)[] = [];
+
+  // Leading empty cells
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+
+  // Actual days
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push(new Date(year, month, d));
+  }
+
+  // Trailing empty cells to fill 6 rows
+  while (cells.length < 42) cells.push(null);
+
+  return cells;
 }
 
-function WheelColumn({ data, selectedIndex, onSelect, width }: WheelColumnProps) {
-  const flatRef = useRef<FlatList<any>>(null);
-  const scrolling = useRef(false);
-
-  // On first mount, scroll to the selected item after layout is ready
-  useEffect(() => {
-    const t = setTimeout(() => {
-      flatRef.current?.scrollToOffset({ offset: selectedIndex * ITEM_HEIGHT, animated: false });
-    }, 50);
-    return () => clearTimeout(t);
-  }, []); // only on mount
-
-  // Scroll to selected when it changes externally (e.g. month changed → clamp day)
-  useEffect(() => {
-    if (!scrolling.current) {
-      flatRef.current?.scrollToOffset({ offset: selectedIndex * ITEM_HEIGHT, animated: true });
-    }
-  }, [selectedIndex]);
-
-  const handleMomentumEnd = useCallback((e: any) => {
-    scrolling.current = false;
-    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
-    const clamped = Math.max(0, Math.min(idx, data.length - 1));
-    onSelect(clamped);
-  }, [data.length, onSelect]);
-
-  const handleScrollBegin = useCallback(() => {
-    scrolling.current = true;
-  }, []);
-
-  const renderItem = useCallback(({ item, index }: ListRenderItemInfo<string | number>) => {
-    const isSelected = index === selectedIndex;
-    return (
-      <Pressable
-        style={styles.wheelItem}
-        onPress={() => {
-          onSelect(index);
-          flatRef.current?.scrollToOffset({ offset: index * ITEM_HEIGHT, animated: true });
-        }}
-      >
-        <Text
-          style={[
-            styles.wheelItemText,
-            isSelected && styles.wheelItemSelected,
-          ]}
-          numberOfLines={1}
-        >
-          {String(item)}
-        </Text>
-      </Pressable>
-    );
-  }, [selectedIndex, onSelect]);
-
-  return (
-    <View style={[styles.wheelContainer, width ? { width } : { flex: 1 }]}>
-      {/* Centre highlight bar */}
-      <View style={styles.selectionBar} pointerEvents="none" />
-      <FlatList
-        ref={flatRef}
-        data={data as any[]}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_HEIGHT}
-        decelerationRate="fast"
-        onScrollBeginDrag={handleScrollBegin}
-        onMomentumScrollEnd={handleMomentumEnd}
-        contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
-        style={{ height: PICKER_HEIGHT }}
-        getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
-      />
-    </View>
-  );
-}
-
-// ── DatePickerModal ───────────────────────────────────────────────────────────
+// ── DatePickerModal (Calendar) ────────────────────────────────────────────────
 interface DatePickerModalProps {
   visible: boolean;
   value: Date;
@@ -119,34 +50,61 @@ interface DatePickerModalProps {
 }
 
 export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePickerModalProps) {
-  const today = new Date();
-  const minYear = today.getFullYear() - 10;
-  const maxYear = today.getFullYear();
-  const years = range(minYear, maxYear);
+  const today = startOfDay(new Date());
 
-  const [selectedYear, setSelectedYear] = useState(value.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(value.getMonth());
-  const [selectedDay, setSelectedDay] = useState(value.getDate() - 1); // 0-indexed
-
-  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-  const days = range(1, daysInMonth);
-
-  // Clamp day if needed when month/year changes
-  const clampedDay = Math.min(selectedDay, daysInMonth - 1);
+  const [viewYear, setViewYear] = useState(value.getFullYear());
+  const [viewMonth, setViewMonth] = useState(value.getMonth());
+  const [selected, setSelected] = useState<Date>(startOfDay(value));
 
   // Re-sync when modal opens
   useEffect(() => {
     if (visible) {
-      setSelectedYear(value.getFullYear());
-      setSelectedMonth(value.getMonth());
-      setSelectedDay(value.getDate() - 1);
+      const d = startOfDay(value);
+      setSelected(d);
+      setViewYear(d.getFullYear());
+      setViewMonth(d.getMonth());
     }
   }, [visible]);
 
+  const goToPrev = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(y => y - 1);
+    } else {
+      setViewMonth(m => m - 1);
+    }
+  };
+
+  const goToNext = () => {
+    // Don't allow navigating past current month
+    const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+    const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+    const nextFirst = new Date(nextYear, nextMonth, 1);
+    if (nextFirst > today) return;
+
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(y => y + 1);
+    } else {
+      setViewMonth(m => m + 1);
+    }
+  };
+
+  const isNextDisabled = (() => {
+    const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+    const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+    return new Date(nextYear, nextMonth, 1) > today;
+  })();
+
+  const grid = buildCalendarGrid(viewYear, viewMonth);
+
+  const handleDayPress = (date: Date) => {
+    if (date > today) return; // no future dates
+    setSelected(date);
+  };
+
   const handleConfirm = () => {
-    const date = new Date(selectedYear, selectedMonth, clampedDay + 1, 12, 0, 0);
-    const capped = date > today ? today : date;
-    onConfirm(capped);
+    onConfirm(selected);
   };
 
   return (
@@ -159,40 +117,82 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.sheet}>
         <View style={styles.handle} />
-        <Text style={styles.title}>SELECT DATE</Text>
 
-        <View style={styles.pickers}>
-          {/* Day */}
-          <WheelColumn
-            data={days}
-            selectedIndex={clampedDay}
-            onSelect={setSelectedDay}
-            width={56}
-          />
-
-          {/* Month */}
-          <WheelColumn
-            data={MONTHS}
-            selectedIndex={selectedMonth}
-            onSelect={setSelectedMonth}
-          />
-
-          {/* Year */}
-          <WheelColumn
-            data={years}
-            selectedIndex={Math.max(0, years.indexOf(selectedYear))}
-            onSelect={(idx) => setSelectedYear(years[idx])}
-            width={72}
-          />
+        {/* Month / Year header */}
+        <View style={styles.calHeader}>
+          <Pressable onPress={goToPrev} style={styles.navBtn} hitSlop={12}>
+            <Text style={styles.navArrow}>‹</Text>
+          </Pressable>
+          <Text style={styles.calTitle}>
+            {MONTH_NAMES[viewMonth]} {viewYear}
+          </Text>
+          <Pressable
+            onPress={goToNext}
+            style={[styles.navBtn, isNextDisabled && styles.navBtnDisabled]}
+            hitSlop={12}
+            disabled={isNextDisabled}
+          >
+            <Text style={[styles.navArrow, isNextDisabled && styles.navArrowDisabled]}>›</Text>
+          </Pressable>
         </View>
 
-        <View style={styles.actions}>
-          <Pressable style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelText}>CANCEL</Text>
-          </Pressable>
-          <Pressable style={styles.confirmBtn} onPress={handleConfirm}>
-            <Text style={styles.confirmText}>CONFIRM</Text>
-          </Pressable>
+        {/* Day of week labels */}
+        <View style={styles.dayLabels}>
+          {DAY_LABELS.map(d => (
+            <Text key={d} style={styles.dayLabel}>{d}</Text>
+          ))}
+        </View>
+
+        {/* Calendar grid */}
+        <View style={styles.grid}>
+          {grid.map((date, idx) => {
+            if (!date) {
+              return <View key={`empty-${idx}`} style={styles.cell} />;
+            }
+
+            const isFuture = date > today;
+            const isToday = date.getTime() === today.getTime();
+            const isSelected = date.getTime() === selected.getTime();
+
+            return (
+              <Pressable
+                key={date.toISOString()}
+                style={[
+                  styles.cell,
+                  isSelected && styles.cellSelected,
+                  !isSelected && isToday && styles.cellToday,
+                ]}
+                onPress={() => handleDayPress(date)}
+                disabled={isFuture}
+              >
+                <Text
+                  style={[
+                    styles.cellText,
+                    isSelected && styles.cellTextSelected,
+                    isToday && !isSelected && styles.cellTextToday,
+                    isFuture && styles.cellTextFuture,
+                  ]}
+                >
+                  {date.getDate()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Selected date label + confirm */}
+        <View style={styles.footer}>
+          <Text style={styles.selectedLabel}>
+            {selected.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </Text>
+          <View style={styles.actions}>
+            <Pressable style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelText}>CANCEL</Text>
+            </Pressable>
+            <Pressable style={styles.confirmBtn} onPress={handleConfirm}>
+              <Text style={styles.confirmText}>CONFIRM</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>
@@ -231,6 +231,8 @@ export function NoteModal({ visible, note, onClose }: NoteModalProps) {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+const CELL_SIZE = 44;
+
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
@@ -238,8 +240,8 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: '#181818',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     paddingHorizontal: 16,
@@ -250,57 +252,119 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  title: {
+
+  // Month/year nav
+  calHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  navBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  navBtnDisabled: {
+    opacity: 0.3,
+  },
+  navArrow: {
+    fontSize: 22,
+    color: Colors.white,
+    fontFamily: Fonts.semibold,
+    fontWeight: '600',
+    lineHeight: 26,
+  },
+  navArrowDisabled: {
+    color: Colors.textMuted,
+  },
+  calTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semibold,
+    fontWeight: '600',
+    color: Colors.white,
+    letterSpacing: 0.5,
+  },
+
+  // Day labels row
+  dayLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 4,
+  },
+  dayLabel: {
+    width: CELL_SIZE,
+    textAlign: 'center',
     fontSize: 11,
     fontFamily: Fonts.semibold,
     fontWeight: '600',
     color: Colors.textMuted,
-    letterSpacing: 2,
-    textAlign: 'center',
-    marginBottom: 12,
+    letterSpacing: 0.5,
   },
-  pickers: {
+
+  // Grid
+  grid: {
     flexDirection: 'row',
-    gap: 4,
-    marginBottom: 20,
-    overflow: 'hidden',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
   },
-  wheelContainer: {
-    alignItems: 'center',
-  },
-  selectionBar: {
-    position: 'absolute',
-    top: ITEM_HEIGHT * 2,
-    left: 0,
-    right: 0,
-    height: ITEM_HEIGHT,
-    backgroundColor: 'rgba(229, 254, 64, 0.07)',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(229, 254, 64, 0.18)',
-    borderRadius: 6,
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-  wheelItem: {
-    height: ITEM_HEIGHT,
+  cell: {
+    width: CELL_SIZE,
+    height: CELL_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    borderRadius: CELL_SIZE / 2,
+    marginVertical: 2,
   },
-  wheelItemText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: 'rgba(255,255,255,0.3)',
-    textAlign: 'center',
+  cellSelected: {
+    backgroundColor: Colors.primary,
   },
-  wheelItemSelected: {
-    color: Colors.white,
-    fontSize: 16,
+  cellToday: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  cellText: {
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  cellTextSelected: {
+    color: '#000',
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+  },
+  cellTextToday: {
+    color: Colors.primary,
     fontFamily: Fonts.semibold,
     fontWeight: '600',
+  },
+  cellTextFuture: {
+    color: Colors.border,
+  },
+
+  // Footer
+  footer: {
+    marginTop: 12,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+    paddingTop: 14,
+  },
+  selectedLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginBottom: 14,
   },
   actions: {
     flexDirection: 'row',
@@ -336,6 +400,7 @@ const styles = StyleSheet.create({
     color: '#000',
     letterSpacing: 1,
   },
+
   // Note modal
   noteBackdrop: {
     flex: 1,
