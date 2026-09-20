@@ -11,6 +11,7 @@ import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { ShimmerText } from '@/components/ShimmerText';
 import { formatCurrency } from '@/lib/formatters';
 import { Fonts } from '@/lib/fonts';
+import { BuriBuriSyncAvatar } from '@/components/BuriBuriSyncAvatar';
 
 function PersonItem({ person, balance }: { person: any; balance: number }) {
   const status = balance > 0 ? 'YOU LENT' : balance < 0 ? 'YOU OWE' : 'SETTLED';
@@ -59,7 +60,7 @@ const SORT_OPTIONS: { key: SortType; label: string; icon: string }[] = [
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed, isOnline, isSyncing, pendingSyncCount } = useData();
+  const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed } = useData();
   const [search, setSearch] = useState('');
   const [sortType, setSortType] = useState<SortType>('balance_high');
   const [showSort, setShowSort] = useState(false);
@@ -108,24 +109,8 @@ export default function DashboardScreen() {
     <View>
       <View style={[styles.header, { paddingTop: topPad + 16 }]}>
         <Text style={styles.appTitle}>DebtFree</Text>
+        <BuriBuriSyncAvatar />
       </View>
-
-      {(!isOnline || pendingSyncCount > 0 || isSyncing) && (
-        <View style={[styles.offlineBanner, !isOnline && styles.offlineBannerRed]}>
-          <Icon
-            name={isSyncing ? 'sync' : !isOnline ? 'cloud-offline' : 'cloud-upload'}
-            size={14}
-            color={!isOnline ? Colors.negative : Colors.primary}
-          />
-          <Text style={[styles.offlineBannerText, !isOnline && { color: Colors.negative }]}>
-            {isSyncing
-              ? 'Backing up changes...'
-              : !isOnline
-              ? `Working offline • ${pendingSyncCount} changes not yet backed up`
-              : `${pendingSyncCount} changes pending cloud backup`}
-          </Text>
-        </View>
-      )}
 
       <View style={styles.balanceSection}>
         <Text style={styles.balanceLabel}>NET BALANCE</Text>
@@ -171,7 +156,7 @@ export default function DashboardScreen() {
         </View>
       </View>
     </View>
-  ), [topPad, isOnline, pendingSyncCount, isSyncing, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, people.length, setShowSort]);
+  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, people.length, setShowSort]);
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
@@ -288,30 +273,6 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 16,
-  },
-  offlineBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(229, 254, 64, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(229, 254, 64, 0.2)',
-    gap: 6,
-  },
-  offlineBannerRed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  offlineBannerText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: Colors.primary,
   },
   balanceSection: {
     alignItems: 'center',
