@@ -341,9 +341,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.serif,
     color: Colors.white,
-    letterSpacing: 1,
+    letterSpacing: -0.5,
   },
   cardCount: {
     fontSize: 12,

@@ -295,8 +295,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.serif,
     color: Colors.white,
+    letterSpacing: -0.5,
     marginBottom: 20,
   },
   section: {
