@@ -24,6 +24,7 @@ export interface TransactionHistory {
   previousAmount: number;
   previousDirection: TransactionDirection;
   previousNote: string;
+  previousDate: number;
   changedAt: number;
 }
 

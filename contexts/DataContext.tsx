@@ -274,6 +274,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       previousAmount: tx.amount,
       previousDirection: tx.direction,
       previousNote: tx.note,
+      previousDate: tx.date,
       changedAt: Date.now(),
     };
     const updated = { ...tx, amount: newAmount, direction: newDirection, note: newNote, ...(newDate !== undefined ? { date: newDate } : {}) };
