@@ -124,66 +124,61 @@ export default function EditTransactionScreen() {
           </View>
         </Pressable>
 
-        {/* Expected Return Date Section */}
-        <View style={styles.returnDateSection}>
-          <View style={styles.returnDateHeader}>
-            <Text style={styles.dateLabel}>EXPECTED RETURN DATE (OPTIONAL)</Text>
+        {/* Return Date Row */}
+        <Pressable
+          style={styles.dateRow}
+          onPress={() => setShowReturnDatePicker(true)}
+        >
+          <View style={styles.returnLabelGroup}>
+            <Text style={styles.dateLabel}>RETURN DATE <Text style={styles.optionalTag}>(OPTIONAL)</Text></Text>
             {returnDate && (
               <Pressable
                 onPress={() => {
                   setReturnDate(null);
                   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
-                hitSlop={8}
+                hitSlop={12}
+                style={styles.clearBtn}
               >
-                <Text style={styles.clearDateText}>Clear</Text>
+                <Text style={styles.clearDateText}>CLEAR</Text>
               </Pressable>
             )}
           </View>
-
-          <View style={styles.presetChipsRow}>
-            {[
-              { label: '+7 Days', days: 7 },
-              { label: '+15 Days', days: 15 },
-              { label: '+30 Days', days: 30 },
-            ].map(p => {
-              const target = new Date();
-              target.setDate(target.getDate() + p.days);
-              const isSelected = returnDate && Math.abs(returnDate.getTime() - target.getTime()) < 3600000 * 12;
-              return (
-                <Pressable
-                  key={p.label}
-                  style={[styles.presetChip, isSelected && styles.presetChipActive]}
-                  onPress={() => {
-                    const d = new Date();
-                    d.setDate(d.getDate() + p.days);
-                    setReturnDate(d);
-                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
-                >
-                  <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>{p.label}</Text>
-                </Pressable>
-              );
-            })}
-            <Pressable
-              style={[styles.presetChip, styles.presetChipCustom, returnDate && styles.presetChipActiveCustom]}
-              onPress={() => setShowReturnDatePicker(true)}
-            >
-              <Text style={[styles.presetChipText, returnDate && styles.presetChipTextActiveCustom]}>
-                {returnDate ? formatDate(returnDate.getTime()) : 'Pick Date'}
-              </Text>
-              <Icon name="calendar-outline" size={14} color={returnDate ? Colors.primary : Colors.textMuted} />
-            </Pressable>
+          <View style={styles.dateValueRow}>
+            <Text style={[styles.dateValue, !returnDate && styles.dateValuePlaceholder]}>
+              {returnDate ? formatDate(returnDate.getTime()) : 'NOT SET'}
+            </Text>
+            <Icon name="calendar-outline" size={16} color={returnDate ? Colors.primary : Colors.textMuted} />
           </View>
+        </Pressable>
 
-          {returnDate && (
-            <View style={styles.reminderNoticeRow}>
-              <Icon name="notifications-outline" size={14} color={Colors.primary} />
-              <Text style={styles.reminderNoticeText}>
-                Push reminders scheduled at 9:00 AM & 8:30 PM starting 2 days prior
-              </Text>
-            </View>
-          )}
+        {/* Quick Date Presets */}
+        <View style={styles.quickPresetsRow}>
+          {[
+            { label: '+7d', days: 7 },
+            { label: '+15d', days: 15 },
+            { label: '+30d', days: 30 },
+          ].map(p => {
+            const target = new Date();
+            target.setDate(target.getDate() + p.days);
+            const isSelected = returnDate && Math.abs(returnDate.getTime() - target.getTime()) < 3600000 * 12;
+            return (
+              <Pressable
+                key={p.label}
+                style={[styles.quickPresetBtn, isSelected && styles.quickPresetBtnActive]}
+                onPress={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + p.days);
+                  setReturnDate(d);
+                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              >
+                <Text style={[styles.quickPresetText, isSelected && styles.quickPresetTextActive]}>
+                  {p.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <View style={styles.actions}>
@@ -364,81 +359,56 @@ const styles = StyleSheet.create({
     color: '#000',
     letterSpacing: 1,
   },
-  returnDateSection: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.border,
-  },
-  returnDateHeader: {
+  returnLabelGroup: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  clearDateText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: Colors.negative,
-  },
-  presetChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  presetChip: {
-    backgroundColor: Colors.surface,
+  clearBtn: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  clearDateText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: Colors.negative,
+    letterSpacing: 0.5,
+  },
+  optionalTag: {
+    fontSize: 9,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    letterSpacing: 1,
+  },
+  dateValuePlaceholder: {
+    color: Colors.textMuted,
+  },
+  quickPresetsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  quickPresetBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 6,
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: '#262626',
+    backgroundColor: '#141414',
   },
-  presetChipActive: {
+  quickPresetBtnActive: {
     borderColor: Colors.primary,
-    backgroundColor: '#1E1E12',
+    backgroundColor: '#1E1E14',
   },
-  presetChipText: {
-    fontSize: 12,
+  quickPresetText: {
+    fontSize: 11,
     fontFamily: Fonts.medium,
     color: Colors.textSecondary,
+    letterSpacing: 0.5,
   },
-  presetChipTextActive: {
+  quickPresetTextActive: {
     color: Colors.primary,
     fontFamily: Fonts.semibold,
-  },
-  presetChipCustom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  presetChipActiveCustom: {
-    borderColor: Colors.primary,
-    backgroundColor: '#1E1E12',
-  },
-  presetChipTextActiveCustom: {
-    color: Colors.primary,
-    fontFamily: Fonts.semibold,
-  },
-  reminderNoticeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    backgroundColor: '#161610',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#2A2814',
-  },
-  reminderNoticeText: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.primary,
-    flex: 1,
   },
 });
 

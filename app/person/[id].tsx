@@ -45,9 +45,9 @@ function TransactionItem({ tx, onEdit, onDelete, onHistory, onViewNote }: { tx: 
                 returnStatus.isDueSoon && styles.txReturnRowDueSoon,
               ]}>
                 <Icon
-                  name={returnStatus.isOverdue ? 'alert-circle' : returnStatus.isDueSoon ? 'time-outline' : 'calendar-outline'}
-                  size={13}
-                  color={returnStatus.isOverdue ? '#FF6B6B' : returnStatus.isDueSoon ? Colors.primary : Colors.textMuted}
+                  name={returnStatus.isOverdue ? 'alert-circle-outline' : returnStatus.isDueSoon ? 'time-outline' : 'calendar-outline'}
+                  size={12}
+                  color={returnStatus.isOverdue ? Colors.negative : returnStatus.isDueSoon ? Colors.textSecondary : Colors.textMuted}
                 />
                 <Text style={[
                   styles.txReturnText,
@@ -374,11 +374,11 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   txReturnTextOverdue: {
-    color: '#FF6B6B',
+    color: Colors.negative,
     fontFamily: Fonts.semibold,
   },
   txReturnTextDueSoon: {
-    color: Colors.primary,
+    color: Colors.textSecondary,
     fontFamily: Fonts.semibold,
   },
   txDate: {

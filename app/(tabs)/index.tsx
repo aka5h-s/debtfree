@@ -160,7 +160,7 @@ export default function DashboardScreen() {
         <View style={styles.alertsContainer}>
           <View style={styles.alertsHeader}>
             <View style={styles.alertsHeaderLeft}>
-              <Icon name="time-outline" size={14} color={Colors.primary} />
+              <Icon name="time-outline" size={14} color={Colors.textMuted} />
               <Text style={styles.alertsTitle}>DUE & OVERDUE</Text>
             </View>
             <Text style={styles.alertsCount}>{upcomingAndOverdue.length}</Text>
@@ -173,24 +173,42 @@ export default function DashboardScreen() {
               return (
                 <Pressable
                   key={tx.id}
-                  style={styles.alertCard}
+                  style={[
+                    styles.alertCard,
+                    isLent ? styles.alertCardLent : styles.alertCardBorrowed,
+                    status.isOverdue && styles.alertCardOverdue,
+                  ]}
                   onPress={() => {
                     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push({ pathname: '/person/[id]', params: { id: person.id } });
                   }}
                 >
-                  <View style={styles.alertTopRow}>
-                    <Text style={styles.alertPersonName} numberOfLines={1}>{person.name}</Text>
+                  <View style={styles.alertHeaderRow}>
+                    <View style={[styles.directionPill, isLent ? styles.directionPillLent : styles.directionPillBorrowed]}>
+                      <Text style={[styles.directionPillText, { color: directionColor }]}>
+                        {isLent ? 'RECEIVE' : 'PAY'}
+                      </Text>
+                    </View>
                     <Text style={[styles.alertAmount, { color: directionColor }]}>
                       {formatCurrency(tx.amount)}
                     </Text>
                   </View>
-                  <Text style={[
-                    styles.alertBadgeText,
-                    status.isOverdue ? styles.alertTextOverdue : styles.alertTextDueSoon,
-                  ]} numberOfLines={1}>
-                    {status.isOverdue ? '⚠️ ' : '⚡ '}{status.label}
-                  </Text>
+
+                  <Text style={styles.alertPersonName} numberOfLines={1}>{person.name}</Text>
+
+                  <View style={styles.alertStatusRow}>
+                    <Icon
+                      name={status.isOverdue ? 'alert-circle-outline' : 'time-outline'}
+                      size={12}
+                      color={status.isOverdue ? Colors.negative : Colors.textMuted}
+                    />
+                    <Text style={[
+                      styles.alertBadgeText,
+                      status.isOverdue ? styles.alertTextOverdue : styles.alertTextDueSoon,
+                    ]} numberOfLines={1}>
+                      {status.label}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -403,47 +421,83 @@ const styles = StyleSheet.create({
   alertsCount: {
     fontSize: 12,
     fontFamily: Fonts.semibold,
-    color: Colors.primary,
+    color: Colors.textMuted,
   },
   alertsScroll: {
     paddingHorizontal: 24,
     gap: 10,
   },
   alertCard: {
-    backgroundColor: '#181814',
-    borderWidth: 1,
-    borderColor: '#2A2814',
-    borderRadius: 8,
+    borderRadius: 0,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    minWidth: 180,
+    paddingVertical: 12,
+    minWidth: 195,
   },
-  alertTopRow: {
+  alertCardLent: {
+    backgroundColor: '#0F1E17',
+    borderWidth: 1,
+    borderColor: '#194A34',
+    borderLeftWidth: 3.5,
+    borderLeftColor: Colors.positive,
+  },
+  alertCardBorrowed: {
+    backgroundColor: '#1E1014',
+    borderWidth: 1,
+    borderColor: '#4D1D27',
+    borderLeftWidth: 3.5,
+    borderLeftColor: Colors.negative,
+  },
+  alertCardOverdue: {
+    borderColor: Colors.negative,
+    backgroundColor: '#261216',
+  },
+  alertHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 4,
+    gap: 8,
+    marginBottom: 6,
+  },
+  directionPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 0,
+  },
+  directionPillLent: {
+    backgroundColor: 'rgba(6, 194, 112, 0.15)',
+  },
+  directionPillBorrowed: {
+    backgroundColor: 'rgba(238, 77, 55, 0.15)',
+  },
+  directionPillText: {
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+    letterSpacing: 0.8,
   },
   alertPersonName: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Fonts.semibold,
     color: Colors.white,
-    maxWidth: 100,
+    marginBottom: 6,
   },
   alertAmount: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Fonts.serif,
+  },
+  alertStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   alertBadgeText: {
     fontSize: 11,
     fontFamily: Fonts.medium,
   },
   alertTextOverdue: {
-    color: '#FF6B6B',
+    color: '#EE4D37',
   },
   alertTextDueSoon: {
-    color: Colors.primary,
+    color: Colors.textSecondary,
   },
   sectionTitle: {
     fontSize: 12,
