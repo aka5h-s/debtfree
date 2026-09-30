@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import { z } from 'zod';
 import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import {
   getFirestore,
   collection,
@@ -37,7 +38,15 @@ const firebaseConfig = {
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Authenticate server with Firebase so Firestore rules permit access
+const SERVICE_EMAIL = process.env.FIREBASE_SERVICE_EMAIL || 'mcp_backend_service@debtfree.app';
+const SERVICE_PASS = process.env.FIREBASE_SERVICE_PASSWORD || 'Password123#SecureMcpAuth';
+signInWithEmailAndPassword(auth, SERVICE_EMAIL, SERVICE_PASS)
+  .then(cred => console.log('MCP server authenticated to Firebase:', cred.user.email))
+  .catch(err => console.warn('Firebase auth note:', err.message));
 
 // Helper to generate IDs
 function generateId() {
@@ -790,6 +799,56 @@ async function startHttpServer() {
       else totalBorrowed += t.amount;
     });
     res.json({ totalLent, totalBorrowed, netBalance: totalLent - totalBorrowed });
+  });
+
+  app.get('/api/due', async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+    try {
+      const [peopleSnap, txSnap] = await Promise.all([
+        getDocs(collection(db, 'users', userId, 'people')),
+        getDocs(collection(db, 'users', userId, 'transactions')),
+      ]);
+
+      const people = new Map();
+      peopleSnap.forEach(d => people.set(d.id, d.data()));
+
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+      const overdue = [];
+      const dueToday = [];
+      const dueSoon = [];
+
+      txSnap.forEach(d => {
+        const tx = d.data();
+        if (!tx.returnDate) return;
+
+        const returnDate = new Date(tx.returnDate);
+        const targetStart = new Date(returnDate.getFullYear(), returnDate.getMonth(), returnDate.getDate()).getTime();
+        const diffDays = Math.round((targetStart - todayStart) / 86400000);
+        const person = people.get(tx.personId);
+        const personName = person ? person.name : 'Unknown';
+
+        const item = {
+          txId: tx.id,
+          personId: tx.personId,
+          personName,
+          amount: tx.amount,
+          direction: tx.direction,
+          dueDate: returnDate.toISOString().split('T')[0],
+        };
+
+        if (diffDays < 0) overdue.push({ ...item, status: `Overdue by ${Math.abs(diffDays)} day(s)` });
+        else if (diffDays === 0) dueToday.push({ ...item, status: 'Due Today' });
+        else if (diffDays <= 2) dueSoon.push({ ...item, status: `Due in ${diffDays} day(s)` });
+      });
+
+      res.json({ overdue, dueToday, dueSoon });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // MCP SSE Transport for native MCP clients (Claude, Cursor, Antigravity)
