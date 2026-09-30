@@ -605,6 +605,9 @@ async function startHttpServer() {
     // Allow public discovery & OAuth endpoints
     if (
       req.path === '/' ||
+      req.path === '/mcp' ||
+      req.path === '/sse' ||
+      req.path === '/messages' ||
       req.path === '/openapi.json' ||
       req.path === '/.well-known/ai-plugin.json' ||
       req.path.startsWith('/oauth/')
@@ -1120,8 +1123,8 @@ async function startHttpServer() {
     }
   });
 
-  // MCP SSE Transport for native MCP clients (Claude, Cursor, Antigravity)
-  app.get('/sse', async (req, res) => {
+  // MCP Transport for native MCP clients (ChatGPT Plugin Creator, Claude, Cursor, Antigravity)
+  const handleMcpConnection = async (req, res) => {
     const transport = new SSEServerTransport('/messages', res);
     transports.set(transport.sessionId, transport);
 
@@ -1130,7 +1133,10 @@ async function startHttpServer() {
     };
 
     await server.connect(transport);
-  });
+  };
+
+  app.get('/mcp', handleMcpConnection);
+  app.get('/sse', handleMcpConnection);
 
   app.post('/messages', async (req, res) => {
     const sessionId = req.query.sessionId;
