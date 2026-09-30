@@ -31,6 +31,8 @@ export default function ProfileScreen() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [showAiInstructions, setShowAiInstructions] = useState(false);
+  const [selectedAgentTab, setSelectedAgentTab] = useState<'chatgpt' | 'claude' | 'general'>('chatgpt');
 
   const handleSignOut = () => {
     const doSignOut = () => {
@@ -291,8 +293,38 @@ export default function ProfileScreen() {
             </View>
 
             <Text style={styles.aiDescription}>
-              Connect ChatGPT, Gemini, Llama, Claude, or any AI agent to your DebtFree account.
+              Permanent 24/7 AI server is live. Connect ChatGPT, Gemini, Llama, or Claude to manage people and debts.
             </Text>
+
+            <View style={styles.aiCredentialBlock}>
+              <Text style={styles.aiCredLabel}>LIVE SERVER URL</Text>
+              <Pressable
+                style={styles.aiCredBox}
+                onPress={async () => {
+                  await Clipboard.setStringAsync('https://debtfree-p2wx.onrender.com');
+                  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  Alert.alert('Copied', 'Server URL copied to clipboard');
+                }}
+              >
+                <Text style={styles.aiCredValue} numberOfLines={1}>https://debtfree-p2wx.onrender.com</Text>
+                <Icon name="copy-outline" size={14} color={Colors.primary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.aiCredentialBlock}>
+              <Text style={styles.aiCredLabel}>OPENAPI SCHEMA URL (FOR CHATGPT / GEMINI)</Text>
+              <Pressable
+                style={styles.aiCredBox}
+                onPress={async () => {
+                  await Clipboard.setStringAsync('https://debtfree-p2wx.onrender.com/openapi.json');
+                  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  Alert.alert('Copied', 'OpenAPI Schema URL copied to clipboard');
+                }}
+              >
+                <Text style={styles.aiCredValue} numberOfLines={1}>https://debtfree-p2wx.onrender.com/openapi.json</Text>
+                <Icon name="copy-outline" size={14} color={Colors.primary} />
+              </Pressable>
+            </View>
 
             <View style={styles.aiCredentialBlock}>
               <Text style={styles.aiCredLabel}>YOUR USER ID</Text>
@@ -311,7 +343,7 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            <View style={[styles.aiCredentialBlock, { marginTop: 10 }]}>
+            <View style={styles.aiCredentialBlock}>
               <Text style={styles.aiCredLabel}>AI SECRET API KEY</Text>
               <Pressable
                 style={styles.aiCredBox}
@@ -321,10 +353,85 @@ export default function ProfileScreen() {
                   Alert.alert('Copied', 'Secret API key copied to clipboard');
                 }}
               >
-                <Text style={styles.aiCredValue} numberOfLines={1}>df_sec_••••••••••••••••••••</Text>
+                <Text style={styles.aiCredValue} numberOfLines={1}>df_sec_d20a49e1cdd3f8bff33018574b1d5320</Text>
                 <Icon name="copy-outline" size={14} color={Colors.primary} />
               </Pressable>
             </View>
+
+            {/* Toggleable How-to-connect instructions */}
+            <Pressable
+              style={styles.aiGuideToggle}
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setShowAiInstructions(!showAiInstructions);
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icon name="book-outline" size={14} color={Colors.primary} />
+                <Text style={styles.aiGuideToggleText}>
+                  {showAiInstructions ? 'HIDE CONNECTION GUIDE' : 'HOW TO CONNECT (STEP-BY-STEP)'}
+                </Text>
+              </View>
+              <Icon name={showAiInstructions ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.primary} />
+            </Pressable>
+
+            {showAiInstructions && (
+              <View style={styles.aiGuideContainer}>
+                {/* Agent Selector Tabs */}
+                <View style={styles.aiTabRow}>
+                  <Pressable
+                    style={[styles.aiTab, selectedAgentTab === 'chatgpt' && styles.aiTabActive]}
+                    onPress={() => setSelectedAgentTab('chatgpt')}
+                  >
+                    <Text style={[styles.aiTabText, selectedAgentTab === 'chatgpt' && styles.aiTabTextActive]}>ChatGPT</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.aiTab, selectedAgentTab === 'claude' && styles.aiTabActive]}
+                    onPress={() => setSelectedAgentTab('claude')}
+                  >
+                    <Text style={[styles.aiTabText, selectedAgentTab === 'claude' && styles.aiTabTextActive]}>Claude</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.aiTab, selectedAgentTab === 'general' && styles.aiTabActive]}
+                    onPress={() => setSelectedAgentTab('general')}
+                  >
+                    <Text style={[styles.aiTabText, selectedAgentTab === 'general' && styles.aiTabTextActive]}>Gemini/Llama</Text>
+                  </Pressable>
+                </View>
+
+                {selectedAgentTab === 'chatgpt' && (
+                  <View style={styles.aiStepBox}>
+                    <Text style={styles.aiStepTitle}>CONNECT TO CHATGPT (MOBILE OR WEB):</Text>
+                    <Text style={styles.aiStepText}>1. Open ChatGPT → Explore GPTs → Create new GPT.</Text>
+                    <Text style={styles.aiStepText}>2. Go to Configure → Scroll down to Actions → Create new action.</Text>
+                    <Text style={styles.aiStepText}>3. Tap "Import from URL" and paste the OpenAPI Schema URL copied above.</Text>
+                    <Text style={styles.aiStepText}>4. Set Authentication Type to "API Key", Auth Type to "Custom", Header Name to "x-api-key", and paste your Secret Key.</Text>
+                    <Text style={styles.aiStepText}>5. In Instructions, write: "You manage my DebtFree ledger. Always use userId: {user?.uid || 'YOUR_USER_ID'}".</Text>
+                    <Text style={styles.aiStepText}>6. Done! Test on your phone: "Who owes me money?"</Text>
+                  </View>
+                )}
+
+                {selectedAgentTab === 'claude' && (
+                  <View style={styles.aiStepBox}>
+                    <Text style={styles.aiStepTitle}>CONNECT TO CLAUDE / MCP CLIENTS:</Text>
+                    <Text style={styles.aiStepText}>1. Use Native MCP Server URL (SSE Transport):</Text>
+                    <Text style={[styles.aiStepCode, { color: Colors.primary }]}>https://debtfree-p2wx.onrender.com/sse</Text>
+                    <Text style={styles.aiStepText}>2. Add custom header in your config:</Text>
+                    <Text style={styles.aiStepCode}>x-api-key: df_sec_d20a49e1cdd3f8bff33018574b1d5320</Text>
+                    <Text style={styles.aiStepText}>3. Claude can invoke list_people, add_transaction, get_summary, and get_due_and_overdue natively.</Text>
+                  </View>
+                )}
+
+                {selectedAgentTab === 'general' && (
+                  <View style={styles.aiStepBox}>
+                    <Text style={styles.aiStepTitle}>CONNECT TO GEMINI / LLAMA / AGENTS:</Text>
+                    <Text style={styles.aiStepText}>1. Any agent framework (LangChain, LlamaIndex, AutoGen) can import the OpenAPI 3.1 specification.</Text>
+                    <Text style={styles.aiStepText}>2. All REST endpoints (/api/people, /api/transactions, /api/summary, /api/due) require the x-api-key header.</Text>
+                    <Text style={styles.aiStepText}>3. Pass userId={user?.uid || 'YOUR_USER_ID'} as a query parameter or body field.</Text>
+                  </View>
+                )}
+              </View>
+            )}
 
             <View style={styles.aiSupportedRow}>
               {['ChatGPT', 'Gemini', 'Llama', 'Claude', 'Cursor'].map(agent => (
@@ -679,5 +786,82 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: Fonts.medium,
     color: Colors.textMuted,
+  },
+  aiGuideToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#181814',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 254, 64, 0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  aiGuideToggleText: {
+    fontSize: 10,
+    fontFamily: Fonts.semibold,
+    color: Colors.primary,
+    letterSpacing: 1,
+  },
+  aiGuideContainer: {
+    backgroundColor: '#101010',
+    borderWidth: 1,
+    borderColor: '#262626',
+    padding: 10,
+    marginBottom: 12,
+  },
+  aiTabRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 10,
+  },
+  aiTab: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: 'center',
+    backgroundColor: '#181818',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+  },
+  aiTabActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  aiTabText: {
+    fontSize: 10,
+    fontFamily: Fonts.semibold,
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  aiTabTextActive: {
+    color: '#000000',
+    fontFamily: Fonts.bold,
+  },
+  aiStepBox: {
+    gap: 6,
+  },
+  aiStepTitle: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  aiStepText: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  aiStepCode: {
+    fontSize: 10,
+    fontFamily: Fonts.serif,
+    color: Colors.textMuted,
+    backgroundColor: '#161616',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
   },
 });
