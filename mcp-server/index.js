@@ -1,5 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express from 'express';
+import cors from 'cors';
 import { z } from 'zod';
 import { initializeApp, getApps } from 'firebase/app';
 import {
@@ -575,14 +578,220 @@ server.tool(
   }
 );
 
-// Start server on stdio transport
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('DebtFree MCP Server running on stdio');
+// ==========================================
+// 4. SERVER LAUNCH (Dual Mode: HTTP/SSE + Stdio)
+// ==========================================
+
+async function startHttpServer() {
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  const PORT = process.env.PORT || 3000;
+  const transports = new Map();
+
+  // Root healthcheck & info
+  app.get('/', (req, res) => {
+    res.json({
+      name: 'DebtFree Universal AI MCP Server',
+      status: 'active',
+      supportedProtocols: ['MCP (SSE)', 'REST / OpenAPI'],
+      endpoints: {
+        sse: '/sse',
+        messages: '/messages',
+        openapi: '/openapi.json',
+      },
+      supportedClients: [
+        'ChatGPT (Custom Actions / GPTs)',
+        'Gemini (Function Calling)',
+        'Llama / Ollama (Tool Calling / LangChain)',
+        'Claude (Web & Desktop)',
+        'Antigravity / Cursor',
+      ],
+    });
+  });
+
+  // OpenAPI Specification for ChatGPT, Gemini, and Llama agents
+  app.get('/openapi.json', (req, res) => {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({
+      openapi: '3.1.0',
+      info: {
+        title: 'DebtFree AI API',
+        description: 'Universal AI connection to DebtFree app for ChatGPT, Gemini, Llama, and Claude.',
+        version: '1.0.0',
+      },
+      servers: [{ url: baseUrl }],
+      paths: {
+        '/api/people': {
+          get: {
+            summary: 'List circle members and their balances',
+            operationId: 'listPeople',
+            parameters: [{ name: 'userId', in: 'query', required: true, schema: { type: 'string' } }],
+            responses: { 200: { description: 'Success' } },
+          },
+        },
+        '/api/transactions': {
+          get: {
+            summary: 'List transactions',
+            operationId: 'listTransactions',
+            parameters: [
+              { name: 'userId', in: 'query', required: true, schema: { type: 'string' } },
+              { name: 'personId', in: 'query', required: false, schema: { type: 'string' } },
+              { name: 'direction', in: 'query', required: false, schema: { type: 'string', enum: ['YOU_LENT', 'YOU_BORROWED'] } },
+            ],
+            responses: { 200: { description: 'Success' } },
+          },
+          post: {
+            summary: 'Record a new lending or borrowing transaction',
+            operationId: 'addTransaction',
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['userId', 'personId', 'amount', 'direction'],
+                    properties: {
+                      userId: { type: 'string' },
+                      personId: { type: 'string' },
+                      amount: { type: 'number' },
+                      direction: { type: 'string', enum: ['YOU_LENT', 'YOU_BORROWED'] },
+                      note: { type: 'string' },
+                      returnDate: { type: 'string', description: 'YYYY-MM-DD' },
+                    },
+                  },
+                },
+              },
+            },
+            responses: { 200: { description: 'Created' } },
+          },
+        },
+        '/api/summary': {
+          get: {
+            summary: 'Financial summary (total lent, borrowed, net balance, debtors/creditors)',
+            operationId: 'getFinancialSummary',
+            parameters: [{ name: 'userId', in: 'query', required: true, schema: { type: 'string' } }],
+            responses: { 200: { description: 'Success' } },
+          },
+        },
+        '/api/due': {
+          get: {
+            summary: 'Repayments due today, due soon, or overdue',
+            operationId: 'getDueAndOverdue',
+            parameters: [{ name: 'userId', in: 'query', required: true, schema: { type: 'string' } }],
+            responses: { 200: { description: 'Success' } },
+          },
+        },
+      },
+    });
+  });
+
+  // REST endpoints for agents that use direct HTTP calls (ChatGPT Actions, Gemini Functions, LangChain)
+  app.get('/api/people', async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const snap = await getDocs(collection(db, 'users', userId, 'people'));
+    const txSnap = await getDocs(collection(db, 'users', userId, 'transactions'));
+    const people = [];
+    peopleSnap.forEach(d => people.push(d.data()));
+    const txs = [];
+    txSnap.forEach(d => txs.push(d.data()));
+
+    const result = people.map(p => {
+      const pTxs = txs.filter(t => t.personId === p.id);
+      let balance = 0;
+      for (const t of pTxs) balance += t.direction === 'YOU_LENT' ? t.amount : -t.amount;
+      return { ...p, balance, status: balance > 0 ? `OWES_YOU_₹${balance}` : balance < 0 ? `YOU_OWE_₹${Math.abs(balance)}` : 'SETTLED' };
+    });
+    res.json(result);
+  });
+
+  app.get('/api/transactions', async (req, res) => {
+    const { userId, personId, direction } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
+    let txs = [];
+    snap.forEach(d => txs.push(d.data()));
+    if (personId) txs = txs.filter(t => t.personId === personId);
+    if (direction) txs = txs.filter(t => t.direction === direction);
+    res.json(txs);
+  });
+
+  app.post('/api/transactions', async (req, res) => {
+    const { userId, personId, amount, direction, note, returnDate } = req.body;
+    if (!userId || !personId || !amount || !direction) {
+      return res.status(400).json({ error: 'userId, personId, amount, and direction are required' });
+    }
+    const id = generateId();
+    const tx = {
+      id,
+      personId,
+      amount: Number(amount),
+      direction,
+      date: Date.now(),
+      returnDate: returnDate ? new Date(returnDate).getTime() : null,
+      note: note || '',
+      createdAt: Date.now(),
+    };
+    await setDoc(doc(db, 'users', userId, 'transactions', id), tx);
+    res.json({ success: true, transaction: tx });
+  });
+
+  app.get('/api/summary', async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
+    let totalLent = 0;
+    let totalBorrowed = 0;
+    snap.forEach(d => {
+      const t = d.data();
+      if (t.direction === 'YOU_LENT') totalLent += t.amount;
+      else totalBorrowed += t.amount;
+    });
+    res.json({ totalLent, totalBorrowed, netBalance: totalLent - totalBorrowed });
+  });
+
+  // MCP SSE Transport for native MCP clients (Claude, Cursor, Antigravity)
+  app.get('/sse', async (req, res) => {
+    const transport = new SSEServerTransport('/messages', res);
+    transports.set(transport.sessionId, transport);
+
+    transport.onclose = () => {
+      transports.delete(transport.sessionId);
+    };
+
+    await server.connect(transport);
+  });
+
+  app.post('/messages', async (req, res) => {
+    const sessionId = req.query.sessionId;
+    const transport = transports.get(sessionId);
+    if (!transport) {
+      return res.status(404).send('Session not found');
+    }
+    await transport.handlePostMessage(req, res);
+  });
+
+  app.listen(PORT, () => {
+    console.log(`DebtFree Universal AI & MCP Server listening on port ${PORT}`);
+    console.log(`- MCP SSE Endpoint: http://localhost:${PORT}/sse`);
+    console.log(`- OpenAPI Spec for ChatGPT/Gemini/Llama: http://localhost:${PORT}/openapi.json`);
+  });
 }
 
-main().catch(err => {
-  console.error('Fatal error running DebtFree MCP Server:', err);
-  process.exit(1);
-});
+// Check command line flag: if --http or PORT environment variable is present, run HTTP server; otherwise stdio
+if (process.argv.includes('--http') || process.env.PORT) {
+  startHttpServer().catch(err => {
+    console.error('Fatal error starting HTTP server:', err);
+    process.exit(1);
+  });
+} else {
+  const transport = new StdioServerTransport();
+  server.connect(transport).then(() => {
+    console.error('DebtFree MCP Server running on stdio');
+  }).catch(err => {
+    console.error('Fatal error running DebtFree MCP Server:', err);
+    process.exit(1);
+  });
+}

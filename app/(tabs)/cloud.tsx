@@ -9,6 +9,7 @@ import { NeoPopButton } from '@/components/NeoPopButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Fonts } from '@/lib/fonts';
+import * as Clipboard from 'expo-clipboard';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -271,6 +272,52 @@ export default function ProfileScreen() {
                 <Text style={styles.syncNowText}>Sync Now</Text>
               </Pressable>
             )}
+          </View>
+        </NeoPopCard>
+      </View>
+
+      {/* Universal AI & MCP Integration */}
+      <View style={styles.section}>
+        <NeoPopCard color={Colors.surface} depth={3}>
+          <View style={styles.aiCard}>
+            <View style={styles.aiHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Icon name="hardware-chip-outline" size={18} color={Colors.primary} />
+                <Text style={styles.aiTitle}>AI INTEGRATION (MCP)</Text>
+              </View>
+              <View style={styles.aiBadge}>
+                <Text style={styles.aiBadgeText}>UNIVERSAL</Text>
+              </View>
+            </View>
+
+            <Text style={styles.aiDescription}>
+              Connect ChatGPT, Gemini, Llama, Claude, or any AI agent to your DebtFree account.
+            </Text>
+
+            <View style={styles.aiCredentialBlock}>
+              <Text style={styles.aiCredLabel}>YOUR USER ID</Text>
+              <Pressable
+                style={styles.aiCredBox}
+                onPress={async () => {
+                  if (user?.uid) {
+                    await Clipboard.setStringAsync(user.uid);
+                    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    Alert.alert('Copied', 'User ID copied to clipboard');
+                  }
+                }}
+              >
+                <Text style={styles.aiCredValue} numberOfLines={1}>{user?.uid || 'Not signed in'}</Text>
+                <Icon name="copy-outline" size={14} color={Colors.primary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.aiSupportedRow}>
+              {['ChatGPT', 'Gemini', 'Llama', 'Claude', 'Cursor'].map(agent => (
+                <View key={agent} style={styles.aiAgentChip}>
+                  <Text style={styles.aiAgentText}>{agent}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </NeoPopCard>
       </View>
@@ -538,5 +585,84 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semibold,
     color: Colors.primary,
     letterSpacing: 1,
+  },
+  aiCard: {
+    padding: 4,
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  aiTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.semibold,
+    color: Colors.white,
+    letterSpacing: 1.5,
+  },
+  aiBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: '#1E1E14',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  aiBadgeText: {
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+    color: Colors.primary,
+    letterSpacing: 0.5,
+  },
+  aiDescription: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  aiCredentialBlock: {
+    marginBottom: 12,
+  },
+  aiCredLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.semibold,
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  aiCredBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#262626',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  aiCredValue: {
+    fontSize: 12,
+    fontFamily: Fonts.serif,
+    color: Colors.textSecondary,
+    flex: 1,
+    marginRight: 8,
+  },
+  aiSupportedRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  aiAgentChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#161616',
+    borderWidth: 1,
+    borderColor: '#262626',
+  },
+  aiAgentText: {
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    color: Colors.textMuted,
   },
 });
