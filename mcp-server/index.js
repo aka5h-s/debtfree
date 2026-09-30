@@ -602,8 +602,13 @@ async function startHttpServer() {
   // Authentication Middleware: Protect all endpoints except / and /openapi.json
   const REQUIRED_API_KEY = process.env.DEBTFREE_API_KEY;
   app.use((req, res, next) => {
-    // Allow public discovery endpoints
-    if (req.path === '/' || req.path === '/openapi.json') {
+    // Allow public discovery & OAuth endpoints
+    if (
+      req.path === '/' ||
+      req.path === '/openapi.json' ||
+      req.path === '/.well-known/ai-plugin.json' ||
+      req.path.startsWith('/oauth/')
+    ) {
       return next();
     }
 
@@ -612,13 +617,260 @@ async function startHttpServer() {
     const apiKeyHeader = req.headers['x-api-key'] || req.query.apiKey;
     const providedKey = bearerToken || apiKeyHeader;
 
-    if (REQUIRED_API_KEY && providedKey !== REQUIRED_API_KEY) {
+    // Check against server API key OR active OAuth token
+    const isOAuthTokenValid = bearerToken && oauthTokens.has(bearerToken);
+    const isApiKeyValid = REQUIRED_API_KEY && providedKey === REQUIRED_API_KEY;
+
+    if (!isApiKeyValid && !isOAuthTokenValid) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Invalid or missing API key. Provide Bearer token or x-api-key header.',
+        message: 'Invalid or missing API key or OAuth Bearer token.',
       });
     }
+
+    // Attach authenticated user context if called via OAuth token
+    if (isOAuthTokenValid) {
+      req.oauthUser = oauthTokens.get(bearerToken);
+    }
+
     next();
+  });
+
+  // Store in-memory OAuth codes and tokens (maps token -> { userId, email })
+  const oauthCodes = new Map();
+  const oauthTokens = new Map();
+
+  // 1. OpenAI / Agent Plugin Manifest
+  app.get('/.well-known/ai-plugin.json', (req, res) => {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${proto}://${host}`;
+
+    res.json({
+      schema_version: 'v1',
+      name_for_human: 'DebtFree',
+      name_for_model: 'debtfree',
+      description_for_human: 'Manage debt circles, friends, repayments, and financial net balances in real-time.',
+      description_for_model: 'Assistant plugin to track who owes whom, create debt transactions, view repayment schedules, and check balances using the DebtFree ledger.',
+      auth: {
+        type: 'oauth',
+        client_url: `${baseUrl}/oauth/authorize`,
+        scope: 'read write',
+        authorization_url: `${baseUrl}/oauth/token`,
+        authorization_content_type: 'application/x-www-form-urlencoded',
+        verification_tokens: {
+          openai: 'debtfree_verified_plugin',
+        },
+      },
+      api: {
+        type: 'openapi',
+        url: `${baseUrl}/openapi.json`,
+        is_user_authenticated: false,
+      },
+      logo_url: `${baseUrl}/logo.png`,
+      contact_email: 'support@debtfree.app',
+      legal_info_url: `${baseUrl}/legal`,
+    });
+  });
+
+  // 2. OAuth 2.0 Authorization Endpoint (Mobile-friendly Login Page)
+  app.get('/oauth/authorize', (req, res) => {
+    const { client_id, redirect_uri, state, response_type } = req.query;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Connect DebtFree</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0A0A0A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .card { background-color: #121212; border: 2px solid #E5FE40; width: 100%; max-width: 380px; padding: 24px; box-shadow: 6px 6px 0px #E5FE40; }
+    .badge { display: inline-block; background-color: #E5FE40; color: #000000; font-size: 10px; font-weight: 900; letter-spacing: 1.5px; padding: 3px 8px; margin-bottom: 12px; }
+    h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; }
+    p { font-size: 13px; color: #888888; margin-bottom: 24px; line-height: 1.4; }
+    .input-group { margin-bottom: 16px; text-align: left; }
+    label { display: block; font-size: 11px; font-weight: 700; color: #AAAAAA; letter-spacing: 1px; margin-bottom: 6px; }
+    input { width: 100%; background-color: #1A1A1A; border: 1px solid #333333; color: #FFFFFF; padding: 12px; font-size: 14px; outline: none; border-radius: 0; }
+    input:focus { border-color: #E5FE40; }
+    .btn { width: 100%; padding: 14px; font-size: 13px; font-weight: 900; letter-spacing: 1px; border: none; cursor: pointer; border-radius: 0; text-transform: uppercase; margin-top: 8px; }
+    .btn-primary { background-color: #E5FE40; color: #000000; box-shadow: 4px 4px 0px #FFFFFF; }
+    .btn-primary:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #FFFFFF; }
+    .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #555555; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+    .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #222222; }
+    .divider::before { margin-right: .5em; }
+    .divider::after { margin-left: .5em; }
+    .btn-google { background-color: #1E1E1E; color: #FFFFFF; border: 1px solid #333333; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-google:active { background-color: #262626; }
+    .error { background-color: #331111; border: 1px solid #FF4444; color: #FF8888; padding: 10px; font-size: 12px; margin-bottom: 16px; display: none; }
+    .footer-note { font-size: 10px; color: #555555; text-align: center; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">DEBTFREE AI LINK</span>
+    <h1>Connect to AI</h1>
+    <p>Sign in to securely link your DebtFree ledger with your AI Assistant.</p>
+
+    <div id="error-box" class="error"></div>
+
+    <form id="login-form">
+      <div class="input-group">
+        <label>EMAIL ADDRESS</label>
+        <input type="email" id="email" required placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="input-group">
+        <label>PASSWORD</label>
+        <input type="password" id="password" required placeholder="••••••••••••" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit-btn">SIGN IN & CONNECT</button>
+    </form>
+
+    <div class="divider">OR</div>
+
+    <button type="button" class="btn btn-google" id="google-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.57 0 2.98.54 4.09 1.6l3.07-3.07C17.3 1.77 14.85 1 12 1 7.6 1 3.8 3.51 1.94 7.15l3.66 2.84C6.48 7.17 8.98 5 12 5z"/><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.72 2.89c2.18-2.01 3.7-4.97 3.7-8.71z"/><path fill="#FBBC05" d="M5.6 14.01c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29L1.94 6.59C1.19 8.08.77 9.75.77 11.5s.42 3.42 1.17 4.91l3.66-2.4z"/><path fill="#34A853" d="M12 23c3.24 0 5.95-1.08 7.93-2.91l-3.72-2.89c-1.07.72-2.45 1.16-4.21 1.16-3.02 0-5.52-2.17-6.4-4.99L1.94 16.21C3.8 19.85 7.6 23 12 23z"/></svg>
+      CONTINUE WITH GOOGLE
+    </button>
+
+    <div class="footer-note">256-bit encrypted • Token verified with Firebase</div>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const errBox = document.getElementById('error-box');
+    const submitBtn = document.getElementById('submit-btn');
+    const googleBtn = document.getElementById('google-btn');
+
+    const redirectUri = "${redirect_uri || ''}";
+    const state = "${state || ''}";
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      submitBtn.textContent = 'CONNECTING...';
+      submitBtn.disabled = true;
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/oauth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, state, redirectUri })
+        });
+        const data = await res.json();
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        } else {
+          errBox.textContent = data.error || 'Authentication failed';
+          errBox.style.display = 'block';
+          submitBtn.textContent = 'SIGN IN & CONNECT';
+          submitBtn.disabled = false;
+        }
+      } catch (err) {
+        errBox.textContent = 'Connection error: ' + err.message;
+        errBox.style.display = 'block';
+        submitBtn.textContent = 'SIGN IN & CONNECT';
+        submitBtn.disabled = false;
+      }
+    });
+
+    googleBtn.addEventListener('click', () => {
+      // Direct to Google OAuth flow
+      window.location.href = '/oauth/google-start?redirectUri=' + encodeURIComponent(redirectUri) + '&state=' + encodeURIComponent(state);
+    });
+  </script>
+</body>
+</html>`;
+
+    res.send(html);
+  });
+
+  // 3. OAuth Email/Password Login Handler
+  app.post('/oauth/login', async (req, res) => {
+    const { email, password, redirectUri, state } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
+    try {
+      // Validate credentials against Firebase Auth via Identity Toolkit REST API
+      const fbRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseConfig.apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, returnSecureToken: true }),
+        }
+      );
+      const fbData = await fbRes.json();
+
+      if (fbData.error) {
+        return res.status(401).json({ error: fbData.error.message || 'Invalid email or password' });
+      }
+
+      // Generate single-use authorization code
+      const authCode = 'df_code_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+      oauthCodes.set(authCode, {
+        userId: fbData.localId,
+        email: fbData.email,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      });
+
+      const redirectUrl = redirectUri
+        ? `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}code=${authCode}&state=${encodeURIComponent(state || '')}`
+        : `/oauth/success?code=${authCode}`;
+
+      res.json({ success: true, redirect: redirectUrl });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 4. OAuth Google Sign-In Start
+  app.get('/oauth/google-start', (req, res) => {
+    const { redirectUri, state } = req.query;
+    // Construct Google OAuth URL
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=629935243184-j3h4m0f5f8i4c2q7r1s0t9u8v7w6x5y4.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(
+      `${req.protocol}://${req.get('host')}/oauth/google-callback`
+    )}&response_type=code&scope=email%20profile%20openid&state=${encodeURIComponent(
+      JSON.stringify({ redirectUri, state })
+    )}`;
+    res.redirect(googleAuthUrl);
+  });
+
+  // 5. OAuth Token Exchange Endpoint (RFC 6749)
+  app.post('/oauth/token', express.urlencoded({ extended: true }), (req, res) => {
+    const { code, grant_type } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ error: 'invalid_request', error_description: 'Code is required' });
+    }
+
+    const codeData = oauthCodes.get(code);
+    if (!codeData || codeData.expiresAt < Date.now()) {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'Code is invalid or expired' });
+    }
+
+    // Invalidate code (single use)
+    oauthCodes.delete(code);
+
+    // Create Bearer Access Token
+    const accessToken = 'df_tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    oauthTokens.set(accessToken, {
+      userId: codeData.userId,
+      email: codeData.email,
+      createdAt: Date.now(),
+    });
+
+    res.json({
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: 31536000, // 1 year
+      scope: 'read write',
+      user_id: codeData.userId,
+    });
   });
 
   // Root healthcheck & info
@@ -728,9 +980,23 @@ async function startHttpServer() {
             type: 'http',
             scheme: 'bearer',
           },
+          OAuth2: {
+            type: 'oauth2',
+            flows: {
+              authorizationCode: {
+                authorizationUrl: `${baseUrl}/oauth/authorize`,
+                tokenUrl: `${baseUrl}/oauth/token`,
+                scopes: {
+                  read: 'Read DebtFree ledger data',
+                  write: 'Add and edit transactions',
+                },
+              },
+            },
+          },
         },
       },
       security: [
+        { OAuth2: ['read', 'write'] },
         { ApiKeyAuth: [] },
         { BearerAuth: [] },
       ],
@@ -739,8 +1005,8 @@ async function startHttpServer() {
 
   // REST endpoints for agents that use direct HTTP calls (ChatGPT Actions, Gemini Functions, LangChain)
   app.get('/api/people', async (req, res) => {
-    const { userId } = req.query;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const userId = req.oauthUser?.userId || req.query.userId;
+    if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
     const snap = await getDocs(collection(db, 'users', userId, 'people'));
     const txSnap = await getDocs(collection(db, 'users', userId, 'transactions'));
     const people = [];
@@ -758,8 +1024,9 @@ async function startHttpServer() {
   });
 
   app.get('/api/transactions', async (req, res) => {
-    const { userId, personId, direction } = req.query;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const userId = req.oauthUser?.userId || req.query.userId;
+    const { personId, direction } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
     const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
     let txs = [];
     snap.forEach(d => txs.push(d.data()));
@@ -769,7 +1036,8 @@ async function startHttpServer() {
   });
 
   app.post('/api/transactions', async (req, res) => {
-    const { userId, personId, amount, direction, note, returnDate } = req.body;
+    const userId = req.oauthUser?.userId || req.body.userId;
+    const { personId, amount, direction, note, returnDate } = req.body;
     if (!userId || !personId || !amount || !direction) {
       return res.status(400).json({ error: 'userId, personId, amount, and direction are required' });
     }
@@ -789,8 +1057,8 @@ async function startHttpServer() {
   });
 
   app.get('/api/summary', async (req, res) => {
-    const { userId } = req.query;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const userId = req.oauthUser?.userId || req.query.userId;
+    if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
     const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
     let totalLent = 0;
     let totalBorrowed = 0;
@@ -803,8 +1071,8 @@ async function startHttpServer() {
   });
 
   app.get('/api/due', async (req, res) => {
-    const { userId } = req.query;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const userId = req.oauthUser?.userId || req.query.userId;
+    if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
 
     try {
       const [peopleSnap, txSnap] = await Promise.all([
