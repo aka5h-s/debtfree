@@ -1125,7 +1125,11 @@ async function startHttpServer() {
 
   // MCP Transport for native MCP clients (ChatGPT Plugin Creator, Claude, Cursor, Antigravity)
   const handleMcpConnection = async (req, res) => {
-    const transport = new SSEServerTransport('/messages', res);
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const messagesEndpoint = `${proto}://${host}/messages`;
+
+    const transport = new SSEServerTransport(messagesEndpoint, res);
     transports.set(transport.sessionId, transport);
 
     transport.onclose = () => {
