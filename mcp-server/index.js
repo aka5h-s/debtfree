@@ -645,7 +645,8 @@ async function startHttpServer() {
 
   // OpenAPI Specification for ChatGPT, Gemini, and Llama agents
   app.get('/openapi.json', (req, res) => {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const baseUrl = `${proto}://${req.get('host')}`;
     res.json({
       openapi: '3.1.0',
       info: {
