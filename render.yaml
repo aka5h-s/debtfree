@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: debtfree-ai-server
+    runtime: node
+    plan: free
+    rootDir: mcp-server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DEBTFREE_API_KEY
+        sync: false
+      - key: EXPO_PUBLIC_FIREBASE_API_KEY
+        value: AIzaSyBftNHay-UIkV9GyQJ2ez6fgvS8MMAXrSU
+      - key: EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+        value: debt-free-af02a.firebaseapp.com
+      - key: EXPO_PUBLIC_FIREBASE_PROJECT_ID
+        value: debt-free-af02a
+      - key: EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+        value: debt-free-af02a.firebasestorage.app
+      - key: EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        value: 629935243184
+      - key: EXPO_PUBLIC_FIREBASE_APP_ID
+        value: 1:629935243184:android:b91bcfb493c3071e7a2075

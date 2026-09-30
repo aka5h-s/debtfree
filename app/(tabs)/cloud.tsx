@@ -311,6 +311,21 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
+            <View style={[styles.aiCredentialBlock, { marginTop: 10 }]}>
+              <Text style={styles.aiCredLabel}>AI SECRET API KEY</Text>
+              <Pressable
+                style={styles.aiCredBox}
+                onPress={async () => {
+                  await Clipboard.setStringAsync('df_sec_d20a49e1cdd3f8bff33018574b1d5320');
+                  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  Alert.alert('Copied', 'Secret API key copied to clipboard');
+                }}
+              >
+                <Text style={styles.aiCredValue} numberOfLines={1}>df_sec_••••••••••••••••••••</Text>
+                <Icon name="copy-outline" size={14} color={Colors.primary} />
+              </Pressable>
+            </View>
+
             <View style={styles.aiSupportedRow}>
               {['ChatGPT', 'Gemini', 'Llama', 'Claude', 'Cursor'].map(agent => (
                 <View key={agent} style={styles.aiAgentChip}>

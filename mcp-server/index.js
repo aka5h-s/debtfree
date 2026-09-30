@@ -590,11 +590,34 @@ async function startHttpServer() {
   const PORT = process.env.PORT || 3000;
   const transports = new Map();
 
+  // Authentication Middleware: Protect all endpoints except / and /openapi.json
+  const REQUIRED_API_KEY = process.env.DEBTFREE_API_KEY;
+  app.use((req, res, next) => {
+    // Allow public discovery endpoints
+    if (req.path === '/' || req.path === '/openapi.json') {
+      return next();
+    }
+
+    const authHeader = req.headers['authorization'] || '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const apiKeyHeader = req.headers['x-api-key'] || req.query.apiKey;
+    const providedKey = bearerToken || apiKeyHeader;
+
+    if (REQUIRED_API_KEY && providedKey !== REQUIRED_API_KEY) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid or missing API key. Provide Bearer token or x-api-key header.',
+      });
+    }
+    next();
+  });
+
   // Root healthcheck & info
   app.get('/', (req, res) => {
     res.json({
       name: 'DebtFree Universal AI MCP Server',
       status: 'active',
+      security: REQUIRED_API_KEY ? 'API_KEY_ENABLED' : 'OPEN',
       supportedProtocols: ['MCP (SSE)', 'REST / OpenAPI'],
       endpoints: {
         sse: '/sse',
@@ -684,6 +707,23 @@ async function startHttpServer() {
           },
         },
       },
+      components: {
+        securitySchemes: {
+          ApiKeyAuth: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'x-api-key',
+          },
+          BearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+          },
+        },
+      },
+      security: [
+        { ApiKeyAuth: [] },
+        { BearerAuth: [] },
+      ],
     });
   });
 
@@ -694,7 +734,7 @@ async function startHttpServer() {
     const snap = await getDocs(collection(db, 'users', userId, 'people'));
     const txSnap = await getDocs(collection(db, 'users', userId, 'transactions'));
     const people = [];
-    peopleSnap.forEach(d => people.push(d.data()));
+    snap.forEach(d => people.push(d.data()));
     const txs = [];
     txSnap.forEach(d => txs.push(d.data()));
 
