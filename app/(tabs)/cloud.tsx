@@ -401,13 +401,13 @@ export default function ProfileScreen() {
 
                 {selectedAgentTab === 'chatgpt' && (
                   <View style={styles.aiStepBox}>
-                    <Text style={styles.aiStepTitle}>CONNECT TO CHATGPT (MOBILE OR WEB):</Text>
-                    <Text style={styles.aiStepText}>1. Open ChatGPT → Explore GPTs → Create new GPT.</Text>
-                    <Text style={styles.aiStepText}>2. Go to Configure → Scroll down to Actions → Create new action.</Text>
-                    <Text style={styles.aiStepText}>3. Tap "Import from URL" and paste the OpenAPI Schema URL copied above.</Text>
-                    <Text style={styles.aiStepText}>4. Set Authentication Type to "API Key", Auth Type to "Custom", Header Name to "x-api-key", and paste your Secret Key.</Text>
-                    <Text style={styles.aiStepText}>5. In Instructions, write: "You manage my DebtFree ledger. Always use userId: {user?.uid || 'YOUR_USER_ID'}".</Text>
-                    <Text style={styles.aiStepText}>6. Done! Test on your phone: "Who owes me money?"</Text>
+                    <Text style={styles.aiStepTitle}>CONNECT TO CHATGPT (PLUGINS & AGENTS):</Text>
+                    <Text style={styles.aiStepText}>1. Connect via Plugin or Custom Action using Schema URL:</Text>
+                    <Text style={[styles.aiStepCode, { color: Colors.primary }]}>https://debtfree-p2wx.onrender.com/openapi.json</Text>
+                    <Text style={styles.aiStepText}>2. For Authentication, choose "OAuth" or "API Key".</Text>
+                    <Text style={styles.aiStepText}>3. When prompted, tap "Sign in with Google" or enter your DebtFree account Email & Password.</Text>
+                    <Text style={styles.aiStepText}>4. Once linked, ChatGPT automatically knows your identity—no manual User ID or token typing needed!</Text>
+                    <Text style={styles.aiStepText}>5. Ask on your phone: "Who owes me money?", "Record lent ₹500 to Rahul".</Text>
                   </View>
                 )}
 
