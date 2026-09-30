@@ -10,7 +10,7 @@ import { NeoPopCard } from '@/components/NeoPopCard';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { NeoPopButton } from '@/components/NeoPopButton';
 import { ShimmerText } from '@/components/ShimmerText';
-import { formatCurrency, formatRelativeDate } from '@/lib/formatters';
+import { formatCurrency, formatRelativeDate, getReturnDateStatus } from '@/lib/formatters';
 import type { Transaction } from '@/lib/types';
 import { Fonts } from '@/lib/fonts';
 import { NoteModal } from '@/components/DatePickerModal';
@@ -19,6 +19,7 @@ function TransactionItem({ tx, onEdit, onDelete, onHistory, onViewNote }: { tx: 
   const isLent = tx.direction === 'YOU_LENT';
   const color = isLent ? Colors.positive : Colors.negative;
   const label = isLent ? 'YOU LENT' : 'YOU BORROWED';
+  const returnStatus = getReturnDateStatus(tx.returnDate);
 
   return (
     <View style={styles.txContainer}>
@@ -36,6 +37,28 @@ function TransactionItem({ tx, onEdit, onDelete, onHistory, onViewNote }: { tx: 
                 <Icon name="expand-outline" size={14} color={Colors.textMuted} />
               </Pressable>
             ) : null}
+
+            {returnStatus && (
+              <View style={[
+                styles.txReturnRow,
+                returnStatus.isOverdue && styles.txReturnRowOverdue,
+                returnStatus.isDueSoon && styles.txReturnRowDueSoon,
+              ]}>
+                <Icon
+                  name={returnStatus.isOverdue ? 'alert-circle' : returnStatus.isDueSoon ? 'time-outline' : 'calendar-outline'}
+                  size={13}
+                  color={returnStatus.isOverdue ? '#FF6B6B' : returnStatus.isDueSoon ? Colors.primary : Colors.textMuted}
+                />
+                <Text style={[
+                  styles.txReturnText,
+                  returnStatus.isOverdue && styles.txReturnTextOverdue,
+                  returnStatus.isDueSoon && styles.txReturnTextDueSoon,
+                ]}>
+                  {returnStatus.label}
+                </Text>
+              </View>
+            )}
+
             <Text style={styles.txDate}>{formatRelativeDate(tx.date)}</Text>
             <View style={styles.txActions}>
               <Pressable onPress={onHistory} style={styles.txActionBtn} hitSlop={8}>
@@ -333,6 +356,30 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 6,
     marginBottom: 4,
+  },
+  txReturnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  txReturnRowOverdue: {
+    // subtle accent without overwhelming the card
+  },
+  txReturnRowDueSoon: {
+  },
+  txReturnText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: Colors.textMuted,
+  },
+  txReturnTextOverdue: {
+    color: '#FF6B6B',
+    fontFamily: Fonts.semibold,
+  },
+  txReturnTextDueSoon: {
+    color: Colors.primary,
+    fontFamily: Fonts.semibold,
   },
   txDate: {
     fontSize: 13,

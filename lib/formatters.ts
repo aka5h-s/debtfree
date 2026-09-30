@@ -59,3 +59,78 @@ export function maskCardNumber(num: string, cardType?: string): string {
 export function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
+
+export type ReturnDateStatusType = 'OVERDUE' | 'DUE_TODAY' | 'DUE_SOON' | 'UPCOMING';
+
+export interface ReturnDateStatus {
+  type: ReturnDateStatusType;
+  label: string;
+  isOverdue: boolean;
+  isDueToday: boolean;
+  isDueSoon: boolean;
+  daysDiff: number;
+  formattedDate: string;
+}
+
+export function getReturnDateStatus(returnDateTimestamp?: number | null): ReturnDateStatus | null {
+  if (!returnDateTimestamp) return null;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const returnDate = new Date(returnDateTimestamp);
+  const targetStart = new Date(returnDate.getFullYear(), returnDate.getMonth(), returnDate.getDate()).getTime();
+
+  const diffDays = Math.round((targetStart - todayStart) / 86400000);
+  const formattedDate = returnDate.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: returnDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+  });
+
+  if (diffDays < 0) {
+    const overdueDays = Math.abs(diffDays);
+    return {
+      type: 'OVERDUE',
+      label: `Overdue by ${overdueDays} ${overdueDays === 1 ? 'day' : 'days'} (${formattedDate})`,
+      isOverdue: true,
+      isDueToday: false,
+      isDueSoon: false,
+      daysDiff: diffDays,
+      formattedDate,
+    };
+  }
+
+  if (diffDays === 0) {
+    return {
+      type: 'DUE_TODAY',
+      label: 'Due today',
+      isOverdue: false,
+      isDueToday: true,
+      isDueSoon: true,
+      daysDiff: 0,
+      formattedDate,
+    };
+  }
+
+  if (diffDays <= 2) {
+    return {
+      type: 'DUE_SOON',
+      label: `Due in ${diffDays} ${diffDays === 1 ? 'day' : 'days'} (${formattedDate})`,
+      isOverdue: false,
+      isDueToday: false,
+      isDueSoon: true,
+      daysDiff: diffDays,
+      formattedDate,
+    };
+  }
+
+  return {
+    type: 'UPCOMING',
+    label: `Expected: ${formattedDate}`,
+    isOverdue: false,
+    isDueToday: false,
+    isDueSoon: false,
+    daysDiff: diffDays,
+    formattedDate,
+  };
+}
+

@@ -47,9 +47,10 @@ interface DatePickerModalProps {
   value: Date;
   onConfirm: (date: Date) => void;
   onClose: () => void;
+  allowFuture?: boolean;
 }
 
-export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePickerModalProps) {
+export function DatePickerModal({ visible, value, onConfirm, onClose, allowFuture = false }: DatePickerModalProps) {
   const today = startOfDay(new Date());
 
   const [viewYear, setViewYear] = useState(value.getFullYear());
@@ -64,7 +65,7 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
       setViewYear(d.getFullYear());
       setViewMonth(d.getMonth());
     }
-  }, [visible]);
+  }, [visible, value]);
 
   const goToPrev = () => {
     if (viewMonth === 0) {
@@ -76,11 +77,12 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
   };
 
   const goToNext = () => {
-    // Don't allow navigating past current month
-    const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
-    const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
-    const nextFirst = new Date(nextYear, nextMonth, 1);
-    if (nextFirst > today) return;
+    if (!allowFuture) {
+      const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+      const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+      const nextFirst = new Date(nextYear, nextMonth, 1);
+      if (nextFirst > today) return;
+    }
 
     if (viewMonth === 11) {
       setViewMonth(0);
@@ -90,7 +92,7 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
     }
   };
 
-  const isNextDisabled = (() => {
+  const isNextDisabled = !allowFuture && (() => {
     const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
     const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
     return new Date(nextYear, nextMonth, 1) > today;
@@ -99,7 +101,7 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
   const grid = buildCalendarGrid(viewYear, viewMonth);
 
   const handleDayPress = (date: Date) => {
-    if (date > today) return; // no future dates
+    if (!allowFuture && date > today) return;
     setSelected(date);
   };
 
@@ -150,7 +152,7 @@ export function DatePickerModal({ visible, value, onConfirm, onClose }: DatePick
               return <View key={`empty-${idx}`} style={styles.cell} />;
             }
 
-            const isFuture = date > today;
+            const isFuture = !allowFuture && date > today;
             const isToday = date.getTime() === today.getTime();
             const isSelected = date.getTime() === selected.getTime();
 

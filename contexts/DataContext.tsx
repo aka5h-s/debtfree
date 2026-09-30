@@ -4,6 +4,7 @@ import * as FB from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateId } from '@/lib/formatters';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { scheduleReturnDateReminders, cancelTransactionReminders } from '@/lib/notifications';
 
 interface PendingSyncAction {
   id: string;
@@ -33,8 +34,8 @@ interface DataContextValue {
   removePerson: (id: string) => Promise<void>;
   getPersonTransactions: (personId: string) => Transaction[];
   getPersonBalance: (personId: string) => number;
-  addTransaction: (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string, date?: number) => Promise<Transaction>;
-  updateTransaction: (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string, newDate?: number) => Promise<void>;
+  addTransaction: (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string, date?: number, returnDate?: number | null) => Promise<Transaction>;
+  updateTransaction: (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string, newDate?: number, newReturnDate?: number | null) => Promise<void>;
   removeTransaction: (id: string) => Promise<void>;
   getTransactionHistory: (txId: string) => Promise<TransactionHistory[]>;
   addCard: (card: Omit<CreditCard, 'id' | 'createdAt'>) => Promise<CreditCard>;
@@ -249,10 +250,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [uid, people, transactions, persistState, queueSyncAction]);
 
   // Optimistic Add Transaction (Instant UI)
-  const addTransaction = useCallback(async (personId: string, amount: number, direction: 'YOU_LENT' | 'YOU_BORROWED', note: string, date?: number) => {
+  const addTransaction = useCallback(async (
+    personId: string,
+    amount: number,
+    direction: 'YOU_LENT' | 'YOU_BORROWED',
+    note: string,
+    date?: number,
+    returnDate?: number | null
+  ) => {
     if (!uid) throw new Error('Not authenticated');
     const txDate = date ?? Date.now();
-    const tx: Transaction = { id: generateId(), personId, amount, direction, date: txDate, note, createdAt: Date.now() };
+    const person = people.find(p => p.id === personId);
+    const personName = person?.name || 'Someone';
+
+    const tx: Transaction = {
+      id: generateId(),
+      personId,
+      amount,
+      direction,
+      date: txDate,
+      note,
+      createdAt: Date.now(),
+      returnDate: returnDate ?? null,
+    };
+
+    // Schedule return date push reminders if returnDate is set
+    if (tx.returnDate) {
+      scheduleReturnDateReminders(tx, personName).then(ids => {
+        if (ids.length > 0) {
+          tx.notificationIds = ids;
+          setTransactions(curr => curr.map(t => t.id === tx.id ? { ...t, notificationIds: ids } : t));
+          if (uid) {
+            FB.saveTransaction(uid, tx).catch(() => {});
+          }
+        }
+      }).catch(err => console.log('Reminder scheduling error:', err));
+    }
+
     const nextTxs = [tx, ...transactions];
     setTransactions(nextTxs);
     persistState(undefined, nextTxs);
@@ -263,10 +297,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
 
     return tx;
-  }, [uid, transactions, persistState, queueSyncAction]);
+  }, [uid, people, transactions, persistState, queueSyncAction]);
 
   // Optimistic Update Transaction (Instant UI)
-  const updateTransaction = useCallback(async (tx: Transaction, newAmount: number, newDirection: 'YOU_LENT' | 'YOU_BORROWED', newNote: string, newDate?: number) => {
+  const updateTransaction = useCallback(async (
+    tx: Transaction,
+    newAmount: number,
+    newDirection: 'YOU_LENT' | 'YOU_BORROWED',
+    newNote: string,
+    newDate?: number,
+    newReturnDate?: number | null
+  ) => {
     if (!uid) throw new Error('Not authenticated');
     const historyEntry: TransactionHistory = {
       id: generateId(),
@@ -275,9 +316,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
       previousDirection: tx.direction,
       previousNote: tx.note,
       previousDate: tx.date,
+      previousReturnDate: tx.returnDate ?? null,
       changedAt: Date.now(),
     };
-    const updated = { ...tx, amount: newAmount, direction: newDirection, note: newNote, ...(newDate !== undefined ? { date: newDate } : {}) };
+
+    const finalReturnDate = newReturnDate !== undefined ? newReturnDate : (tx.returnDate ?? null);
+
+    // Cancel prior notifications if returnDate or amount or direction changed
+    cancelTransactionReminders(tx.notificationIds).catch(() => {});
+
+    const updated: Transaction = {
+      ...tx,
+      amount: newAmount,
+      direction: newDirection,
+      note: newNote,
+      ...(newDate !== undefined ? { date: newDate } : {}),
+      returnDate: finalReturnDate,
+      notificationIds: undefined,
+    };
+
+    // Re-schedule reminders if a returnDate is present
+    if (finalReturnDate) {
+      const person = people.find(p => p.id === tx.personId);
+      scheduleReturnDateReminders(updated, person?.name || 'Someone').then(ids => {
+        if (ids.length > 0) {
+          updated.notificationIds = ids;
+          setTransactions(curr => curr.map(t => t.id === tx.id ? { ...t, notificationIds: ids } : t));
+          if (uid) {
+            FB.saveTransaction(uid, updated).catch(() => {});
+          }
+        }
+      }).catch(err => console.log('Reminder rescheduling error:', err));
+    }
+
     const nextTxs = transactions.map(t => t.id === tx.id ? updated : t);
     setTransactions(nextTxs);
     persistState(undefined, nextTxs);
@@ -289,11 +360,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setIsOnline(false);
       queueSyncAction({ id: generateId(), type: 'SAVE_TX', payload: updated, timestamp: Date.now() });
     });
-  }, [uid, transactions, persistState, queueSyncAction]);
+  }, [uid, people, transactions, persistState, queueSyncAction]);
 
   // Optimistic Remove Transaction (Instant UI)
   const removeTransaction = useCallback(async (id: string) => {
     if (!uid) throw new Error('Not authenticated');
+    const targetTx = transactions.find(t => t.id === id);
+    if (targetTx?.notificationIds) {
+      cancelTransactionReminders(targetTx.notificationIds).catch(() => {});
+    }
+
     const nextTxs = transactions.filter(t => t.id !== id);
     setTransactions(nextTxs);
     persistState(undefined, nextTxs);

@@ -29,6 +29,8 @@ export default function EditTransactionScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [txDate, setTxDate] = useState(new Date(tx?.date ?? Date.now()));
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [returnDate, setReturnDate] = useState<Date | null>(tx?.returnDate ? new Date(tx.returnDate) : null);
+  const [showReturnDatePicker, setShowReturnDatePicker] = useState(false);
 
   if (!tx) {
     return (
@@ -48,7 +50,7 @@ export default function EditTransactionScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     router.back();
-    updateTransaction(tx, num, direction, note.trim(), txDate.getTime());
+    updateTransaction(tx, num, direction, note.trim(), txDate.getTime(), returnDate ? returnDate.getTime() : null);
   };
 
   const toggleDirection = (d: TransactionDirection) => {
@@ -115,12 +117,74 @@ export default function EditTransactionScreen() {
           style={styles.dateRow}
           onPress={() => setShowDatePicker(true)}
         >
-          <Text style={styles.dateLabel}>DATE</Text>
+          <Text style={styles.dateLabel}>TRANSACTION DATE</Text>
           <View style={styles.dateValueRow}>
             <Text style={styles.dateValue}>{formatDate(txDate.getTime())}</Text>
             <Icon name="calendar-outline" size={16} color={Colors.textMuted} />
           </View>
         </Pressable>
+
+        {/* Expected Return Date Section */}
+        <View style={styles.returnDateSection}>
+          <View style={styles.returnDateHeader}>
+            <Text style={styles.dateLabel}>EXPECTED RETURN DATE (OPTIONAL)</Text>
+            {returnDate && (
+              <Pressable
+                onPress={() => {
+                  setReturnDate(null);
+                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                hitSlop={8}
+              >
+                <Text style={styles.clearDateText}>Clear</Text>
+              </Pressable>
+            )}
+          </View>
+
+          <View style={styles.presetChipsRow}>
+            {[
+              { label: '+7 Days', days: 7 },
+              { label: '+15 Days', days: 15 },
+              { label: '+30 Days', days: 30 },
+            ].map(p => {
+              const target = new Date();
+              target.setDate(target.getDate() + p.days);
+              const isSelected = returnDate && Math.abs(returnDate.getTime() - target.getTime()) < 3600000 * 12;
+              return (
+                <Pressable
+                  key={p.label}
+                  style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                  onPress={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + p.days);
+                    setReturnDate(d);
+                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                >
+                  <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>{p.label}</Text>
+                </Pressable>
+              );
+            })}
+            <Pressable
+              style={[styles.presetChip, styles.presetChipCustom, returnDate && styles.presetChipActiveCustom]}
+              onPress={() => setShowReturnDatePicker(true)}
+            >
+              <Text style={[styles.presetChipText, returnDate && styles.presetChipTextActiveCustom]}>
+                {returnDate ? formatDate(returnDate.getTime()) : 'Pick Date'}
+              </Text>
+              <Icon name="calendar-outline" size={14} color={returnDate ? Colors.primary : Colors.textMuted} />
+            </Pressable>
+          </View>
+
+          {returnDate && (
+            <View style={styles.reminderNoticeRow}>
+              <Icon name="notifications-outline" size={14} color={Colors.primary} />
+              <Text style={styles.reminderNoticeText}>
+                Push reminders scheduled at 9:00 AM & 8:30 PM starting 2 days prior
+              </Text>
+            </View>
+          )}
+        </View>
 
         <View style={styles.actions}>
           <NeoPopTiltedButton onPress={handleSave} showShimmer={!isSaved}>
@@ -134,6 +198,14 @@ export default function EditTransactionScreen() {
         value={txDate}
         onConfirm={(date) => { setTxDate(date); setShowDatePicker(false); }}
         onClose={() => setShowDatePicker(false)}
+      />
+
+      <DatePickerModal
+        visible={showReturnDatePicker}
+        value={returnDate || new Date(Date.now() + 7 * 86400000)}
+        allowFuture={true}
+        onConfirm={(date) => { setReturnDate(date); setShowReturnDatePicker(false); }}
+        onClose={() => setShowReturnDatePicker(false)}
       />
     </KeyboardAvoidingView>
   );
@@ -292,4 +364,81 @@ const styles = StyleSheet.create({
     color: '#000',
     letterSpacing: 1,
   },
+  returnDateSection: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+  returnDateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  clearDateText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: Colors.negative,
+  },
+  presetChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  presetChip: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#1E1E12',
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: Colors.textSecondary,
+  },
+  presetChipTextActive: {
+    color: Colors.primary,
+    fontFamily: Fonts.semibold,
+  },
+  presetChipCustom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  presetChipActiveCustom: {
+    borderColor: Colors.primary,
+    backgroundColor: '#1E1E12',
+  },
+  presetChipTextActiveCustom: {
+    color: Colors.primary,
+    fontFamily: Fonts.semibold,
+  },
+  reminderNoticeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    backgroundColor: '#161610',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#2A2814',
+  },
+  reminderNoticeText: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.primary,
+    flex: 1,
+  },
 });
+

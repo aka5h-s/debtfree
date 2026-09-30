@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -9,7 +9,7 @@ import { useData } from '@/contexts/DataContext';
 import { NeoPopCard } from '@/components/NeoPopCard';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { ShimmerText } from '@/components/ShimmerText';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, getReturnDateStatus } from '@/lib/formatters';
 import { Fonts } from '@/lib/fonts';
 import { BuriBuriSyncAvatar } from '@/components/BuriBuriSyncAvatar';
 
@@ -60,7 +60,7 @@ const SORT_OPTIONS: { key: SortType; label: string; icon: string }[] = [
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { people, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed } = useData();
+  const { people, transactions, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed } = useData();
   const [search, setSearch] = useState('');
   const [sortType, setSortType] = useState<SortType>('balance_high');
   const [showSort, setShowSort] = useState(false);
@@ -105,6 +105,18 @@ export default function DashboardScreen() {
     ? `You are in debt. Pay ${formatCurrency(Math.abs(globalBalance))} to be debt-free`
     : 'You are free of debt!';
 
+  const upcomingAndOverdue = useMemo(() => {
+    return transactions
+      .filter(t => t.returnDate)
+      .map(t => {
+        const p = people.find(person => person.id === t.personId);
+        const status = getReturnDateStatus(t.returnDate);
+        return { tx: t, person: p, status };
+      })
+      .filter(item => item.status && (item.status.isOverdue || item.status.isDueSoon))
+      .sort((a, b) => (a.tx.returnDate || 0) - (b.tx.returnDate || 0));
+  }, [transactions, people]);
+
   const renderHeader = useMemo(() => (
     <View>
       <View style={[styles.header, { paddingTop: topPad + 16 }]}>
@@ -144,6 +156,48 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      {upcomingAndOverdue.length > 0 && (
+        <View style={styles.alertsContainer}>
+          <View style={styles.alertsHeader}>
+            <View style={styles.alertsHeaderLeft}>
+              <Icon name="time-outline" size={14} color={Colors.primary} />
+              <Text style={styles.alertsTitle}>DUE & OVERDUE</Text>
+            </View>
+            <Text style={styles.alertsCount}>{upcomingAndOverdue.length}</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.alertsScroll}>
+            {upcomingAndOverdue.map(({ tx, person, status }) => {
+              if (!person || !status) return null;
+              const isLent = tx.direction === 'YOU_LENT';
+              const directionColor = isLent ? Colors.positive : Colors.negative;
+              return (
+                <Pressable
+                  key={tx.id}
+                  style={styles.alertCard}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push({ pathname: '/person/[id]', params: { id: person.id } });
+                  }}
+                >
+                  <View style={styles.alertTopRow}>
+                    <Text style={styles.alertPersonName} numberOfLines={1}>{person.name}</Text>
+                    <Text style={[styles.alertAmount, { color: directionColor }]}>
+                      {formatCurrency(tx.amount)}
+                    </Text>
+                  </View>
+                  <Text style={[
+                    styles.alertBadgeText,
+                    status.isOverdue ? styles.alertTextOverdue : styles.alertTextDueSoon,
+                  ]} numberOfLines={1}>
+                    {status.isOverdue ? '⚠️ ' : '⚡ '}{status.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>YOUR CIRCLE</Text>
         <View style={styles.sectionHeaderRight}>
@@ -156,7 +210,7 @@ export default function DashboardScreen() {
         </View>
       </View>
     </View>
-  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, people.length, setShowSort]);
+  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, upcomingAndOverdue, people.length, setShowSort]);
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
@@ -323,6 +377,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 12,
+  },
+  alertsContainer: {
+    marginTop: 20,
+    marginBottom: 6,
+  },
+  alertsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginBottom: 10,
+  },
+  alertsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  alertsTitle: {
+    fontSize: 11,
+    fontFamily: Fonts.semibold,
+    color: Colors.textMuted,
+    letterSpacing: 2,
+  },
+  alertsCount: {
+    fontSize: 12,
+    fontFamily: Fonts.semibold,
+    color: Colors.primary,
+  },
+  alertsScroll: {
+    paddingHorizontal: 24,
+    gap: 10,
+  },
+  alertCard: {
+    backgroundColor: '#181814',
+    borderWidth: 1,
+    borderColor: '#2A2814',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minWidth: 180,
+  },
+  alertTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 4,
+  },
+  alertPersonName: {
+    fontSize: 13,
+    fontFamily: Fonts.semibold,
+    color: Colors.white,
+    maxWidth: 100,
+  },
+  alertAmount: {
+    fontSize: 14,
+    fontFamily: Fonts.serif,
+  },
+  alertBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+  },
+  alertTextOverdue: {
+    color: '#FF6B6B',
+  },
+  alertTextDueSoon: {
+    color: Colors.primary,
   },
   sectionTitle: {
     fontSize: 12,

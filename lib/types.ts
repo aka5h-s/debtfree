@@ -16,6 +16,8 @@ export interface Transaction {
   date: number;
   note: string;
   createdAt: number;
+  returnDate?: number | null;
+  notificationIds?: string[];
 }
 
 export interface TransactionHistory {
@@ -25,6 +27,7 @@ export interface TransactionHistory {
   previousDirection: TransactionDirection;
   previousNote: string;
   previousDate: number;
+  previousReturnDate?: number | null;
   changedAt: number;
 }
 
