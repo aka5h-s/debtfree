@@ -599,6 +599,10 @@ async function startHttpServer() {
   const PORT = process.env.PORT || 3000;
   const transports = new Map();
 
+  // Store in-memory OAuth codes and tokens (maps token -> { userId, email })
+  const oauthCodes = new Map();
+  const oauthTokens = new Map();
+
   // Authentication Middleware: Protect all endpoints except / and /openapi.json
   const REQUIRED_API_KEY = process.env.DEBTFREE_API_KEY;
   app.use((req, res, next) => {
@@ -638,10 +642,6 @@ async function startHttpServer() {
 
     next();
   });
-
-  // Store in-memory OAuth codes and tokens (maps token -> { userId, email })
-  const oauthCodes = new Map();
-  const oauthTokens = new Map();
 
   // 1. OpenAI / Agent Plugin Manifest
   app.get('/.well-known/ai-plugin.json', (req, res) => {
