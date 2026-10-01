@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Fonts } from '@/lib/fonts';
 import * as Clipboard from 'expo-clipboard';
+import { sendTestNotificationNow, requestNotificationPermissions } from '@/lib/notifications';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -102,6 +103,40 @@ export default function ProfileScreen() {
         setPasswordSuccess('');
       }, 2500);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const [testingNotification, setTestingNotification] = useState(false);
+
+  const handleTestNotification = async () => {
+    if (testingNotification) return;
+    setTestingNotification(true);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+
+    try {
+      const result = await sendTestNotificationNow();
+      if (result.success) {
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        Alert.alert('🔔 Notification Scheduled', result.message);
+      } else {
+        if (result.isExpoGoAndroid) {
+          Alert.alert(
+            '⚠️ Expo Go Notice',
+            'Expo Go on Android (SDK 53+) disables OS system notification popups. A standalone APK or development build delivers system notifications. In-app due & overdue reminder badges are active.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Notification Notice', result.message);
+        }
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not trigger test notification.');
+    } finally {
+      setTestingNotification(false);
     }
   };
 
@@ -371,6 +406,46 @@ export default function ProfileScreen() {
               >
                 <Text style={styles.aiCredValue} numberOfLines={1}>https://debtfree-p2wx.onrender.com/sse</Text>
                 <Icon name="copy-outline" size={14} color={Colors.primary} />
+              </Pressable>
+            </View>
+          </View>
+        </NeoPopCard>
+      </View>
+
+      {/* Notifications & Reminders Section */}
+      <View style={styles.section}>
+        <NeoPopCard color={Colors.surface} depth={3}>
+          <View style={styles.notifCard}>
+            <View style={styles.notifHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={styles.notifIconBadge}>
+                  <Icon name="notifications-outline" size={16} color={Colors.primary} />
+                </View>
+                <View>
+                  <Text style={styles.notifSectionTitle}>DUE DATE REMINDERS</Text>
+                  <Text style={styles.notifSubtitle}>Day -2, Day -1 & Due Day alerts</Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={styles.notifDescription}>
+              DebtFree automatically schedules reminders 2 days prior, 1 day prior, and on due dates at 9:00 AM & 8:30 PM.
+            </Text>
+
+            <View style={styles.notifButtonRow}>
+              <Pressable
+                style={[styles.testNotifBtn, testingNotification && styles.testNotifBtnDisabled]}
+                onPress={handleTestNotification}
+                disabled={testingNotification}
+              >
+                {testingNotification ? (
+                  <ActivityIndicator size="small" color="#000000" />
+                ) : (
+                  <>
+                    <Icon name="sparkles" size={16} color="#000000" />
+                    <Text style={styles.testNotifBtnText}>TEST NOTIFICATION NOW</Text>
+                  </>
+                )}
               </Pressable>
             </View>
           </View>
@@ -1292,6 +1367,67 @@ const styles = StyleSheet.create({
     boxShadow: '3px 3px 0px #FFFFFF',
   },
   modalDoneBtnText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#000000',
+    letterSpacing: 1,
+  },
+  notifCard: {
+    padding: 16,
+    gap: 12,
+  },
+  notifHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  notifIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 0,
+    backgroundColor: '#1C1C14',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifSectionTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+    letterSpacing: 1,
+  },
+  notifSubtitle: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  notifDescription: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  notifButtonRow: {
+    marginTop: 4,
+  },
+  testNotifBtn: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    boxShadow: '3px 3px 0px #FFFFFF',
+  },
+  testNotifBtnDisabled: {
+    opacity: 0.6,
+  },
+  testNotifBtnText: {
     fontSize: 11,
     fontFamily: Fonts.bold,
     color: '#000000',
