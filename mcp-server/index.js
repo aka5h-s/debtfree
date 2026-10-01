@@ -44,6 +44,8 @@ const db = getFirestore(app);
 // Authenticate server with Firebase so Firestore rules permit access
 const SERVICE_EMAIL = process.env.FIREBASE_SERVICE_EMAIL || 'mcp_backend_service@debtfree.app';
 const SERVICE_PASS = process.env.FIREBASE_SERVICE_PASSWORD || 'Password123#SecureMcpAuth';
+const DEFAULT_USER_ID = process.env.DEFAULT_USER_ID || 'WOt70TOaGETm3HPaOIJzCq3VKRB3';
+
 signInWithEmailAndPassword(auth, SERVICE_EMAIL, SERVICE_PASS)
   .then(cred => console.log('MCP server authenticated to Firebase:', cred.user.email))
   .catch(err => console.warn('Firebase auth note:', err.message));
@@ -53,11 +55,18 @@ function generateId() {
   return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-function createMcpServer() {
+function createMcpServer(contextUserId = null) {
   const server = new McpServer({
     name: 'debtfree-mcp',
     version: '1.0.0',
   });
+
+  const getTargetUser = (providedId) => {
+    if (providedId && providedId !== 'me' && providedId !== '{userId}' && providedId !== 'USER_ID' && providedId.trim() !== '') {
+      return providedId;
+    }
+    return contextUserId || DEFAULT_USER_ID;
+  };
 
 // ==========================================
 // 1. PEOPLE TOOLS (CRUD)
@@ -67,13 +76,14 @@ server.tool(
   'list_people',
   'List all people in the circle with their calculated net balance and transaction count',
   {
-    userId: z.string().describe('The user ID whose data to access'),
+    userId: z.string().optional().describe('The user ID whose data to access (defaults to authenticated user)'),
   },
   async ({ userId }) => {
     try {
+      const targetUserId = getTargetUser(userId);
       const [peopleSnap, txSnap] = await Promise.all([
-        getDocs(collection(db, 'users', userId, 'people')),
-        getDocs(collection(db, 'users', userId, 'transactions')),
+        getDocs(collection(db, 'users', targetUserId, 'people')),
+        getDocs(collection(db, 'users', targetUserId, 'transactions')),
       ]);
 
       const people = [];
@@ -117,13 +127,14 @@ server.tool(
   'create_person',
   'Add a new person/friend to your circle',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
     name: z.string().describe("Person's name"),
     phone: z.string().optional().describe('Phone number (optional)'),
     notes: z.string().optional().describe('Notes about this person (optional)'),
   },
   async ({ userId, name, phone, notes }) => {
     try {
+      const targetUserId = getTargetUser(userId);
       const id = generateId();
       const person = {
         id,
@@ -133,7 +144,7 @@ server.tool(
         createdAt: Date.now(),
       };
 
-      await setDoc(doc(db, 'users', userId, 'people', id), person);
+      await setDoc(doc(db, 'users', targetUserId, 'people', id), person);
 
       return {
         content: [
@@ -156,7 +167,7 @@ server.tool(
   'update_person',
   'Update person details (name, phone, notes)',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
     personId: z.string().describe('The person ID to update'),
     name: z.string().optional().describe('Updated name'),
     phone: z.string().optional().describe('Updated phone'),
@@ -164,7 +175,8 @@ server.tool(
   },
   async ({ userId, personId, name, phone, notes }) => {
     try {
-      const pDoc = await getDoc(doc(db, 'users', userId, 'people', personId));
+      const targetUserId = getTargetUser(userId);
+      const pDoc = await getDoc(doc(db, 'users', targetUserId, 'people', personId));
       if (!pDoc.exists()) {
         return {
           content: [{ type: 'text', text: `Person with ID "${personId}" not found.` }],
@@ -180,7 +192,7 @@ server.tool(
         notes: notes !== undefined ? notes.trim() : current.notes,
       };
 
-      await setDoc(doc(db, 'users', userId, 'people', personId), updated);
+      await setDoc(doc(db, 'users', targetUserId, 'people', personId), updated);
 
       return {
         content: [{ type: 'text', text: `Updated ${updated.name} successfully.` }],
@@ -198,15 +210,16 @@ server.tool(
   'delete_person',
   'Delete a person and all their associated transactions',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
     personId: z.string().describe('The person ID to delete'),
   },
   async ({ userId, personId }) => {
     try {
-      await deleteDoc(doc(db, 'users', userId, 'people', personId));
+      const targetUserId = getTargetUser(userId);
+      await deleteDoc(doc(db, 'users', targetUserId, 'people', personId));
 
       const txSnap = await getDocs(
-        query(collection(db, 'users', userId, 'transactions'), where('personId', '==', personId))
+        query(collection(db, 'users', targetUserId, 'transactions'), where('personId', '==', personId))
       );
       const batch = writeBatch(db);
       txSnap.forEach(d => batch.delete(d.ref));
@@ -232,13 +245,14 @@ server.tool(
   'list_transactions',
   'List transactions with optional filtering by person, direction, or return date',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
     personId: z.string().optional().describe('Filter by specific person ID'),
     direction: z.enum(['YOU_LENT', 'YOU_BORROWED']).optional().describe('Filter by direction'),
   },
   async ({ userId, personId, direction }) => {
     try {
-      const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
+      const targetUserId = getTargetUser(userId);
+      const snap = await getDocs(collection(db, 'users', targetUserId, 'transactions'));
       let txs = [];
       snap.forEach(d => txs.push(d.data()));
 
@@ -277,7 +291,7 @@ server.tool(
   'add_transaction',
   'Add a transaction (money lent or borrowed) with optional return date',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
     personId: z.string().describe('The ID of the person'),
     amount: z.number().positive().describe('Transaction amount in ₹'),
     direction: z.enum(['YOU_LENT', 'YOU_BORROWED']).describe('YOU_LENT (they owe you) or YOU_BORROWED (you owe them)'),
@@ -287,7 +301,8 @@ server.tool(
   },
   async ({ userId, personId, amount, direction, note, date, returnDate }) => {
     try {
-      const pDoc = await getDoc(doc(db, 'users', userId, 'people', personId));
+      const targetUserId = getTargetUser(userId);
+      const pDoc = await getDoc(doc(db, 'users', targetUserId, 'people', personId));
       if (!pDoc.exists()) {
         return {
           content: [{ type: 'text', text: `Person with ID "${personId}" does not exist. Create the person first.` }],
@@ -310,7 +325,7 @@ server.tool(
         createdAt: Date.now(),
       };
 
-      await setDoc(doc(db, 'users', userId, 'transactions', id), tx);
+      await setDoc(doc(db, 'users', targetUserId, 'transactions', id), tx);
 
       const person = pDoc.data();
       const action = direction === 'YOU_LENT' ? `lent to ${person.name}` : `borrowed from ${person.name}`;
@@ -335,7 +350,7 @@ server.tool(
   'update_transaction',
   'Update a transaction (amount, direction, note, date, returnDate) with audit history tracking',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
     transactionId: z.string().describe('The transaction ID to update'),
     amount: z.number().positive().optional().describe('New amount'),
     direction: z.enum(['YOU_LENT', 'YOU_BORROWED']).optional().describe('New direction'),
@@ -345,7 +360,8 @@ server.tool(
   },
   async ({ userId, transactionId, amount, direction, note, date, returnDate }) => {
     try {
-      const docRef = doc(db, 'users', userId, 'transactions', transactionId);
+      const targetUserId = getTargetUser(userId);
+      const docRef = doc(db, 'users', targetUserId, 'transactions', transactionId);
       const snap = await getDoc(docRef);
       if (!snap.exists()) {
         return {
@@ -367,7 +383,7 @@ server.tool(
         previousReturnDate: current.returnDate || null,
         changedAt: Date.now(),
       };
-      await setDoc(doc(db, 'users', userId, 'transactionHistory', historyEntry.id), historyEntry);
+      await setDoc(doc(db, 'users', targetUserId, 'transactionHistory', historyEntry.id), historyEntry);
 
       const updated = {
         ...current,
@@ -401,12 +417,13 @@ server.tool(
   'delete_transaction',
   'Delete a transaction by ID',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
     transactionId: z.string().describe('The transaction ID to delete'),
   },
   async ({ userId, transactionId }) => {
     try {
-      await deleteDoc(doc(db, 'users', userId, 'transactions', transactionId));
+      const targetUserId = getTargetUser(userId);
+      await deleteDoc(doc(db, 'users', targetUserId, 'transactions', transactionId));
       return {
         content: [{ type: 'text', text: `Deleted transaction ${transactionId}.` }],
       };
@@ -427,13 +444,14 @@ server.tool(
   'get_financial_summary',
   'Get total lent, total borrowed, global net balance, and breakdown of active circle balances',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
   },
   async ({ userId }) => {
     try {
+      const targetUserId = getTargetUser(userId);
       const [peopleSnap, txSnap] = await Promise.all([
-        getDocs(collection(db, 'users', userId, 'people')),
-        getDocs(collection(db, 'users', userId, 'transactions')),
+        getDocs(collection(db, 'users', targetUserId, 'people')),
+        getDocs(collection(db, 'users', targetUserId, 'transactions')),
       ]);
 
       const people = new Map();
@@ -509,13 +527,14 @@ server.tool(
   'get_due_and_overdue',
   'Get all transactions that are due today, due soon (within 2 days), or overdue',
   {
-    userId: z.string().describe('The user ID'),
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
   },
   async ({ userId }) => {
     try {
+      const targetUserId = getTargetUser(userId);
       const [peopleSnap, txSnap] = await Promise.all([
-        getDocs(collection(db, 'users', userId, 'people')),
-        getDocs(collection(db, 'users', userId, 'transactions')),
+        getDocs(collection(db, 'users', targetUserId, 'people')),
+        getDocs(collection(db, 'users', targetUserId, 'transactions')),
       ]);
 
       const people = new Map();
@@ -1242,7 +1261,15 @@ async function startHttpServer() {
         transports.delete(transport.sessionId);
       };
 
-      const instance = createMcpServer();
+      // Check for OAuth Bearer token or api key on the SSE request
+      const authHeader = req.headers['authorization'] || '';
+      const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      let authenticatedUserId = null;
+      if (bearerToken && oauthTokens.has(bearerToken)) {
+        authenticatedUserId = oauthTokens.get(bearerToken).userId;
+      }
+
+      const instance = createMcpServer(authenticatedUserId);
       await instance.connect(transport);
     } catch (err) {
       console.error('SSE connect error:', err);
@@ -1259,7 +1286,8 @@ async function startHttpServer() {
     if (!transport) {
       return res.status(404).send('Session not found');
     }
-    await transport.handlePostMessage(req, res);
+    // Pass req.body as 3rd parameter (parsedBody) because express.json() already parsed the stream
+    await transport.handlePostMessage(req, res, req.body);
   });
 
   app.listen(PORT, () => {
