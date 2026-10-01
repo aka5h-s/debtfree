@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, Platform, Pressable, Alert, TextInput, ActivityIndicator, ScrollView, Modal } from 'react-native';
+import { StyleSheet, Text, View, Platform, Pressable, Alert, TextInput, ActivityIndicator, ScrollView, Modal, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Icon } from '@/components/Icon';
@@ -12,6 +12,9 @@ import { Fonts } from '@/lib/fonts';
 import * as Clipboard from 'expo-clipboard';
 import { sendTestNotificationNow, requestNotificationPermissions } from '@/lib/notifications';
 import { formatRelativeDate, formatCurrency } from '@/lib/formatters';
+
+const chatGptLogo = require('@/assets/images/chatgpt-logo.png');
+const claudeLogo = require('@/assets/images/claude-logo.png');
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -353,8 +356,8 @@ export default function ProfileScreen() {
                   setActiveAiModal('chatgpt');
                 }}
               >
-                <View style={styles.assistantCardIconBox}>
-                  <Text style={styles.assistantEmoji}>🤖</Text>
+                <View style={[styles.assistantCardIconBox, { backgroundColor: '#1A1A1A', borderColor: '#404040' }]}>
+                  <Image source={chatGptLogo} style={{ width: 28, height: 28 }} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -374,7 +377,7 @@ export default function ProfileScreen() {
                 }}
               >
                 <View style={[styles.assistantCardIconBox, { backgroundColor: '#2B1A12', borderColor: '#D97706' }]}>
-                  <Text style={styles.assistantEmoji}>🧠</Text>
+                  <Image source={claudeLogo} style={{ width: 28, height: 28, borderRadius: 5 }} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -525,10 +528,14 @@ export default function ProfileScreen() {
           <View style={styles.modalContentCard}>
             <View style={styles.modalHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={styles.modalIconBadge}>
-                  <Text style={{ fontSize: 16 }}>
-                    {activeAiModal === 'chatgpt' ? '🤖' : activeAiModal === 'claude' ? '🧠' : '✨'}
-                  </Text>
+                <View style={[styles.modalIconBadge, activeAiModal === 'claude' ? { backgroundColor: '#2B1A12', borderColor: '#D97706' } : activeAiModal === 'chatgpt' ? { backgroundColor: '#1A1A1A', borderColor: '#404040' } : {}]}>
+                  {activeAiModal === 'chatgpt' ? (
+                    <Image source={chatGptLogo} style={{ width: 22, height: 22 }} resizeMode="contain" />
+                  ) : activeAiModal === 'claude' ? (
+                    <Image source={claudeLogo} style={{ width: 22, height: 22, borderRadius: 4 }} resizeMode="contain" />
+                  ) : (
+                    <Text style={{ fontSize: 16 }}>✨</Text>
+                  )}
                 </View>
                 <View>
                   <Text style={styles.modalTitleText}>
