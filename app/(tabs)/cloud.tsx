@@ -31,8 +31,8 @@ export default function ProfileScreen() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
-  const [showAiInstructions, setShowAiInstructions] = useState(false);
-  const [selectedAgentTab, setSelectedAgentTab] = useState<'chatgpt' | 'claude' | 'general'>('chatgpt');
+  const [showAiInstructions, setShowAiInstructions] = useState(true);
+  const [selectedAgentTab, setSelectedAgentTab] = useState<'chatgpt' | 'claude' | 'muse'>('chatgpt');
 
   const handleSignOut = () => {
     const doSignOut = () => {
@@ -284,157 +284,327 @@ export default function ProfileScreen() {
           <View style={styles.aiCard}>
             <View style={styles.aiHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Icon name="hardware-chip-outline" size={18} color={Colors.primary} />
-                <Text style={styles.aiTitle}>AI INTEGRATION (MCP)</Text>
+                <Icon name="sparkles" size={18} color={Colors.primary} />
+                <Text style={styles.aiTitle}>AI CONNECTIONS (MCP)</Text>
               </View>
               <View style={styles.aiBadge}>
-                <Text style={styles.aiBadgeText}>UNIVERSAL</Text>
+                <Text style={styles.aiBadgeText}>3 ACTIVE PLATFORMS</Text>
               </View>
             </View>
 
             <Text style={styles.aiDescription}>
-              Permanent 24/7 AI server is live. Connect ChatGPT, Gemini, Llama, or Claude to manage people and debts.
+              Connect your DebtFree ledger directly to ChatGPT, Claude, or Meta Muse. Query balances, ask who owes you, and log payments in natural language.
             </Text>
 
+            {/* Quick Copyable Server Core */}
             <View style={styles.aiCredentialBlock}>
-              <Text style={styles.aiCredLabel}>LIVE SERVER URL</Text>
+              <Text style={styles.aiCredLabel}>LIVE MCP / SSE ENDPOINT</Text>
               <Pressable
                 style={styles.aiCredBox}
                 onPress={async () => {
-                  await Clipboard.setStringAsync('https://debtfree-p2wx.onrender.com');
+                  await Clipboard.setStringAsync('https://debtfree-p2wx.onrender.com/sse');
                   if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  Alert.alert('Copied', 'Server URL copied to clipboard');
+                  Alert.alert('Copied!', 'MCP SSE endpoint copied to clipboard');
                 }}
               >
-                <Text style={styles.aiCredValue} numberOfLines={1}>https://debtfree-p2wx.onrender.com</Text>
+                <Text style={styles.aiCredValue} numberOfLines={1}>https://debtfree-p2wx.onrender.com/sse</Text>
                 <Icon name="copy-outline" size={14} color={Colors.primary} />
               </Pressable>
             </View>
 
-            <View style={styles.aiCredentialBlock}>
-              <Text style={styles.aiCredLabel}>OPENAPI SCHEMA URL (FOR CHATGPT / GEMINI)</Text>
+            {/* 3 AI Platforms Tabs */}
+            <View style={styles.aiTabRow}>
               <Pressable
-                style={styles.aiCredBox}
-                onPress={async () => {
-                  await Clipboard.setStringAsync('https://debtfree-p2wx.onrender.com/openapi.json');
-                  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  Alert.alert('Copied', 'OpenAPI Schema URL copied to clipboard');
+                style={[styles.aiTab, selectedAgentTab === 'chatgpt' && styles.aiTabActive]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.selectionAsync();
+                  setSelectedAgentTab('chatgpt');
                 }}
               >
-                <Text style={styles.aiCredValue} numberOfLines={1}>https://debtfree-p2wx.onrender.com/openapi.json</Text>
-                <Icon name="copy-outline" size={14} color={Colors.primary} />
+                <Text style={[styles.aiTabText, selectedAgentTab === 'chatgpt' && styles.aiTabTextActive]}>ChatGPT</Text>
               </Pressable>
-            </View>
-
-            <View style={styles.aiCredentialBlock}>
-              <Text style={styles.aiCredLabel}>YOUR USER ID</Text>
               <Pressable
-                style={styles.aiCredBox}
-                onPress={async () => {
-                  if (user?.uid) {
-                    await Clipboard.setStringAsync(user.uid);
-                    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                    Alert.alert('Copied', 'User ID copied to clipboard');
-                  }
+                style={[styles.aiTab, selectedAgentTab === 'claude' && styles.aiTabActive]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.selectionAsync();
+                  setSelectedAgentTab('claude');
                 }}
               >
-                <Text style={styles.aiCredValue} numberOfLines={1}>{user?.uid || 'Not signed in'}</Text>
-                <Icon name="copy-outline" size={14} color={Colors.primary} />
+                <Text style={[styles.aiTabText, selectedAgentTab === 'claude' && styles.aiTabTextActive]}>Claude</Text>
               </Pressable>
-            </View>
-
-            <View style={styles.aiCredentialBlock}>
-              <Text style={styles.aiCredLabel}>AI SECRET API KEY</Text>
               <Pressable
-                style={styles.aiCredBox}
-                onPress={async () => {
-                  await Clipboard.setStringAsync('df_sec_d20a49e1cdd3f8bff33018574b1d5320');
-                  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  Alert.alert('Copied', 'Secret API key copied to clipboard');
+                style={[styles.aiTab, selectedAgentTab === 'muse' && styles.aiTabActive]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.selectionAsync();
+                  setSelectedAgentTab('muse');
                 }}
               >
-                <Text style={styles.aiCredValue} numberOfLines={1}>df_sec_d20a49e1cdd3f8bff33018574b1d5320</Text>
-                <Icon name="copy-outline" size={14} color={Colors.primary} />
+                <Text style={[styles.aiTabText, selectedAgentTab === 'muse' && styles.aiTabTextActive]}>Muse (Meta AI)</Text>
               </Pressable>
             </View>
 
-            {/* Toggleable How-to-connect instructions */}
-            <Pressable
-              style={styles.aiGuideToggle}
-              onPress={() => {
-                if (Platform.OS !== 'web') Haptics.selectionAsync();
-                setShowAiInstructions(!showAiInstructions);
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Icon name="book-outline" size={14} color={Colors.primary} />
-                <Text style={styles.aiGuideToggleText}>
-                  {showAiInstructions ? 'HIDE CONNECTION GUIDE' : 'HOW TO CONNECT (STEP-BY-STEP)'}
-                </Text>
-              </View>
-              <Icon name={showAiInstructions ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.primary} />
-            </Pressable>
-
-            {showAiInstructions && (
+            {/* CHATGPT STEPS */}
+            {selectedAgentTab === 'chatgpt' && (
               <View style={styles.aiGuideContainer}>
-                {/* Agent Selector Tabs */}
-                <View style={styles.aiTabRow}>
-                  <Pressable
-                    style={[styles.aiTab, selectedAgentTab === 'chatgpt' && styles.aiTabActive]}
-                    onPress={() => setSelectedAgentTab('chatgpt')}
-                  >
-                    <Text style={[styles.aiTabText, selectedAgentTab === 'chatgpt' && styles.aiTabTextActive]}>ChatGPT</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.aiTab, selectedAgentTab === 'claude' && styles.aiTabActive]}
-                    onPress={() => setSelectedAgentTab('claude')}
-                  >
-                    <Text style={[styles.aiTabText, selectedAgentTab === 'claude' && styles.aiTabTextActive]}>Claude</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.aiTab, selectedAgentTab === 'general' && styles.aiTabActive]}
-                    onPress={() => setSelectedAgentTab('general')}
-                  >
-                    <Text style={[styles.aiTabText, selectedAgentTab === 'general' && styles.aiTabTextActive]}>Gemini/Llama</Text>
-                  </Pressable>
+                <View style={styles.aiGuideHeaderRow}>
+                  <Text style={styles.aiStepMainTitle}>CONNECT TO CHATGPT (WEB / DEV MODE)</Text>
+                  <View style={[styles.statusPill, { backgroundColor: '#132B13', borderColor: '#2E7D32' }]}>
+                    <Text style={[styles.statusPillText, { color: '#4CAF50' }]}>TESTED & READY</Text>
+                  </View>
                 </View>
 
-                {selectedAgentTab === 'chatgpt' && (
-                  <View style={styles.aiStepBox}>
-                    <Text style={styles.aiStepTitle}>CONNECT TO CHATGPT (PLUGINS & AGENTS):</Text>
-                    <Text style={styles.aiStepText}>1. Connect via Plugin or Custom Action using Schema URL:</Text>
-                    <Text style={[styles.aiStepCode, { color: Colors.primary }]}>https://debtfree-p2wx.onrender.com/openapi.json</Text>
-                    <Text style={styles.aiStepText}>2. For Authentication, choose "OAuth" or "API Key".</Text>
-                    <Text style={styles.aiStepText}>3. When prompted, tap "Sign in with Google" or enter your DebtFree account Email & Password.</Text>
-                    <Text style={styles.aiStepText}>4. Once linked, ChatGPT automatically knows your identity—no manual User ID or token typing needed!</Text>
-                    <Text style={styles.aiStepText}>5. Ask on your phone: "Who owes me money?", "Record lent ₹500 to Rahul".</Text>
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>1</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Enable Developer Mode</Text>
+                    <Text style={styles.aiStepText}>
+                      On ChatGPT Web, go to <Text style={{ color: Colors.primary }}>Settings → Security and login → Developer mode</Text> and toggle it ON.
+                    </Text>
                   </View>
-                )}
+                </View>
 
-                {selectedAgentTab === 'claude' && (
-                  <View style={styles.aiStepBox}>
-                    <Text style={styles.aiStepTitle}>CONNECT TO CLAUDE / MCP CLIENTS:</Text>
-                    <Text style={styles.aiStepText}>1. Use Native MCP Server URL (SSE Transport):</Text>
-                    <Text style={[styles.aiStepCode, { color: Colors.primary }]}>https://debtfree-p2wx.onrender.com/sse</Text>
-                    <Text style={styles.aiStepText}>2. Add custom header in your config:</Text>
-                    <Text style={styles.aiStepCode}>x-api-key: df_sec_d20a49e1cdd3f8bff33018574b1d5320</Text>
-                    <Text style={styles.aiStepText}>3. Claude can invoke list_people, add_transaction, get_summary, and get_due_and_overdue natively.</Text>
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>2</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Create MCP App</Text>
+                    <Text style={styles.aiStepText}>
+                      In ChatGPT Settings, click <Text style={{ color: Colors.primary }}>Plugins / Advanced</Text> → tap the <Text style={{ color: Colors.primary }}>+</Text> button → choose <Text style={{ color: Colors.primary }}>Create MCP App</Text>.
+                    </Text>
                   </View>
-                )}
+                </View>
 
-                {selectedAgentTab === 'general' && (
-                  <View style={styles.aiStepBox}>
-                    <Text style={styles.aiStepTitle}>CONNECT TO GEMINI / LLAMA / AGENTS:</Text>
-                    <Text style={styles.aiStepText}>1. Any agent framework (LangChain, LlamaIndex, AutoGen) can import the OpenAPI 3.1 specification.</Text>
-                    <Text style={styles.aiStepText}>2. All REST endpoints (/api/people, /api/transactions, /api/summary, /api/due) require the x-api-key header.</Text>
-                    <Text style={styles.aiStepText}>3. Pass userId={user?.uid || 'YOUR_USER_ID'} as a query parameter or body field.</Text>
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>3</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Enter Connection URL</Text>
+                    <Pressable
+                      style={styles.copyableStepCard}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('https://debtfree-p2wx.onrender.com/mcp');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'ChatGPT MCP URL copied');
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.copyCardLabel}>SERVER URL (TAP TO COPY)</Text>
+                        <Text style={styles.copyCardValue}>https://debtfree-p2wx.onrender.com/mcp</Text>
+                      </View>
+                      <Icon name="copy-outline" size={14} color={Colors.primary} />
+                    </Pressable>
                   </View>
-                )}
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>4</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Configure OAuth Client</Text>
+                    <Text style={styles.aiStepText}>
+                      Set Authentication to <Text style={{ color: Colors.white }}>OAuth</Text>. Tap <Text style={{ color: Colors.primary }}>Advanced OAuth settings</Text> and paste this Client ID:
+                    </Text>
+                    <Pressable
+                      style={styles.copyableStepCard}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('debtfree-chatgpt');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'Client ID copied');
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.copyCardLabel}>OAUTH CLIENT ID (TAP TO COPY)</Text>
+                        <Text style={styles.copyCardValue}>debtfree-chatgpt</Text>
+                      </View>
+                      <Icon name="copy-outline" size={14} color={Colors.primary} />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>5</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Connect & Chat</Text>
+                    <Text style={styles.aiStepText}>
+                      Click <Text style={{ color: Colors.primary }}>Create</Text> → Sign in with Google or Email → Open a New Chat, enable DebtFree, and ask:
+                    </Text>
+                    <Pressable
+                      style={styles.promptPill}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('What is my DebtFree summary and who owes me money?');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'Prompt copied');
+                      }}
+                    >
+                      <Text style={styles.promptPillText}>"What is my DebtFree summary and who owes me money?"</Text>
+                      <Icon name="copy-outline" size={12} color={Colors.primary} />
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* CLAUDE STEPS */}
+            {selectedAgentTab === 'claude' && (
+              <View style={styles.aiGuideContainer}>
+                <View style={styles.aiGuideHeaderRow}>
+                  <Text style={styles.aiStepMainTitle}>CONNECT TO CLAUDE (WEB, DESKTOP & MOBILE)</Text>
+                  <View style={[styles.statusPill, { backgroundColor: '#132B13', borderColor: '#2E7D32' }]}>
+                    <Text style={[styles.statusPillText, { color: '#4CAF50' }]}>TESTED & READY</Text>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>1</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Open Custom Connectors</Text>
+                    <Text style={styles.aiStepText}>
+                      In Claude, go to <Text style={{ color: Colors.primary }}>Settings → Connectors</Text> (or tap Add Custom Connector).
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>2</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Paste SSE Transport URL</Text>
+                    <Pressable
+                      style={styles.copyableStepCard}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('https://debtfree-p2wx.onrender.com/sse');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'Claude MCP SSE URL copied');
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.copyCardLabel}>CONNECTOR URL (TAP TO COPY)</Text>
+                        <Text style={styles.copyCardValue}>https://debtfree-p2wx.onrender.com/sse</Text>
+                      </View>
+                      <Icon name="copy-outline" size={14} color={Colors.primary} />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>3</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Authorize Account</Text>
+                    <Text style={styles.aiStepText}>
+                      Claude will automatically discover the OAuth server at <Text style={{ color: Colors.textMuted }}>/.well-known/oauth-authorization-server</Text>. Tap <Text style={{ color: Colors.primary }}>Connect</Text> and sign in with Google or your password.
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>4</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Use in Claude Chat</Text>
+                    <Text style={styles.aiStepText}>
+                      Enable the DebtFree tool switch in your conversation and ask:
+                    </Text>
+                    <Pressable
+                      style={styles.promptPill}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('Check my circle debts and list any overdue repayments.');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'Prompt copied');
+                      }}
+                    >
+                      <Text style={styles.promptPillText}>"Check my circle debts and list any overdue repayments."</Text>
+                      <Icon name="copy-outline" size={12} color={Colors.primary} />
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* MUSE / META AI STEPS */}
+            {selectedAgentTab === 'muse' && (
+              <View style={styles.aiGuideContainer}>
+                <View style={styles.aiGuideHeaderRow}>
+                  <Text style={styles.aiStepMainTitle}>CONNECT TO MUSE (META AI CONNECTOR)</Text>
+                  <View style={[styles.statusPill, { backgroundColor: '#132B13', borderColor: '#2E7D32' }]}>
+                    <Text style={[styles.statusPillText, { color: '#4CAF50' }]}>TESTED & READY</Text>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>1</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Add Custom Connector in Muse</Text>
+                    <Text style={styles.aiStepText}>
+                      In the Muse agent chat, tap the top menu → <Text style={{ color: Colors.primary }}>Secure credentials store → Add custom connector</Text>.
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>2</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Server Host / Domain</Text>
+                    <Pressable
+                      style={styles.copyableStepCard}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('debtfree-p2wx.onrender.com');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'Server domain copied');
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.copyCardLabel}>SERVER DOMAIN (TAP TO COPY)</Text>
+                        <Text style={styles.copyCardValue}>debtfree-p2wx.onrender.com</Text>
+                      </View>
+                      <Icon name="copy-outline" size={14} color={Colors.primary} />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>3</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Client ID</Text>
+                    <Pressable
+                      style={styles.copyableStepCard}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('debtfree-client');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'Client ID copied');
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.copyCardLabel}>CLIENT ID (TAP TO COPY)</Text>
+                        <Text style={styles.copyCardValue}>debtfree-client</Text>
+                      </View>
+                      <Icon name="copy-outline" size={14} color={Colors.primary} />
+                    </Pressable>
+                    <Text style={[styles.aiStepText, { marginTop: 4 }]}>
+                      (If asked for secret, use <Text style={{ color: Colors.primary }}>debtfree-secret</Text>)
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.aiStepRow}>
+                  <View style={styles.stepNumBadge}><Text style={styles.stepNumText}>4</Text></View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.aiStepHeading}>Done & Ask Muse</Text>
+                    <Text style={styles.aiStepText}>
+                      Tap <Text style={{ color: Colors.primary }}>Add</Text>. Muse will authenticate and link with your Firebase circle. Then ask:
+                    </Text>
+                    <Pressable
+                      style={styles.promptPill}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync('Use DebtFree to show who owes me money right now.');
+                        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert('Copied!', 'Prompt copied');
+                      }}
+                    >
+                      <Text style={styles.promptPillText}>"Use DebtFree to show who owes me money right now."</Text>
+                      <Icon name="copy-outline" size={12} color={Colors.primary} />
+                    </Pressable>
+                  </View>
+                </View>
               </View>
             )}
 
             <View style={styles.aiSupportedRow}>
-              {['ChatGPT', 'Gemini', 'Llama', 'Claude', 'Cursor'].map(agent => (
+              {['ChatGPT MCP', 'Claude SSE', 'Muse Connector', 'Gemini Functions', 'Cursor / IDE'].map(agent => (
                 <View key={agent} style={styles.aiAgentChip}>
                   <Text style={styles.aiAgentText}>{agent}</Text>
                 </View>
@@ -863,5 +1033,100 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: '#2A2A2A',
+  },
+  aiGuideHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#202020',
+    paddingBottom: 8,
+  },
+  aiStepMainTitle: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+    letterSpacing: 0.8,
+  },
+  statusPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+  },
+  statusPillText: {
+    fontSize: 8,
+    fontFamily: Fonts.bold,
+    letterSpacing: 0.5,
+  },
+  aiStepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 12,
+  },
+  stepNumBadge: {
+    width: 20,
+    height: 20,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  stepNumText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#000000',
+  },
+  stepContent: {
+    flex: 1,
+    gap: 4,
+  },
+  aiStepHeading: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+  },
+  copyableStepCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#262626',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  copyCardLabel: {
+    fontSize: 8,
+    fontFamily: Fonts.bold,
+    color: Colors.primary,
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  copyCardValue: {
+    fontSize: 11,
+    fontFamily: Fonts.serif,
+    color: Colors.textSecondary,
+  },
+  promptPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#161910',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 254, 64, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 6,
+    gap: 8,
+  },
+  promptPillText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: Colors.primary,
+    fontStyle: 'italic',
+    flex: 1,
   },
 });

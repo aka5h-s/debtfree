@@ -39,6 +39,23 @@ if (Notifications && typeof Notifications.setNotificationHandler === 'function')
   }
 }
 
+// Ensure notification channel is configured on Android
+export async function ensureNotificationChannelAsync(): Promise<void> {
+  const notif = getNotifications();
+  if (Platform.OS === 'android' && notif && typeof notif.setNotificationChannelAsync === 'function') {
+    try {
+      await notif.setNotificationChannelAsync('default', {
+        name: 'Default',
+        importance: notif.AndroidImportance?.HIGH ?? 6,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#84cc16',
+      });
+    } catch (e) {
+      console.warn('Failed to set notification channel:', e);
+    }
+  }
+}
+
 /**
  * Request notification permissions if not already granted.
  */
@@ -47,6 +64,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   if (!notif || typeof notif.getPermissionsAsync !== 'function') return false;
 
   try {
+    await ensureNotificationChannelAsync();
     const { status: existingStatus } = await notif.getPermissionsAsync();
     let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
@@ -225,6 +243,7 @@ export async function scheduleReturnDateReminders(
           trigger: {
             type: notif.SchedulableTriggerInputTypes?.DATE ?? 'date',
             date: slot.triggerDate,
+            channelId: 'default',
           },
         });
         scheduledIds.push(id);
@@ -275,6 +294,7 @@ export async function sendTestNotificationNow(): Promise<{ success: boolean; mes
   }
 
   try {
+    const triggerType = notif.SchedulableTriggerInputTypes?.TIME_INTERVAL ?? 'timeInterval';
     await notif.scheduleNotificationAsync({
       content: {
         title: '🔔 Repayment Reminder Test',
@@ -282,7 +302,9 @@ export async function sendTestNotificationNow(): Promise<{ success: boolean; mes
         sound: true,
       },
       trigger: {
+        type: triggerType,
         seconds: 3,
+        channelId: 'default',
       },
     });
     return {

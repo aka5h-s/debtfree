@@ -28,6 +28,22 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
     case 'close':
     case 'x':
       return <Svg {...svgProps}><Line x1="18" y1="6" x2="6" y2="18" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="6" y1="6" x2="18" y2="18" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
+    case 'copy':
+    case 'copy-outline':
+      return <Svg {...svgProps}><Rect x="9" y="9" width="13" height="13" rx="2" stroke={color} strokeWidth={2} /><Path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'open-outline':
+    case 'external-link':
+      return <Svg {...svgProps}><Path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Polyline points="15 3 21 3 21 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Line x1="10" y1="14" x2="21" y2="3" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
+    case 'chevron-up':
+      return <Svg {...svgProps}><Polyline points="18 15 12 9 6 15" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'chevron-down':
+      return <Svg {...svgProps}><Polyline points="6 9 12 15 18 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'book-outline':
+      return <Svg {...svgProps}><Path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'hardware-chip-outline':
+      return <Svg {...svgProps}><Rect x="4" y="4" width="16" height="16" rx="2" stroke={color} strokeWidth={2} /><Rect x="9" y="9" width="6" height="6" stroke={color} strokeWidth={1.5} /><Line x1="9" y1="1" x2="9" y2="4" stroke={color} strokeWidth={2} /><Line x1="15" y1="1" x2="15" y2="4" stroke={color} strokeWidth={2} /><Line x1="9" y1="20" x2="9" y2="23" stroke={color} strokeWidth={2} /><Line x1="15" y1="20" x2="15" y2="23" stroke={color} strokeWidth={2} /><Line x1="20" y1="9" x2="23" y2="9" stroke={color} strokeWidth={2} /><Line x1="20" y1="15" x2="23" y2="15" stroke={color} strokeWidth={2} /><Line x1="1" y1="9" x2="4" y2="9" stroke={color} strokeWidth={2} /><Line x1="1" y1="15" x2="4" y2="15" stroke={color} strokeWidth={2} /></Svg>;
+    case 'sparkles':
+      return <Svg {...svgProps}><Path d="M12 2l2.4 5.6L20 10l-5.6 2.4L12 18l-2.4-5.6L4 10l5.6-2.4L12 2z" stroke={color} strokeWidth={1.5} strokeLinejoin="round" /><Path d="M18 16l1.2 2.8L22 20l-2.8 1.2L18 24l-1.2-2.8L14 20l2.8-1.2L18 16z" stroke={color} strokeWidth={1.2} strokeLinejoin="round" /></Svg>;
     case 'close-circle':
       return <Svg {...svgProps}><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} /><Line x1="15" y1="9" x2="9" y2="15" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="9" y1="9" x2="15" y2="15" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
     case 'checkmark':
