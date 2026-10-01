@@ -313,7 +313,7 @@ export default function ProfileScreen() {
               />
               <Text style={[styles.syncText, !isOnline && { color: Colors.negative }]}>
                 {isSyncing
-                  ? 'Backing up to cloud...'
+                  ? 'Syncing with cloud...'
                   : !isOnline
                   ? `Offline • ${pendingSyncCount} changes not yet backed up`
                   : pendingSyncCount > 0
@@ -321,11 +321,27 @@ export default function ProfileScreen() {
                   : 'Synced with Firebase'}
               </Text>
             </View>
-            {isOnline && pendingSyncCount > 0 && (
-              <Pressable onPress={reload} style={styles.syncNowBtn}>
-                <Text style={styles.syncNowText}>Sync Now</Text>
-              </Pressable>
-            )}
+            <Pressable
+              onPress={async () => {
+                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                await reload();
+                if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
+              disabled={isSyncing}
+              style={[styles.syncNowBtn, isSyncing && { opacity: 0.6 }]}
+            >
+              {isSyncing ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.syncNowText}>SYNCING...</Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon name="sync" size={14} color={Colors.primary} />
+                  <Text style={styles.syncNowText}>SYNC NOW</Text>
+                </View>
+              )}
+            </Pressable>
           </View>
         </NeoPopCard>
       </View>

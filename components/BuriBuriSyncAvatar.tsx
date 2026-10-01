@@ -254,17 +254,21 @@ export function BuriBuriSyncAvatar() {
 
             {/* Actions */}
             <View style={styles.modalActions}>
-              {isOfflineOrPending && !isSyncing && (
-                <View style={{ width: '100%', marginBottom: 12 }}>
-                  <NeoPopTiltedButton onPress={handleManualSync} showShimmer>
-                    {manualSyncing ? (
+              <View style={{ width: '100%', marginBottom: 12 }}>
+                <NeoPopTiltedButton onPress={handleManualSync} showShimmer>
+                  {manualSyncing || isSyncing ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       <ActivityIndicator size="small" color="#000" />
-                    ) : (
+                      <Text style={styles.syncBtnText}>SYNCING...</Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <Icon name="sync" size={16} color="#000" />
                       <Text style={styles.syncBtnText}>SYNC NOW</Text>
-                    )}
-                  </NeoPopTiltedButton>
-                </View>
-              )}
+                    </View>
+                  )}
+                </NeoPopTiltedButton>
+              </View>
 
               <Pressable
                 onPress={() => setModalVisible(false)}

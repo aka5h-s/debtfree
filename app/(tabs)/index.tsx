@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -64,7 +64,9 @@ export default function DashboardScreen() {
     people,
     transactions,
     isLoading,
+    isSyncing,
     isCacheHydrated,
+    reload,
     getPersonBalance,
     globalBalance,
     totalLent,
@@ -74,6 +76,11 @@ export default function DashboardScreen() {
   const [sortType, setSortType] = useState<SortType>('balance_high');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [hideSettled, setHideSettled] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await reload();
+  }, [reload]);
 
   const settledCount = useMemo(() => people.filter(p => getPersonBalance(p.id) === 0).length, [people, getPersonBalance]);
 
@@ -315,6 +322,14 @@ export default function DashboardScreen() {
           </>
         }
         ListEmptyComponent={renderEmpty}
+        refreshControl={
+          <RefreshControl
+            refreshing={isSyncing}
+            onRefresh={handleRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.listContent, { paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }]}
