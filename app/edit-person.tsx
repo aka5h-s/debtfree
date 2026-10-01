@@ -34,15 +34,28 @@ export default function EditPersonScreen() {
   }
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    const trimmed = name.trim();
+    if (!trimmed) {
       setError('Name is required');
       return;
     }
+
+    const isDuplicate = people.some(
+      p => p.id !== person.id && p.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      setError(`Another contact named "${trimmed}" already exists.`);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+      return;
+    }
+
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     router.back();
-    updatePerson({ ...person, name: name.trim(), phone: phone.trim(), notes: notes.trim() });
+    updatePerson({ ...person, name: trimmed, phone: phone.trim(), notes: notes.trim() });
   };
 
   return (

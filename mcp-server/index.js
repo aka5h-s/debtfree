@@ -135,10 +135,28 @@ server.tool(
   async ({ userId, name, phone, notes }) => {
     try {
       const targetUserId = getTargetUser(userId);
+      const trimmedName = name.trim();
+
+      // Check for duplicate name
+      const pSnap = await getDocs(collection(db, 'users', targetUserId, 'people'));
+      let duplicate = false;
+      pSnap.forEach(d => {
+        if (d.data().name.trim().toLowerCase() === trimmedName.toLowerCase()) {
+          duplicate = true;
+        }
+      });
+
+      if (duplicate) {
+        return {
+          content: [{ type: 'text', text: `Cannot add person: A contact named "${trimmedName}" already exists in your circle.` }],
+          isError: true,
+        };
+      }
+
       const id = generateId();
       const person = {
         id,
-        name: name.trim(),
+        name: trimmedName,
         phone: (phone || '').trim(),
         notes: (notes || '').trim(),
         createdAt: Date.now(),
@@ -175,10 +193,28 @@ server.tool(
   async ({ userId, name, phone, notes }) => {
     try {
       const targetUserId = getTargetUser(userId);
+      const trimmedName = name.trim();
+
+      // Check for duplicate name
+      const pSnap = await getDocs(collection(db, 'users', targetUserId, 'people'));
+      let duplicate = false;
+      pSnap.forEach(d => {
+        if (d.data().name.trim().toLowerCase() === trimmedName.toLowerCase()) {
+          duplicate = true;
+        }
+      });
+
+      if (duplicate) {
+        return {
+          content: [{ type: 'text', text: `Cannot add person: A contact named "${trimmedName}" already exists in your circle.` }],
+          isError: true,
+        };
+      }
+
       const id = generateId();
       const person = {
         id,
-        name: name.trim(),
+        name: trimmedName,
         phone: (phone || '').trim(),
         notes: (notes || '').trim(),
         createdAt: Date.now(),
@@ -225,9 +261,27 @@ server.tool(
       }
 
       const current = pDoc.data();
+      const newNameTrimmed = name !== undefined ? name.trim() : current.name;
+
+      if (name !== undefined && newNameTrimmed.toLowerCase() !== current.name.toLowerCase()) {
+        const pSnap = await getDocs(collection(db, 'users', targetUserId, 'people'));
+        let duplicate = false;
+        pSnap.forEach(d => {
+          if (d.id !== personId && d.data().name.trim().toLowerCase() === newNameTrimmed.toLowerCase()) {
+            duplicate = true;
+          }
+        });
+        if (duplicate) {
+          return {
+            content: [{ type: 'text', text: `Cannot update: Another contact named "${newNameTrimmed}" already exists.` }],
+            isError: true,
+          };
+        }
+      }
+
       const updated = {
         ...current,
-        name: name !== undefined ? name.trim() : current.name,
+        name: newNameTrimmed,
         phone: phone !== undefined ? phone.trim() : current.phone,
         notes: notes !== undefined ? notes.trim() : current.notes,
       };
@@ -361,9 +415,24 @@ server.tool(
         };
       }
 
+      const trimmedNewName = newName.trim();
+      const pSnapCheck = await getDocs(collection(db, 'users', targetUserId, 'people'));
+      let duplicate = false;
+      pSnapCheck.forEach(d => {
+        if (d.id !== targetId && d.data().name.trim().toLowerCase() === trimmedNewName.toLowerCase()) {
+          duplicate = true;
+        }
+      });
+      if (duplicate) {
+        return {
+          content: [{ type: 'text', text: `Cannot rename: A contact named "${trimmedNewName}" already exists in your circle.` }],
+          isError: true,
+        };
+      }
+
       const updated = {
         ...existingPerson,
-        name: newName.trim(),
+        name: trimmedNewName,
       };
 
       await setDoc(doc(db, 'users', targetUserId, 'people', targetId), updated);

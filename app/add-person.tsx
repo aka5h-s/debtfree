@@ -11,7 +11,7 @@ import { NeoPopButton } from '@/components/NeoPopButton';
 import { Fonts } from '@/lib/fonts';
 
 export default function AddPersonScreen() {
-  const { addPerson } = useData();
+  const { people, addPerson } = useData();
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
@@ -22,15 +22,28 @@ export default function AddPersonScreen() {
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    const trimmed = name.trim();
+    if (!trimmed) {
       setError('Name is required');
       return;
     }
+
+    const isDuplicate = people.some(
+      p => p.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      setError(`"${trimmed}" already exists in your contacts.`);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+      return;
+    }
+
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     router.back();
-    addPerson(name.trim(), phone.trim(), notes.trim());
+    addPerson(trimmed, phone.trim(), notes.trim());
   };
 
   return (
