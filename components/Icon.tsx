@@ -114,6 +114,10 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
     case 'expand-outline':
     case 'expand':
       return <Svg {...svgProps}><Path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'refresh-outline':
+    case 'refresh':
+    case 'restore':
+      return <Svg {...svgProps}><Path d="M23 4v6h-6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M1 20v-6h6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
     case 'person-outline':
     case 'user':
       return <Svg {...svgProps}><Circle cx="12" cy="8" r="4" stroke={color} strokeWidth={2} /><Path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;

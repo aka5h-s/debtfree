@@ -32,7 +32,7 @@ import {
 } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import type { Person, Transaction, TransactionHistory, CreditCard } from '@/lib/types';
+import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem } from '@/lib/types';
 
 export interface FirebaseConfig {
   apiKey?: string;
@@ -151,4 +151,19 @@ export function calculatePersonBalance(txs: Transaction[]): number {
     else balance -= tx.amount;
   }
   return balance;
+}
+
+export async function saveDeletedItem(userId: string, item: DeletedItem): Promise<void> {
+  await setDoc(doc(db, 'users', userId, 'trash', item.id), item);
+}
+
+export async function getDeletedItems(userId: string): Promise<DeletedItem[]> {
+  const snap = await getDocs(collection(db, 'users', userId, 'trash'));
+  const items: DeletedItem[] = [];
+  snap.forEach(d => items.push(d.data() as DeletedItem));
+  return items.sort((a, b) => b.deletedAt - a.deletedAt);
+}
+
+export async function permanentlyDeleteTrashItem(userId: string, itemId: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'trash', itemId));
 }

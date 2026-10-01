@@ -55,3 +55,17 @@ export interface CreditCard {
   color: CardColor;
   createdAt: number;
 }
+
+export type DeletedItemType = 'PERSON' | 'TRANSACTION' | 'CARD';
+
+export interface DeletedItem {
+  id: string;
+  type: DeletedItemType;
+  title: string;
+  subtitle: string;
+  amount?: number;
+  direction?: TransactionDirection;
+  deletedAt: number;
+  data: any; // payload needed to fully restore the item
+  associatedTxs?: Transaction[]; // in case of person deletion
+}

@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView } from 'react-native';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -9,7 +9,7 @@ import { useData } from '@/contexts/DataContext';
 import { NeoPopCard } from '@/components/NeoPopCard';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { ShimmerText } from '@/components/ShimmerText';
-import { formatCurrency, getReturnDateStatus } from '@/lib/formatters';
+import { formatCurrency, getReturnDateStatus, formatRelativeDate } from '@/lib/formatters';
 import { Fonts } from '@/lib/fonts';
 import { BuriBuriSyncAvatar } from '@/components/BuriBuriSyncAvatar';
 
@@ -60,16 +60,49 @@ const SORT_OPTIONS: { key: SortType; label: string; icon: string }[] = [
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { people, transactions, isLoading, getPersonBalance, globalBalance, totalLent, totalBorrowed } = useData();
+  const {
+    people,
+    transactions,
+    isLoading,
+    getPersonBalance,
+    globalBalance,
+    totalLent,
+    totalBorrowed,
+    deletedItems,
+    restoreDeletedItem,
+    permanentlyDeleteTrashItem,
+    emptyTrash,
+  } = useData();
   const [search, setSearch] = useState('');
   const [sortType, setSortType] = useState<SortType>('balance_high');
   const [showSort, setShowSort] = useState(false);
+  const [hideSettled, setHideSettled] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
+  const [undoToast, setUndoToast] = useState<{ id: string; title: string } | null>(null);
+
+  const prevDeletedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (deletedItems.length > 0) {
+      const newest = deletedItems[0];
+      if (prevDeletedIdRef.current !== newest.id && Date.now() - newest.deletedAt < 10000) {
+        setUndoToast({ id: newest.id, title: newest.title });
+        const timer = setTimeout(() => {
+          setUndoToast(curr => (curr?.id === newest.id ? null : curr));
+        }, 5000);
+        prevDeletedIdRef.current = newest.id;
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [deletedItems]);
+
+  const settledCount = useMemo(() => people.filter(p => getPersonBalance(p.id) === 0).length, [people, getPersonBalance]);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const topPad = Math.max(insets.top, webTopInset);
 
   const sortedPeople = useMemo(() => {
     const filtered = [...people].filter(p => {
+      if (hideSettled && getPersonBalance(p.id) === 0) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q));
@@ -96,7 +129,7 @@ export default function DashboardScreen() {
       default:
         return filtered;
     }
-  }, [people, search, sortType, getPersonBalance]);
+  }, [people, search, sortType, hideSettled, getPersonBalance]);
 
   const balanceColor = globalBalance > 0 ? Colors.positive : globalBalance < 0 ? Colors.negative : Colors.settled;
   const contextMessage = globalBalance > 0
@@ -160,7 +193,6 @@ export default function DashboardScreen() {
         <View style={styles.alertsContainer}>
           <View style={styles.alertsHeader}>
             <View style={styles.alertsHeaderLeft}>
-              <Icon name="time-outline" size={14} color={Colors.textMuted} />
               <Text style={styles.alertsTitle}>DUE & OVERDUE</Text>
             </View>
             <Text style={styles.alertsCount}>{upcomingAndOverdue.length}</Text>
@@ -219,7 +251,48 @@ export default function DashboardScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>YOUR CIRCLE</Text>
         <View style={styles.sectionHeaderRight}>
-          <Text style={styles.sectionCount}>{people.length}</Text>
+          {settledCount > 0 && (
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setHideSettled(prev => !prev);
+              }}
+              style={[styles.settledFilterPill, hideSettled && styles.settledFilterPillActive]}
+            >
+              <Icon
+                name={hideSettled ? 'eye-off' : 'eye'}
+                size={12}
+                color={hideSettled ? '#000000' : Colors.textMuted}
+              />
+              <Text style={[styles.settledFilterText, hideSettled && styles.settledFilterTextActive]}>
+                {hideSettled ? 'SETTLED HIDDEN' : 'HIDE SETTLED'}
+              </Text>
+            </Pressable>
+          )}
+
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowTrash(true);
+            }}
+            style={[styles.trashHeaderBtn, deletedItems.length > 0 && styles.trashHeaderBtnActive]}
+          >
+            <Icon
+              name="trash-outline"
+              size={15}
+              color={deletedItems.length > 0 ? Colors.negative : Colors.textMuted}
+            />
+            {deletedItems.length > 0 && (
+              <View style={styles.trashBadge}>
+                <Text style={styles.trashBadgeText}>{deletedItems.length}</Text>
+              </View>
+            )}
+          </Pressable>
+
+          <Text style={styles.sectionCount}>
+            {sortedPeople.length}
+            {hideSettled && settledCount > 0 ? ` (${settledCount} hidden)` : ''}
+          </Text>
           {people.length > 0 && (
             <Pressable onPress={() => setShowSort(true)} style={styles.sortBtn}>
               <Icon name="funnel-outline" size={16} color={Colors.textMuted} />
@@ -228,7 +301,7 @@ export default function DashboardScreen() {
         </View>
       </View>
     </View>
-  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, upcomingAndOverdue, people.length, setShowSort]);
+  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, upcomingAndOverdue, people.length, sortedPeople.length, settledCount, hideSettled, deletedItems.length, setShowSort, setShowTrash]);
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
@@ -318,6 +391,158 @@ export default function DashboardScreen() {
               </Pressable>
             );
           })}
+        </View>
+      </Modal>
+
+      {/* Quick Undo Toast */}
+      {undoToast && (
+        <View style={[styles.undoToastContainer, { bottom: Platform.OS === 'web' ? 84 + 34 + 16 : 100 + 16 }]}>
+          <View style={styles.undoToast}>
+            <View style={styles.undoToastLeft}>
+              <Icon name="trash-outline" size={16} color={Colors.negative} />
+              <Text style={styles.undoToastText} numberOfLines={1}>
+                Deleted <Text style={styles.undoToastBold}>"{undoToast.title}"</Text>
+              </Text>
+            </View>
+            <View style={styles.undoToastActions}>
+              <Pressable
+                style={styles.undoBtn}
+                onPress={async () => {
+                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const targetId = undoToast.id;
+                  setUndoToast(null);
+                  await restoreDeletedItem(targetId);
+                }}
+              >
+                <Icon name="restore" size={13} color="#000" />
+                <Text style={styles.undoBtnText}>UNDO</Text>
+              </Pressable>
+              <Pressable onPress={() => setUndoToast(null)} style={styles.undoCloseBtn}>
+                <Icon name="close" size={14} color={Colors.textMuted} />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Recently Deleted Trash Bin Modal */}
+      <Modal visible={showTrash} transparent animationType="slide" onRequestClose={() => setShowTrash(false)}>
+        <Pressable style={styles.sortBackdrop} onPress={() => setShowTrash(false)} />
+        <View style={styles.trashSheet}>
+          <View style={styles.sortHandle} />
+          
+          <View style={styles.trashHeaderRow}>
+            <View>
+              <Text style={styles.trashModalTitle}>RECENTLY DELETED</Text>
+              <Text style={styles.trashModalSubtitle}>
+                {deletedItems.length} {deletedItems.length === 1 ? 'item' : 'items'} in trash
+              </Text>
+            </View>
+
+            <View style={styles.trashHeaderActions}>
+              {deletedItems.length > 0 && (
+                <Pressable
+                  onPress={() => {
+                    const doEmpty = () => {
+                      if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      emptyTrash();
+                    };
+                    if (Platform.OS === 'web') {
+                      if (confirm('Permanently delete all items from trash? This cannot be undone.')) doEmpty();
+                    } else {
+                      Alert.alert(
+                        'Empty Trash',
+                        'Permanently delete all items from trash? This action cannot be undone.',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Empty All', style: 'destructive', onPress: doEmpty },
+                        ]
+                      );
+                    }
+                  }}
+                  style={styles.emptyAllBtn}
+                >
+                  <Text style={styles.emptyAllBtnText}>EMPTY ALL</Text>
+                </Pressable>
+              )}
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowTrash(false);
+                }}
+                style={styles.trashModalCloseBtn}
+              >
+                <Icon name="close" size={20} color={Colors.textMuted} />
+              </Pressable>
+            </View>
+          </View>
+
+          {deletedItems.length === 0 ? (
+            <View style={styles.trashEmptyState}>
+              <Icon name="trash-outline" size={44} color={Colors.textMuted} />
+              <Text style={styles.trashEmptyTitle}>Trash is Empty</Text>
+              <Text style={styles.trashEmptySubtitle}>
+                Deleted contacts, transactions, and cards can be restored from here anytime.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.trashScrollView} contentContainerStyle={styles.trashScrollContent} showsVerticalScrollIndicator={false}>
+              {deletedItems.map((item) => {
+                const isPerson = item.type === 'PERSON';
+                const isTx = item.type === 'TRANSACTION';
+                const badgeBg = isPerson ? 'rgba(229, 254, 64, 0.15)' : isTx ? 'rgba(6, 194, 112, 0.15)' : 'rgba(74, 144, 226, 0.15)';
+                const badgeColor = isPerson ? Colors.primary : isTx ? Colors.positive : '#4A90E2';
+                return (
+                  <View key={item.id} style={styles.trashItemRow}>
+                    <View style={styles.trashItemInfo}>
+                      <View style={styles.trashItemTopLine}>
+                        <View style={[styles.trashItemBadge, { backgroundColor: badgeBg }]}>
+                          <Text style={[styles.trashItemBadgeText, { color: badgeColor }]}>{item.type}</Text>
+                        </View>
+                        <Text style={styles.trashItemTime}>{formatRelativeDate(item.deletedAt)}</Text>
+                      </View>
+                      <Text style={styles.trashItemTitle} numberOfLines={1}>{item.title}</Text>
+                      {item.subtitle ? (
+                        <Text style={styles.trashItemSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+                      ) : null}
+                    </View>
+
+                    <View style={styles.trashItemActions}>
+                      <Pressable
+                        style={styles.restoreBtn}
+                        onPress={async () => {
+                          if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          await restoreDeletedItem(item.id);
+                        }}
+                      >
+                        <Icon name="restore" size={13} color="#000" />
+                        <Text style={styles.restoreBtnText}>RESTORE</Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.permDeleteBtn}
+                        onPress={() => {
+                          const doDelete = () => {
+                            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            permanentlyDeleteTrashItem(item.id);
+                          };
+                          if (Platform.OS === 'web') {
+                            if (confirm(`Permanently delete "${item.title}"?`)) doDelete();
+                          } else {
+                            Alert.alert('Delete Permanently', `Permanently delete "${item.title}"?`, [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: 'Delete', style: 'destructive', onPress: doDelete },
+                            ]);
+                          }
+                        }}
+                      >
+                        <Icon name="close" size={16} color={Colors.textMuted} />
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
       </Modal>
     </View>
@@ -657,5 +882,262 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
+  },
+  settledFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  settledFilterPillActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  settledFilterText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  settledFilterTextActive: {
+    color: '#000000',
+  },
+  trashHeaderBtn: {
+    position: 'relative',
+    padding: 6,
+    borderRadius: 4,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  trashHeaderBtnActive: {
+    borderColor: '#3D1C24',
+    backgroundColor: '#201014',
+  },
+  trashBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: Colors.negative,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  trashBadgeText: {
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+  },
+  undoToastContainer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 9999,
+  },
+  undoToast: {
+    backgroundColor: '#1C1C1E',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  undoToastLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    marginRight: 10,
+  },
+  undoToastText: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: Colors.white,
+    flexShrink: 1,
+  },
+  undoToastBold: {
+    fontFamily: Fonts.bold,
+    color: Colors.primary,
+  },
+  undoToastActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  undoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  undoBtnText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
+  undoCloseBtn: {
+    padding: 4,
+  },
+  trashSheet: {
+    backgroundColor: '#181818',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingHorizontal: 20,
+    maxHeight: '80%',
+  },
+  trashHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  trashModalTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+    letterSpacing: 1.5,
+  },
+  trashModalSubtitle: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  trashHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyAllBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(238, 77, 55, 0.15)',
+    borderWidth: 1,
+    borderColor: Colors.negative,
+  },
+  emptyAllBtnText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: Colors.negative,
+    letterSpacing: 0.8,
+  },
+  trashModalCloseBtn: {
+    padding: 6,
+  },
+  trashEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  trashEmptyTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semibold,
+    color: Colors.textSecondary,
+    marginTop: 12,
+  },
+  trashEmptySubtitle: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  trashScrollView: {
+    maxHeight: 400,
+  },
+  trashScrollContent: {
+    gap: 10,
+    paddingBottom: 16,
+  },
+  trashItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  trashItemInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  trashItemTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  trashItemBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  trashItemBadgeText: {
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+    letterSpacing: 0.5,
+  },
+  trashItemTime: {
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    color: Colors.textMuted,
+  },
+  trashItemTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.semibold,
+    color: Colors.white,
+  },
+  trashItemSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  trashItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  restoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  restoreBtnText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
+  permDeleteBtn: {
+    padding: 6,
   },
 });

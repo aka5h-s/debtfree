@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
-import type { Person, Transaction, TransactionHistory, CreditCard } from '@/lib/types';
+import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem } from '@/lib/types';
 import * as FB from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateId } from '@/lib/formatters';
@@ -17,6 +17,7 @@ const CACHE_KEYS = {
   PEOPLE: (uid: string) => `@debtfree_cached_people_${uid}`,
   TRANSACTIONS: (uid: string) => `@debtfree_cached_txs_${uid}`,
   CARDS: (uid: string) => `@debtfree_cached_cards_${uid}`,
+  TRASH: (uid: string) => `@debtfree_cached_trash_${uid}`,
   PENDING_SYNC: (uid: string) => `@debtfree_pending_sync_${uid}`,
 };
 
@@ -24,6 +25,7 @@ interface DataContextValue {
   people: Person[];
   transactions: Transaction[];
   cards: CreditCard[];
+  deletedItems: DeletedItem[];
   isLoading: boolean;
   isOnline: boolean;
   isSyncing: boolean;
@@ -41,6 +43,9 @@ interface DataContextValue {
   addCard: (card: Omit<CreditCard, 'id' | 'createdAt'>) => Promise<CreditCard>;
   updateCard: (card: CreditCard) => Promise<void>;
   removeCard: (id: string) => Promise<void>;
+  restoreDeletedItem: (id: string) => Promise<void>;
+  permanentlyDeleteTrashItem: (id: string) => Promise<void>;
+  emptyTrash: () => Promise<void>;
   globalBalance: number;
   totalLent: number;
   totalBorrowed: number;
@@ -53,6 +58,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [people, setPeople] = useState<Person[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cards, setCards] = useState<CreditCard[]>([]);
+  const [deletedItems, setDeletedItems] = useState<DeletedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -66,6 +72,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setPeople([]);
       setTransactions([]);
       setCards([]);
+      setDeletedItems([]);
       setPendingSync([]);
       return;
     }
@@ -73,16 +80,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
     (async () => {
       try {
-        const [cachedP, cachedT, cachedC, cachedSync] = await Promise.all([
+        const [cachedP, cachedT, cachedC, cachedTrash, cachedSync] = await Promise.all([
           AsyncStorage.getItem(CACHE_KEYS.PEOPLE(uid)),
           AsyncStorage.getItem(CACHE_KEYS.TRANSACTIONS(uid)),
           AsyncStorage.getItem(CACHE_KEYS.CARDS(uid)),
+          AsyncStorage.getItem(CACHE_KEYS.TRASH(uid)),
           AsyncStorage.getItem(CACHE_KEYS.PENDING_SYNC(uid)),
         ]);
         if (isMounted) {
           if (cachedP) setPeople(JSON.parse(cachedP));
           if (cachedT) setTransactions(JSON.parse(cachedT));
           if (cachedC) setCards(JSON.parse(cachedC));
+          if (cachedTrash) setDeletedItems(JSON.parse(cachedTrash));
           if (cachedSync) setPendingSync(JSON.parse(cachedSync));
         }
       } catch (e) {
@@ -94,13 +103,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [uid]);
 
   // Persist locally helper
-  const persistState = useCallback(async (newP?: Person[], newT?: Transaction[], newC?: CreditCard[], newSync?: PendingSyncAction[]) => {
+  const persistState = useCallback(async (
+    newP?: Person[],
+    newT?: Transaction[],
+    newC?: CreditCard[],
+    newTrash?: DeletedItem[],
+    newSync?: PendingSyncAction[]
+  ) => {
     if (!uid) return;
     try {
       const promises: Promise<any>[] = [];
       if (newP !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PEOPLE(uid), JSON.stringify(newP)));
       if (newT !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRANSACTIONS(uid), JSON.stringify(newT)));
       if (newC !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.CARDS(uid), JSON.stringify(newC)));
+      if (newTrash !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRASH(uid), JSON.stringify(newTrash)));
       if (newSync !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PENDING_SYNC(uid), JSON.stringify(newSync)));
       await Promise.all(promises);
     } catch (e) {
@@ -234,20 +250,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, [uid, people, persistState, queueSyncAction]);
 
-  // Optimistic Remove Person (Instant UI)
+  // Optimistic Remove Person (Instant UI) -> move to Trash
   const removePerson = useCallback(async (id: string) => {
     if (!uid) throw new Error('Not authenticated');
+    const targetPerson = people.find(p => p.id === id);
+    if (!targetPerson) return;
+
+    const personTxs = transactions.filter(t => t.personId === id);
     const nextPeople = people.filter(p => p.id !== id);
     const nextTxs = transactions.filter(t => t.personId !== id);
+
+    const trashEntry: DeletedItem = {
+      id: generateId(),
+      type: 'PERSON',
+      title: targetPerson.name,
+      subtitle: `${personTxs.length} transaction${personTxs.length === 1 ? '' : 's'}`,
+      deletedAt: Date.now(),
+      data: targetPerson,
+      associatedTxs: personTxs,
+    };
+
+    const nextTrash = [trashEntry, ...deletedItems];
+
     setPeople(nextPeople);
     setTransactions(nextTxs);
-    persistState(nextPeople, nextTxs);
+    setDeletedItems(nextTrash);
+    persistState(nextPeople, nextTxs, undefined, nextTrash);
 
     FB.deletePerson(uid, id).catch(() => {
       setIsOnline(false);
       queueSyncAction({ id: generateId(), type: 'DELETE_PERSON', payload: id, timestamp: Date.now() });
     });
-  }, [uid, people, transactions, persistState, queueSyncAction]);
+    FB.saveDeletedItem(uid, trashEntry).catch(() => {});
+  }, [uid, people, transactions, deletedItems, persistState, queueSyncAction]);
 
   // Optimistic Add Transaction (Instant UI)
   const addTransaction = useCallback(async (
@@ -362,23 +397,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, [uid, people, transactions, persistState, queueSyncAction]);
 
-  // Optimistic Remove Transaction (Instant UI)
+  // Optimistic Remove Transaction (Instant UI) -> move to Trash
   const removeTransaction = useCallback(async (id: string) => {
     if (!uid) throw new Error('Not authenticated');
     const targetTx = transactions.find(t => t.id === id);
-    if (targetTx?.notificationIds) {
+    if (!targetTx) return;
+
+    if (targetTx.notificationIds) {
       cancelTransactionReminders(targetTx.notificationIds).catch(() => {});
     }
 
+    const person = people.find(p => p.id === targetTx.personId);
     const nextTxs = transactions.filter(t => t.id !== id);
+
+    const trashEntry: DeletedItem = {
+      id: generateId(),
+      type: 'TRANSACTION',
+      title: `${targetTx.direction === 'YOU_LENT' ? 'Lent to' : 'Borrowed from'} ${person?.name || 'Someone'}`,
+      subtitle: targetTx.note || 'No note',
+      amount: targetTx.amount,
+      direction: targetTx.direction,
+      deletedAt: Date.now(),
+      data: targetTx,
+    };
+
+    const nextTrash = [trashEntry, ...deletedItems];
+
     setTransactions(nextTxs);
-    persistState(undefined, nextTxs);
+    setDeletedItems(nextTrash);
+    persistState(undefined, nextTxs, undefined, nextTrash);
 
     FB.deleteTransaction(uid, id).catch(() => {
       setIsOnline(false);
       queueSyncAction({ id: generateId(), type: 'DELETE_TX', payload: id, timestamp: Date.now() });
     });
-  }, [uid, transactions, persistState, queueSyncAction]);
+    FB.saveDeletedItem(uid, trashEntry).catch(() => {});
+  }, [uid, people, transactions, deletedItems, persistState, queueSyncAction]);
 
   const getTransactionHistory = useCallback(async (txId: string) => {
     if (!uid) return [];
@@ -418,33 +472,119 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, [uid, cards, persistState, queueSyncAction]);
 
-  // Optimistic Remove Card (Instant UI)
+  // Optimistic Remove Card (Instant UI) -> move to Trash
   const removeCard = useCallback(async (id: string) => {
     if (!uid) throw new Error('Not authenticated');
+    const targetCard = cards.find(c => c.id === id);
+    if (!targetCard) return;
+
     const nextCards = cards.filter(c => c.id !== id);
+
+    const trashEntry: DeletedItem = {
+      id: generateId(),
+      type: 'CARD',
+      title: targetCard.cardName,
+      subtitle: `Ends in ${targetCard.cardNumber.slice(-4)}`,
+      deletedAt: Date.now(),
+      data: targetCard,
+    };
+
+    const nextTrash = [trashEntry, ...deletedItems];
+
     setCards(nextCards);
-    persistState(undefined, undefined, nextCards);
+    setDeletedItems(nextTrash);
+    persistState(undefined, undefined, nextCards, nextTrash);
 
     FB.deleteCard(uid, id).catch(() => {
       setIsOnline(false);
       queueSyncAction({ id: generateId(), type: 'DELETE_CARD', payload: id, timestamp: Date.now() });
     });
-  }, [uid, cards, persistState, queueSyncAction]);
+    FB.saveDeletedItem(uid, trashEntry).catch(() => {});
+  }, [uid, cards, deletedItems, persistState, queueSyncAction]);
+
+  // Restore deleted item from Trash
+  const restoreDeletedItem = useCallback(async (id: string) => {
+    if (!uid) throw new Error('Not authenticated');
+    const item = deletedItems.find(d => d.id === id);
+    if (!item) return;
+
+    const nextTrash = deletedItems.filter(d => d.id !== id);
+    setDeletedItems(nextTrash);
+
+    if (item.type === 'PERSON') {
+      const restoredPerson: Person = item.data;
+      const restoredTxs: Transaction[] = item.associatedTxs || [];
+
+      const nextPeople = [restoredPerson, ...people.filter(p => p.id !== restoredPerson.id)];
+      const nextTxs = [...restoredTxs, ...transactions.filter(t => !restoredTxs.some(rt => rt.id === t.id))];
+
+      setPeople(nextPeople);
+      setTransactions(nextTxs);
+      persistState(nextPeople, nextTxs, undefined, nextTrash);
+
+      FB.savePerson(uid, restoredPerson).catch(() => {});
+      for (const t of restoredTxs) {
+        FB.saveTransaction(uid, t).catch(() => {});
+      }
+    } else if (item.type === 'TRANSACTION') {
+      const restoredTx: Transaction = item.data;
+      const nextTxs = [restoredTx, ...transactions.filter(t => t.id !== restoredTx.id)];
+
+      setTransactions(nextTxs);
+      persistState(undefined, nextTxs, undefined, nextTrash);
+
+      FB.saveTransaction(uid, restoredTx).catch(() => {});
+    } else if (item.type === 'CARD') {
+      const restoredCard: CreditCard = item.data;
+      const nextCards = [restoredCard, ...cards.filter(c => c.id !== restoredCard.id)];
+
+      setCards(nextCards);
+      persistState(undefined, undefined, nextCards, nextTrash);
+
+      FB.saveCard(uid, restoredCard).catch(() => {});
+    }
+
+    FB.permanentlyDeleteTrashItem(uid, id).catch(() => {});
+  }, [uid, deletedItems, people, transactions, cards, persistState]);
+
+  // Permanently delete a trash item
+  const permanentlyDeleteTrashItem = useCallback(async (id: string) => {
+    if (!uid) throw new Error('Not authenticated');
+    const nextTrash = deletedItems.filter(d => d.id !== id);
+    setDeletedItems(nextTrash);
+    persistState(undefined, undefined, undefined, nextTrash);
+
+    FB.permanentlyDeleteTrashItem(uid, id).catch(() => {});
+  }, [uid, deletedItems, persistState]);
+
+  // Empty entire Trash bin
+  const emptyTrash = useCallback(async () => {
+    if (!uid) throw new Error('Not authenticated');
+    const toDelete = [...deletedItems];
+    setDeletedItems([]);
+    persistState(undefined, undefined, undefined, []);
+
+    for (const item of toDelete) {
+      FB.permanentlyDeleteTrashItem(uid, item.id).catch(() => {});
+    }
+  }, [uid, deletedItems, persistState]);
 
   const value = useMemo(() => ({
-    people, transactions, cards, isLoading,
+    people, transactions, cards, deletedItems, isLoading,
     isOnline, isSyncing, pendingSyncCount: pendingSync.length, reload,
     addPerson, updatePerson, removePerson,
     getPersonTransactions, getPersonBalance,
     addTransaction, updateTransaction, removeTransaction, getTransactionHistory,
     addCard, updateCard, removeCard,
+    restoreDeletedItem, permanentlyDeleteTrashItem, emptyTrash,
     globalBalance, totalLent, totalBorrowed,
-  }), [people, transactions, cards, isLoading,
+  }), [people, transactions, cards, deletedItems, isLoading,
     isOnline, isSyncing, pendingSync.length, reload,
     addPerson, updatePerson, removePerson,
     getPersonTransactions, getPersonBalance,
     addTransaction, updateTransaction, removeTransaction, getTransactionHistory,
     addCard, updateCard, removeCard,
+    restoreDeletedItem, permanentlyDeleteTrashItem, emptyTrash,
     globalBalance, totalLent, totalBorrowed]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
