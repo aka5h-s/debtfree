@@ -857,10 +857,10 @@ async function startHttpServer() {
 
   // 4. OAuth Google Sign-In Start
   app.get('/oauth/google-start', (req, res) => {
-    const { redirectUri, state } = req.query;
-    // Construct Google OAuth URL
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=629935243184-j3h4m0f5f8i4c2q7r1s0t9u8v7w6x5y4.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(
-      `${req.protocol}://${req.get('host')}/oauth/google-callback`
+    // Construct Google OAuth URL with actual Firebase web client ID
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_WEB_CLIENT_ID || '629935243184-vflmb8gi97r6e7fcsmdk1dg6i4ib9e2a.apps.googleusercontent.com';
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+      `https://${req.get('host')}/oauth/google-callback`
     )}&response_type=code&scope=email%20profile%20openid&state=${encodeURIComponent(
       JSON.stringify({ redirectUri, state })
     )}`;
