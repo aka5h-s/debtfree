@@ -357,8 +357,8 @@ export default function ProfileScreen() {
                   setActiveAiModal('chatgpt');
                 }}
               >
-                <View style={[styles.assistantCardIconBox, { backgroundColor: '#1A1A1A', borderColor: '#404040' }]}>
-                  <Image source={chatGptLogo} style={{ width: 28, height: 28 }} resizeMode="contain" />
+                <View style={styles.assistantCardIconBox}>
+                  <Image source={chatGptLogo} style={styles.assistantLogo} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -377,8 +377,8 @@ export default function ProfileScreen() {
                   setActiveAiModal('claude');
                 }}
               >
-                <View style={[styles.assistantCardIconBox, { backgroundColor: '#2B1A12', borderColor: '#D97706' }]}>
-                  <Image source={claudeLogo} style={{ width: 28, height: 28, borderRadius: 5 }} resizeMode="contain" />
+                <View style={styles.assistantCardIconBox}>
+                  <Image source={claudeLogo} style={styles.assistantLogo} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -397,8 +397,8 @@ export default function ProfileScreen() {
                   setActiveAiModal('muse');
                 }}
               >
-                <View style={[styles.assistantCardIconBox, { backgroundColor: '#FFFFFF', borderColor: '#3B82F6' }]}>
-                  <Image source={museLogo} style={{ width: 28, height: 28, borderRadius: 5 }} resizeMode="contain" />
+                <View style={styles.assistantCardIconBox}>
+                  <Image source={museLogo} style={styles.assistantLogo} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -529,13 +529,13 @@ export default function ProfileScreen() {
           <View style={styles.modalContentCard}>
             <View style={styles.modalHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={[styles.modalIconBadge, activeAiModal === 'claude' ? { backgroundColor: '#2B1A12', borderColor: '#D97706' } : activeAiModal === 'chatgpt' ? { backgroundColor: '#1A1A1A', borderColor: '#404040' } : { backgroundColor: '#FFFFFF', borderColor: '#3B82F6' }]}>
+                <View style={styles.modalIconBadge}>
                   {activeAiModal === 'chatgpt' ? (
-                    <Image source={chatGptLogo} style={{ width: 22, height: 22 }} resizeMode="contain" />
+                    <Image source={chatGptLogo} style={styles.modalLogo} resizeMode="contain" />
                   ) : activeAiModal === 'claude' ? (
-                    <Image source={claudeLogo} style={{ width: 22, height: 22, borderRadius: 4 }} resizeMode="contain" />
+                    <Image source={claudeLogo} style={styles.modalLogo} resizeMode="contain" />
                   ) : (
-                    <Image source={museLogo} style={{ width: 22, height: 22, borderRadius: 4 }} resizeMode="contain" />
+                    <Image source={museLogo} style={styles.modalLogo} resizeMode="contain" />
                   )}
                 </View>
                 <View>
@@ -1510,13 +1510,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   assistantCardIconBox: {
-    width: 38,
-    height: 38,
-    backgroundColor: '#122615',
-    borderWidth: 1,
-    borderColor: '#22C55E',
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  assistantLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
   assistantEmoji: {
     fontSize: 18,
@@ -1575,13 +1577,15 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
   },
   modalIconBadge: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#1C1C14',
-    borderWidth: 1,
-    borderColor: Colors.primary,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalLogo: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
   },
   modalTitleText: {
     fontSize: 15,
