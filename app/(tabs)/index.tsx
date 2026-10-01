@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     marginBottom: 10,
   },
   alertsHeaderLeft: {
@@ -495,18 +495,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   alertsTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: Fonts.semibold,
     color: Colors.textMuted,
     letterSpacing: 2,
   },
   alertsCount: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold,
+    fontSize: 13,
+    fontFamily: Fonts.serif,
     color: Colors.textMuted,
   },
   alertsScroll: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     gap: 10,
   },
   alertCard: {

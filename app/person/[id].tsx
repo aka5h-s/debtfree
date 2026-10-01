@@ -46,7 +46,7 @@ function TransactionItem({ tx, onEdit, onDelete, onHistory, onViewNote }: { tx: 
               ]}>
                 <Icon
                   name={returnStatus.isOverdue ? 'alert-circle-outline' : returnStatus.isDueSoon ? 'time-outline' : 'calendar-outline'}
-                  size={12}
+                  size={13}
                   color={returnStatus.isOverdue ? Colors.negative : returnStatus.isDueSoon ? Colors.textSecondary : Colors.textMuted}
                 />
                 <Text style={[
@@ -372,6 +372,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.medium,
     color: Colors.textMuted,
+    includeFontPadding: false,
+    lineHeight: 15,
   },
   txReturnTextOverdue: {
     color: Colors.negative,

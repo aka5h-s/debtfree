@@ -903,6 +903,51 @@ export default function ProfileScreen() {
                         style={styles.restoreBtn}
                         onPress={async () => {
                           if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+                          if (item.type === 'TRANSACTION') {
+                            const txPersonId = item.data?.personId;
+                            const isPersonActive = people.some(p => p.id === txPersonId);
+
+                            if (!isPersonActive) {
+                              const deletedPersonItem = deletedItems.find(d => d.type === 'PERSON' && d.data?.id === txPersonId);
+                              const personName = deletedPersonItem?.title || item.title.replace(/^(Lent to|Borrowed from)\s*/i, '') || 'The contact';
+
+                              if (deletedPersonItem) {
+                                const doRestoreBoth = async () => {
+                                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                  await restoreDeletedItem(item.id, { alsoRestoreTrashIds: [deletedPersonItem.id] });
+                                };
+
+                                if (Platform.OS === 'web') {
+                                  if (confirm(`"${personName}" is currently deleted. To restore this transaction, "${personName}" will also be restored. Proceed?`)) {
+                                    doRestoreBoth();
+                                  }
+                                } else {
+                                  Alert.alert(
+                                    'Restore Contact First',
+                                    `"${personName}" is currently deleted. To restore this transaction, "${personName}" will also be restored to your circle.\n\nRestore both?`,
+                                    [
+                                      { text: 'Cancel', style: 'cancel' },
+                                      { text: 'Restore Both', onPress: doRestoreBoth },
+                                    ]
+                                  );
+                                }
+                                return;
+                              } else {
+                                if (Platform.OS === 'web') {
+                                  alert(`Cannot restore transaction: "${personName}" has been permanently deleted and is no longer available.`);
+                                } else {
+                                  Alert.alert(
+                                    'Cannot Restore Transaction',
+                                    `The contact "${personName}" was deleted and is no longer in trash. It cannot be restored without an active contact.`,
+                                    [{ text: 'OK' }]
+                                  );
+                                }
+                                return;
+                              }
+                            }
+                          }
+
                           await restoreDeletedItem(item.id);
                         }}
                       >

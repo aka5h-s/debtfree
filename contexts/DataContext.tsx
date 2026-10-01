@@ -43,7 +43,7 @@ interface DataContextValue {
   addCard: (card: Omit<CreditCard, 'id' | 'createdAt'>) => Promise<CreditCard>;
   updateCard: (card: CreditCard) => Promise<void>;
   removeCard: (id: string) => Promise<void>;
-  restoreDeletedItem: (id: string) => Promise<void>;
+  restoreDeletedItem: (id: string, options?: { alsoRestoreTrashIds?: string[] }) => Promise<void>;
   permanentlyDeleteTrashItem: (id: string) => Promise<void>;
   emptyTrash: () => Promise<void>;
   globalBalance: number;
@@ -505,48 +505,50 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [uid, cards, deletedItems, persistState, queueSyncAction]);
 
   // Restore deleted item from Trash
-  const restoreDeletedItem = useCallback(async (id: string) => {
+  const restoreDeletedItem = useCallback(async (id: string, options?: { alsoRestoreTrashIds?: string[] }) => {
     if (!uid) throw new Error('Not authenticated');
-    const item = deletedItems.find(d => d.id === id);
-    if (!item) return;
+    const idsToRestore = [id, ...(options?.alsoRestoreTrashIds || [])];
+    const itemsToRestore = deletedItems.filter(d => idsToRestore.includes(d.id));
+    if (itemsToRestore.length === 0) return;
 
-    const nextTrash = deletedItems.filter(d => d.id !== id);
+    const nextTrash = deletedItems.filter(d => !idsToRestore.includes(d.id));
     setDeletedItems(nextTrash);
 
-    if (item.type === 'PERSON') {
-      const restoredPerson: Person = item.data;
-      const restoredTxs: Transaction[] = item.associatedTxs || [];
+    let nextPeople = [...people];
+    let nextTxs = [...transactions];
+    let nextCards = [...cards];
 
-      const nextPeople = [restoredPerson, ...people.filter(p => p.id !== restoredPerson.id)];
-      const nextTxs = [...restoredTxs, ...transactions.filter(t => !restoredTxs.some(rt => rt.id === t.id))];
+    for (const item of itemsToRestore) {
+      if (item.type === 'PERSON') {
+        const restoredPerson: Person = item.data;
+        const restoredTxs: Transaction[] = item.associatedTxs || [];
 
-      setPeople(nextPeople);
-      setTransactions(nextTxs);
-      persistState(nextPeople, nextTxs, undefined, nextTrash);
+        nextPeople = [restoredPerson, ...nextPeople.filter(p => p.id !== restoredPerson.id)];
+        nextTxs = [...restoredTxs, ...nextTxs.filter(t => !restoredTxs.some(rt => rt.id === t.id))];
 
-      FB.savePerson(uid, restoredPerson).catch(() => {});
-      for (const t of restoredTxs) {
-        FB.saveTransaction(uid, t).catch(() => {});
+        FB.savePerson(uid, restoredPerson).catch(() => {});
+        for (const t of restoredTxs) {
+          FB.saveTransaction(uid, t).catch(() => {});
+        }
+      } else if (item.type === 'TRANSACTION') {
+        const restoredTx: Transaction = item.data;
+        nextTxs = [restoredTx, ...nextTxs.filter(t => t.id !== restoredTx.id)];
+
+        FB.saveTransaction(uid, restoredTx).catch(() => {});
+      } else if (item.type === 'CARD') {
+        const restoredCard: CreditCard = item.data;
+        nextCards = [restoredCard, ...nextCards.filter(c => c.id !== restoredCard.id)];
+
+        FB.saveCard(uid, restoredCard).catch(() => {});
       }
-    } else if (item.type === 'TRANSACTION') {
-      const restoredTx: Transaction = item.data;
-      const nextTxs = [restoredTx, ...transactions.filter(t => t.id !== restoredTx.id)];
 
-      setTransactions(nextTxs);
-      persistState(undefined, nextTxs, undefined, nextTrash);
-
-      FB.saveTransaction(uid, restoredTx).catch(() => {});
-    } else if (item.type === 'CARD') {
-      const restoredCard: CreditCard = item.data;
-      const nextCards = [restoredCard, ...cards.filter(c => c.id !== restoredCard.id)];
-
-      setCards(nextCards);
-      persistState(undefined, undefined, nextCards, nextTrash);
-
-      FB.saveCard(uid, restoredCard).catch(() => {});
+      FB.permanentlyDeleteTrashItem(uid, item.id).catch(() => {});
     }
 
-    FB.permanentlyDeleteTrashItem(uid, id).catch(() => {});
+    setPeople(nextPeople);
+    setTransactions(nextTxs);
+    setCards(nextCards);
+    persistState(nextPeople, nextTxs, nextCards, nextTrash);
   }, [uid, deletedItems, people, transactions, cards, persistState]);
 
   // Permanently delete a trash item
