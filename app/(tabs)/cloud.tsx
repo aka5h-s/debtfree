@@ -361,10 +361,7 @@ export default function ProfileScreen() {
                   <Image source={chatGptLogo} style={styles.assistantLogo} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.assistantCardTitle}>ChatGPT</Text>
-                    <View style={styles.connectedBadge}><Text style={styles.connectedBadgeText}>CONNECT</Text></View>
-                  </View>
+                  <Text style={styles.assistantCardTitle}>ChatGPT</Text>
                   <Text style={styles.assistantCardSubtitle}>Custom MCP App • Developer Mode</Text>
                 </View>
                 <Icon name="chevron-forward" size={16} color={Colors.primary} />
@@ -381,10 +378,7 @@ export default function ProfileScreen() {
                   <Image source={claudeLogo} style={styles.assistantLogo} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.assistantCardTitle}>Claude</Text>
-                    <View style={styles.connectedBadge}><Text style={styles.connectedBadgeText}>CONNECT</Text></View>
-                  </View>
+                  <Text style={styles.assistantCardTitle}>Claude</Text>
                   <Text style={styles.assistantCardSubtitle}>Native MCP SSE • Web, Desktop & Mobile</Text>
                 </View>
                 <Icon name="chevron-forward" size={16} color={Colors.primary} />
@@ -401,10 +395,7 @@ export default function ProfileScreen() {
                   <Image source={museLogo} style={styles.assistantLogo} resizeMode="contain" />
                 </View>
                 <View style={styles.assistantCardInfo}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.assistantCardTitle}>Muse (Meta AI)</Text>
-                    <View style={styles.connectedBadge}><Text style={styles.connectedBadgeText}>CONNECT</Text></View>
-                  </View>
+                  <Text style={styles.assistantCardTitle}>Muse (Meta AI)</Text>
                   <Text style={styles.assistantCardSubtitle}>Secure Credentials Store • Meta AI</Text>
                 </View>
                 <Icon name="chevron-forward" size={16} color={Colors.primary} />

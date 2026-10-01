@@ -98,8 +98,9 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
     case 'credit-card-chip':
       return <Svg {...svgProps}><Rect x="2" y="4" width="20" height="16" rx="2" stroke={color} strokeWidth={2} /><Line x1="2" y1="10" x2="22" y2="10" stroke={color} strokeWidth={2} /><Rect x="5" y="13" width="4" height="3" rx="0.5" stroke={color} strokeWidth={1.5} /></Svg>;
     case 'funnel-outline':
+    case 'funnel':
     case 'filter':
-      return <Svg {...svgProps}><Path d="M4 6h16M7 12h10M10 18h4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+      return <Svg {...svgProps}><Path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
     case 'trending-up':
       return <Svg {...svgProps}><Polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Polyline points="17 6 23 6 23 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
     case 'trending-down':
