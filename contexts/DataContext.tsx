@@ -14,6 +14,7 @@ interface PendingSyncAction {
 }
 
 const CACHE_KEYS = {
+  LAST_UID: '@debtfree_last_uid',
   PEOPLE: (uid: string) => `@debtfree_cached_people_${uid}`,
   TRANSACTIONS: (uid: string) => `@debtfree_cached_txs_${uid}`,
   CARDS: (uid: string) => `@debtfree_cached_cards_${uid}`,
@@ -27,6 +28,7 @@ interface DataContextValue {
   cards: CreditCard[];
   deletedItems: DeletedItem[];
   isLoading: boolean;
+  isCacheHydrated: boolean;
   isOnline: boolean;
   isSyncing: boolean;
   pendingSyncCount: number;
@@ -60,33 +62,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [deletedItems, setDeletedItems] = useState<DeletedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCacheHydrated, setIsCacheHydrated] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingSync, setPendingSync] = useState<PendingSyncAction[]>([]);
+  const isReloadingRef = React.useRef(false);
 
   const uid = user?.uid;
 
-  // 1. Immediate cache load on user change (<50ms startup)
+  // 1. Instant Cache Hydration (<10ms)
   useEffect(() => {
-    if (!uid) {
-      setPeople([]);
-      setTransactions([]);
-      setCards([]);
-      setDeletedItems([]);
-      setPendingSync([]);
-      return;
-    }
-
     let isMounted = true;
+
     (async () => {
+      const activeUid = uid || (await AsyncStorage.getItem(CACHE_KEYS.LAST_UID).catch(() => null));
+      if (!activeUid) {
+        if (isMounted) {
+          setIsCacheHydrated(true);
+        }
+        return;
+      }
+
       try {
         const [cachedP, cachedT, cachedC, cachedTrash, cachedSync] = await Promise.all([
-          AsyncStorage.getItem(CACHE_KEYS.PEOPLE(uid)),
-          AsyncStorage.getItem(CACHE_KEYS.TRANSACTIONS(uid)),
-          AsyncStorage.getItem(CACHE_KEYS.CARDS(uid)),
-          AsyncStorage.getItem(CACHE_KEYS.TRASH(uid)),
-          AsyncStorage.getItem(CACHE_KEYS.PENDING_SYNC(uid)),
+          AsyncStorage.getItem(CACHE_KEYS.PEOPLE(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.TRANSACTIONS(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.CARDS(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.TRASH(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.PENDING_SYNC(activeUid)),
         ]);
+
         if (isMounted) {
           const parsedPeople: Person[] = cachedP ? JSON.parse(cachedP) : [];
           const parsedTrash: DeletedItem[] = cachedTrash ? JSON.parse(cachedTrash) : [];
@@ -109,14 +114,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
           parsedTxs = parsedTxs.filter(tx => activePersonIds.has(tx.personId) && !deletedTxIds.has(tx.id));
 
-          setPeople(parsedPeople);
-          setTransactions(parsedTxs);
-          setCards(parsedCards);
-          setDeletedItems(parsedTrash);
+          if (parsedPeople.length > 0) setPeople(parsedPeople);
+          if (parsedTxs.length > 0) setTransactions(parsedTxs);
+          if (parsedCards.length > 0) setCards(parsedCards);
+          if (parsedTrash.length > 0) setDeletedItems(parsedTrash);
           if (cachedSync) setPendingSync(JSON.parse(cachedSync));
+          setIsCacheHydrated(true);
         }
       } catch (e) {
         console.log('Cache read error:', e);
+        if (isMounted) setIsCacheHydrated(true);
       }
     })();
 
@@ -131,14 +138,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     newTrash?: DeletedItem[],
     newSync?: PendingSyncAction[]
   ) => {
-    if (!uid) return;
+    const activeUid = uid || (await AsyncStorage.getItem(CACHE_KEYS.LAST_UID).catch(() => null));
+    if (!activeUid) return;
     try {
       const promises: Promise<any>[] = [];
-      if (newP !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PEOPLE(uid), JSON.stringify(newP)));
-      if (newT !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRANSACTIONS(uid), JSON.stringify(newT)));
-      if (newC !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.CARDS(uid), JSON.stringify(newC)));
-      if (newTrash !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRASH(uid), JSON.stringify(newTrash)));
-      if (newSync !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PENDING_SYNC(uid), JSON.stringify(newSync)));
+      if (newP !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PEOPLE(activeUid), JSON.stringify(newP)));
+      if (newT !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRANSACTIONS(activeUid), JSON.stringify(newT)));
+      if (newC !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.CARDS(activeUid), JSON.stringify(newC)));
+      if (newTrash !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRASH(activeUid), JSON.stringify(newTrash)));
+      if (newSync !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PENDING_SYNC(activeUid), JSON.stringify(newSync)));
       await Promise.all(promises);
     } catch (e) {
       console.log('Cache write error:', e);
@@ -182,6 +190,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Silent Background Sync / Reload
   const reload = useCallback(async () => {
     if (!uid) return;
+    if (isReloadingRef.current) return;
+    isReloadingRef.current = true;
     try {
       setIsSyncing(true);
       // First flush pending changes
@@ -219,17 +229,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const cleanTxs = t.filter(tx => activePersonIds.has(tx.personId) && !deletedTxIds.has(tx.id));
 
-      setPeople(p);
-      setTransactions(cleanTxs);
-      setCards(c);
-      setDeletedItems(mergedTrash);
+      // Smart diff before triggering React state updates to avoid unnecessary screen flickers
+      setPeople(prev => (JSON.stringify(prev) !== JSON.stringify(p) ? p : prev));
+      setTransactions(prev => (JSON.stringify(prev) !== JSON.stringify(cleanTxs) ? cleanTxs : prev));
+      setCards(prev => (JSON.stringify(prev) !== JSON.stringify(c) ? c : prev));
+      setDeletedItems(prev => (JSON.stringify(prev) !== JSON.stringify(mergedTrash) ? mergedTrash : prev));
       setIsOnline(true);
+      setIsCacheHydrated(true);
       await persistState(p, cleanTxs, c, mergedTrash);
     } catch (e) {
       console.log('Firebase fetch failed, running in offline mode:', e);
       setIsOnline(false);
     } finally {
       setIsSyncing(false);
+      isReloadingRef.current = false;
     }
   }, [uid, pendingSync, flushPendingSync, persistState, deletedItems]);
 
@@ -620,7 +633,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [uid, deletedItems, persistState]);
 
   const value = useMemo(() => ({
-    people, transactions, cards, deletedItems, isLoading,
+    people, transactions, cards, deletedItems, isLoading, isCacheHydrated,
     isOnline, isSyncing, pendingSyncCount: pendingSync.length, reload,
     addPerson, updatePerson, removePerson,
     getPersonTransactions, getPersonBalance,
@@ -628,7 +641,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addCard, updateCard, removeCard,
     restoreDeletedItem, permanentlyDeleteTrashItem, emptyTrash,
     globalBalance, totalLent, totalBorrowed,
-  }), [people, transactions, cards, deletedItems, isLoading,
+  }), [people, transactions, cards, deletedItems, isLoading, isCacheHydrated,
     isOnline, isSyncing, pendingSync.length, reload,
     addPerson, updatePerson, removePerson,
     getPersonTransactions, getPersonBalance,

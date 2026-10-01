@@ -64,6 +64,7 @@ export default function DashboardScreen() {
     people,
     transactions,
     isLoading,
+    isCacheHydrated,
     getPersonBalance,
     globalBalance,
     totalLent,
@@ -257,18 +258,27 @@ export default function DashboardScreen() {
     </View>
   ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, upcomingAndOverdue, people.length, sortedPeople.length, settledCount, hideSettled, setShowFilterModal]);
 
-  const renderEmpty = useCallback(() => (
-    <View style={styles.emptyState}>
-      <Icon name="people-outline" size={48} color={Colors.textMuted} />
-      <Text style={styles.emptyText}>Your circle is empty</Text>
-      <Text style={styles.emptySubtext}>Add someone to start tracking</Text>
-      <View style={{ marginTop: 20, width: '70%' }}>
-        <NeoPopTiltedButton onPress={() => router.push('/add-person')} showShimmer>
-          <Text style={styles.ctaText}>ADD SOMEONE</Text>
-        </NeoPopTiltedButton>
+  const renderEmpty = useCallback(() => {
+    if (!isCacheHydrated) {
+      return (
+        <View style={[styles.emptyState, { opacity: 0.6 }]}>
+          <ActivityIndicator size="small" color={Colors.accent} />
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyState}>
+        <Icon name="people-outline" size={48} color={Colors.textMuted} />
+        <Text style={styles.emptyText}>Your circle is empty</Text>
+        <Text style={styles.emptySubtext}>Add someone to start tracking</Text>
+        <View style={{ marginTop: 20, width: '70%' }}>
+          <NeoPopTiltedButton onPress={() => router.push('/add-person')} showShimmer>
+            <Text style={styles.ctaText}>ADD SOMEONE</Text>
+          </NeoPopTiltedButton>
+        </View>
       </View>
-    </View>
-  ), []);
+    );
+  }, [isCacheHydrated]);
 
   const renderItem = useCallback(({ item }: { item: any }) => (
     <PersonItem person={item} balance={getPersonBalance(item.id)} />

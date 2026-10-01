@@ -19,11 +19,21 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { useIdTokenAuthRequest } from 'expo-auth-session/providers/google';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
+export const SESSION_CACHE_KEY = '@debtfree_cached_auth_user';
+
+export type AuthUser = User | {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  providerData?: { providerId: string }[];
+};
+
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   isLoading: boolean;
   signInEmail: (email: string, password: string) => Promise<{ error?: string }>;
   signUpEmail: (email: string, password: string) => Promise<{ error?: string }>;
@@ -57,7 +67,7 @@ function GoogleAuthInner({ onGooglePrompt }: { onGooglePrompt: (promptFn: () => 
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const nativeAvailable = Platform.OS !== 'web' && IS_DEV_BUILD;
   const useExpoAuth = Platform.OS !== 'web' && !IS_DEV_BUILD;
@@ -79,9 +89,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [nativeAvailable]);
 
   useEffect(() => {
+    // 1. Immediately read cached user session (<5ms)
+    AsyncStorage.getItem(SESSION_CACHE_KEY).then(cached => {
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.uid) {
+            setUser(prev => prev || parsed);
+            setIsLoading(false);
+          }
+        } catch {}
+      }
+    }).catch(() => {});
+
+    // 2. Firebase live listener
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setIsLoading(false);
+      if (u) {
+        const session = {
+          uid: u.uid,
+          email: u.email,
+          displayName: u.displayName,
+          providerData: u.providerData?.map(p => ({ providerId: p.providerId })) || [],
+        };
+        AsyncStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(session)).catch(() => {});
+        AsyncStorage.setItem('@debtfree_last_uid', u.uid).catch(() => {});
+      } else {
+        AsyncStorage.removeItem(SESSION_CACHE_KEY).catch(() => {});
+      }
     });
     return unsub;
   }, []);
@@ -238,6 +274,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await RNGoogleSignIn.GoogleSignin.signOut();
       } catch {}
     }
+    await AsyncStorage.removeItem(SESSION_CACHE_KEY).catch(() => {});
+    await AsyncStorage.removeItem('@debtfree_last_uid').catch(() => {});
+    setUser(null);
     await firebaseSignOut(auth);
   }, [nativeAvailable]);
 
