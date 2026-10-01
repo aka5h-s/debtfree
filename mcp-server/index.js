@@ -979,29 +979,10 @@ async function startHttpServer() {
             in: 'header',
             name: 'x-api-key',
           },
-          BearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-          },
-          OAuth2: {
-            type: 'oauth2',
-            flows: {
-              authorizationCode: {
-                authorizationUrl: `${baseUrl}/oauth/authorize`,
-                tokenUrl: `${baseUrl}/oauth/token`,
-                scopes: {
-                  read: 'Read DebtFree ledger data',
-                  write: 'Add and edit transactions',
-                },
-              },
-            },
-          },
         },
       },
       security: [
-        { OAuth2: ['read', 'write'] },
         { ApiKeyAuth: [] },
-        { BearerAuth: [] },
       ],
     });
   });
