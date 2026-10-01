@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView, Alert } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -7,7 +7,6 @@ import { Icon } from '@/components/Icon';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopCard } from '@/components/NeoPopCard';
-import { NeoPopButton } from '@/components/NeoPopButton';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
 import { ShimmerText } from '@/components/ShimmerText';
 import { formatCurrency, getReturnDateStatus, formatRelativeDate } from '@/lib/formatters';
@@ -69,31 +68,11 @@ export default function DashboardScreen() {
     globalBalance,
     totalLent,
     totalBorrowed,
-    deletedItems,
-    restoreDeletedItem,
-    permanentlyDeleteTrashItem,
-    emptyTrash,
   } = useData();
   const [search, setSearch] = useState('');
   const [sortType, setSortType] = useState<SortType>('balance_high');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [hideSettled, setHideSettled] = useState(false);
-  const [undoToast, setUndoToast] = useState<{ id: string; title: string } | null>(null);
-
-  const prevDeletedIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (deletedItems.length > 0) {
-      const newest = deletedItems[0];
-      if (prevDeletedIdRef.current !== newest.id && Date.now() - newest.deletedAt < 10000) {
-        setUndoToast({ id: newest.id, title: newest.title });
-        const timer = setTimeout(() => {
-          setUndoToast(curr => (curr?.id === newest.id ? null : curr));
-        }, 5000);
-        prevDeletedIdRef.current = newest.id;
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [deletedItems]);
 
   const settledCount = useMemo(() => people.filter(p => getPersonBalance(p.id) === 0).length, [people, getPersonBalance]);
 
@@ -409,44 +388,20 @@ export default function DashboardScreen() {
             );
           })}
 
-          <View style={{ marginTop: 20 }}>
-            <NeoPopButton onPress={() => setShowFilterModal(false)} variant="primary">
+          <View style={{ marginTop: 24 }}>
+            <NeoPopTiltedButton
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowFilterModal(false);
+              }}
+              color={Colors.primary}
+              plunkColor={Colors.primaryDark}
+            >
               <Text style={styles.applyBtnText}>APPLY</Text>
-            </NeoPopButton>
+            </NeoPopTiltedButton>
           </View>
         </View>
       </Modal>
-
-      {/* Quick Undo Toast */}
-      {undoToast && (
-        <View style={[styles.undoToastContainer, { bottom: Platform.OS === 'web' ? 84 + 34 + 16 : 100 + 16 }]}>
-          <View style={styles.undoToast}>
-            <View style={styles.undoToastLeft}>
-              <Icon name="trash-outline" size={16} color={Colors.negative} />
-              <Text style={styles.undoToastText} numberOfLines={1}>
-                Deleted <Text style={styles.undoToastBold}>"{undoToast.title}"</Text>
-              </Text>
-            </View>
-            <View style={styles.undoToastActions}>
-              <Pressable
-                style={styles.undoBtn}
-                onPress={async () => {
-                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  const targetId = undoToast.id;
-                  setUndoToast(null);
-                  await restoreDeletedItem(targetId);
-                }}
-              >
-                <Icon name="restore" size={13} color="#000" />
-                <Text style={styles.undoBtnText}>UNDO</Text>
-              </Pressable>
-              <Pressable onPress={() => setUndoToast(null)} style={styles.undoCloseBtn}>
-                <Icon name="close" size={14} color={Colors.textMuted} />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -892,70 +847,10 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   applyBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Fonts.bold,
     color: '#000000',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     textAlign: 'center',
-  },
-  undoToastContainer: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    zIndex: 9999,
-  },
-  undoToast: {
-    backgroundColor: '#1C1C1E',
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  undoToastLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    marginRight: 10,
-  },
-  undoToastText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: Colors.white,
-    flexShrink: 1,
-  },
-  undoToastBold: {
-    fontFamily: Fonts.bold,
-    color: Colors.primary,
-  },
-  undoToastActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  undoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  undoBtnText: {
-    fontSize: 11,
-    fontFamily: Fonts.bold,
-    color: '#000000',
-    letterSpacing: 0.5,
-  },
-  undoCloseBtn: {
-    padding: 4,
   },
 });

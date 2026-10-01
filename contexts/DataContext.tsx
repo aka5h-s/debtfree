@@ -265,6 +265,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       type: 'PERSON',
       title: targetPerson.name,
       subtitle: `${personTxs.length} transaction${personTxs.length === 1 ? '' : 's'}`,
+      amount: Math.abs(personTxs.reduce((sum, t) => sum + (t.direction === 'YOU_LENT' ? t.amount : -t.amount), 0)),
+      direction: personTxs.reduce((sum, t) => sum + (t.direction === 'YOU_LENT' ? t.amount : -t.amount), 0) >= 0 ? 'YOU_LENT' : 'YOU_BORROWED',
       deletedAt: Date.now(),
       data: targetPerson,
       associatedTxs: personTxs,

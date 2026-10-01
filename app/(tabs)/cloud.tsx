@@ -11,7 +11,7 @@ import { useData } from '@/contexts/DataContext';
 import { Fonts } from '@/lib/fonts';
 import * as Clipboard from 'expo-clipboard';
 import { sendTestNotificationNow, requestNotificationPermissions } from '@/lib/notifications';
-import { formatRelativeDate } from '@/lib/formatters';
+import { formatRelativeDate, formatCurrency } from '@/lib/formatters';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -866,6 +866,11 @@ export default function ProfileScreen() {
                 const isTx = item.type === 'TRANSACTION';
                 const badgeBg = isPerson ? 'rgba(229, 254, 64, 0.15)' : isTx ? 'rgba(6, 194, 112, 0.15)' : 'rgba(74, 144, 226, 0.15)';
                 const badgeColor = isPerson ? Colors.primary : isTx ? Colors.positive : '#4A90E2';
+                const itemAmount = item.amount !== undefined ? item.amount : item.data?.amount;
+                const itemDirection = item.direction || item.data?.direction;
+                const isLent = itemDirection === 'YOU_LENT';
+                const hasAmount = itemAmount !== undefined && (isTx || itemAmount > 0);
+
                 return (
                   <View key={item.id} style={styles.trashItemRow}>
                     <View style={styles.trashItemInfo}>
@@ -875,7 +880,19 @@ export default function ProfileScreen() {
                         </View>
                         <Text style={styles.trashItemTime}>{formatRelativeDate(item.deletedAt)}</Text>
                       </View>
-                      <Text style={styles.trashItemTitle} numberOfLines={1}>{item.title}</Text>
+                      <View style={styles.trashItemTitleRow}>
+                        <Text style={styles.trashItemTitle} numberOfLines={1}>{item.title}</Text>
+                        {hasAmount && (
+                          <Text
+                            style={[
+                              styles.trashItemAmount,
+                              { color: isLent ? Colors.positive : Colors.negative }
+                            ]}
+                          >
+                            {formatCurrency(itemAmount)}
+                          </Text>
+                        )}
+                      </View>
                       {item.subtitle ? (
                         <Text style={styles.trashItemSubtitle} numberOfLines={1}>{item.subtitle}</Text>
                       ) : null}
@@ -1778,10 +1795,21 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     color: Colors.textMuted,
   },
+  trashItemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   trashItemTitle: {
     fontSize: 15,
     fontFamily: Fonts.semibold,
     color: Colors.white,
+    flex: 1,
+  },
+  trashItemAmount: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
   },
   trashItemSubtitle: {
     fontSize: 12,
