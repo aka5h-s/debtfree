@@ -982,15 +982,24 @@ async function startHttpServer() {
           },
         },
         securitySchemes: {
-          ApiKeyAuth: {
-            type: 'apiKey',
-            in: 'header',
-            name: 'x-api-key',
+          OAuth2: {
+            type: 'oauth2',
+            description: 'OAuth 2.0 authentication for DebtFree users',
+            flows: {
+              authorizationCode: {
+                authorizationUrl: `${baseUrl}/oauth/authorize`,
+                tokenUrl: `${baseUrl}/oauth/token`,
+                scopes: {
+                  'read': 'Read personal debts and contacts',
+                  'write': 'Create transactions and manage records',
+                },
+              },
+            },
           },
         },
       },
       security: [
-        { ApiKeyAuth: [] },
+        { OAuth2: ['read', 'write'] },
       ],
     });
   });
