@@ -11,11 +11,25 @@ import { useData } from '@/contexts/DataContext';
 import { Fonts } from '@/lib/fonts';
 import * as Clipboard from 'expo-clipboard';
 import { sendTestNotificationNow, requestNotificationPermissions } from '@/lib/notifications';
+import { formatRelativeDate } from '@/lib/formatters';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, updateUserProfile, setAccountPassword } = useAuth();
-  const { people, transactions, cards, isOnline, isSyncing, pendingSyncCount, reload } = useData();
+  const {
+    people,
+    transactions,
+    cards,
+    isOnline,
+    isSyncing,
+    pendingSyncCount,
+    reload,
+    deletedItems,
+    restoreDeletedItem,
+    permanentlyDeleteTrashItem,
+    emptyTrash,
+  } = useData();
+  const [showTrashModal, setShowTrashModal] = useState(false);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
   const topPad = Math.max(insets.top, webTopInset);
@@ -452,6 +466,45 @@ export default function ProfileScreen() {
         </NeoPopCard>
       </View>
 
+      {/* Recently Deleted / Trash Bin Card */}
+      <View style={styles.section}>
+        <NeoPopCard color={Colors.surface} depth={3}>
+          <Pressable
+            style={styles.trashCard}
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowTrashModal(true);
+            }}
+          >
+            <View style={styles.trashCardLeft}>
+              <View style={[styles.trashCardIconBox, deletedItems.length > 0 && styles.trashCardIconBoxActive]}>
+                <Icon
+                  name="trash-outline"
+                  size={18}
+                  color={deletedItems.length > 0 ? Colors.negative : Colors.textMuted}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.trashCardTitle}>RECENTLY DELETED</Text>
+                  {deletedItems.length > 0 && (
+                    <View style={styles.trashCountBadge}>
+                      <Text style={styles.trashCountBadgeText}>{deletedItems.length}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.trashCardSubtitle}>
+                  {deletedItems.length === 0
+                    ? 'Trash is empty • all contacts & txs safe'
+                    : `${deletedItems.length} recoverable item${deletedItems.length === 1 ? '' : 's'}`}
+                </Text>
+              </View>
+            </View>
+            <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
+          </Pressable>
+        </NeoPopCard>
+      </View>
+
       <View style={styles.section}>
         <NeoPopButton onPress={handleSignOut} variant="secondary">
           <View style={styles.signOutBtn}>
@@ -743,6 +796,127 @@ export default function ProfileScreen() {
               <Text style={styles.modalDoneBtnText}>GOT IT, CLOSE</Text>
             </Pressable>
           </View>
+        </View>
+      </Modal>
+
+      {/* Recently Deleted Trash Bin Modal */}
+      <Modal visible={showTrashModal} transparent animationType="slide" onRequestClose={() => setShowTrashModal(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowTrashModal(false)} />
+        <View style={styles.trashSheet}>
+          <View style={styles.sheetHandle} />
+          
+          <View style={styles.trashHeaderRow}>
+            <View>
+              <Text style={styles.trashModalTitle}>RECENTLY DELETED</Text>
+              <Text style={styles.trashModalSubtitle}>
+                {deletedItems.length} {deletedItems.length === 1 ? 'item' : 'items'} in trash
+              </Text>
+            </View>
+
+            <View style={styles.trashHeaderActions}>
+              {deletedItems.length > 0 && (
+                <Pressable
+                  onPress={() => {
+                    const doEmpty = () => {
+                      if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      emptyTrash();
+                    };
+                    if (Platform.OS === 'web') {
+                      if (confirm('Permanently delete all items from trash? This cannot be undone.')) doEmpty();
+                    } else {
+                      Alert.alert(
+                        'Empty Trash',
+                        'Permanently delete all items from trash? This action cannot be undone.',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Empty All', style: 'destructive', onPress: doEmpty },
+                        ]
+                      );
+                    }
+                  }}
+                  style={styles.emptyAllBtn}
+                >
+                  <Text style={styles.emptyAllBtnText}>EMPTY ALL</Text>
+                </Pressable>
+              )}
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowTrashModal(false);
+                }}
+                style={styles.trashModalCloseBtn}
+              >
+                <Icon name="close" size={20} color={Colors.textMuted} />
+              </Pressable>
+            </View>
+          </View>
+
+          {deletedItems.length === 0 ? (
+            <View style={styles.trashEmptyState}>
+              <Icon name="trash-outline" size={44} color={Colors.textMuted} />
+              <Text style={styles.trashEmptyTitle}>Trash is Empty</Text>
+              <Text style={styles.trashEmptySubtitle}>
+                Deleted contacts, transactions, and cards can be restored from here anytime.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.trashScrollView} contentContainerStyle={styles.trashScrollContent} showsVerticalScrollIndicator={false}>
+              {deletedItems.map((item) => {
+                const isPerson = item.type === 'PERSON';
+                const isTx = item.type === 'TRANSACTION';
+                const badgeBg = isPerson ? 'rgba(229, 254, 64, 0.15)' : isTx ? 'rgba(6, 194, 112, 0.15)' : 'rgba(74, 144, 226, 0.15)';
+                const badgeColor = isPerson ? Colors.primary : isTx ? Colors.positive : '#4A90E2';
+                return (
+                  <View key={item.id} style={styles.trashItemRow}>
+                    <View style={styles.trashItemInfo}>
+                      <View style={styles.trashItemTopLine}>
+                        <View style={[styles.trashItemBadge, { backgroundColor: badgeBg }]}>
+                          <Text style={[styles.trashItemBadgeText, { color: badgeColor }]}>{item.type}</Text>
+                        </View>
+                        <Text style={styles.trashItemTime}>{formatRelativeDate(item.deletedAt)}</Text>
+                      </View>
+                      <Text style={styles.trashItemTitle} numberOfLines={1}>{item.title}</Text>
+                      {item.subtitle ? (
+                        <Text style={styles.trashItemSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+                      ) : null}
+                    </View>
+
+                    <View style={styles.trashItemActions}>
+                      <Pressable
+                        style={styles.restoreBtn}
+                        onPress={async () => {
+                          if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          await restoreDeletedItem(item.id);
+                        }}
+                      >
+                        <Icon name="restore" size={13} color="#000" />
+                        <Text style={styles.restoreBtnText}>RESTORE</Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.permDeleteBtn}
+                        onPress={() => {
+                          const doDelete = () => {
+                            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            permanentlyDeleteTrashItem(item.id);
+                          };
+                          if (Platform.OS === 'web') {
+                            if (confirm(`Permanently delete "${item.title}"?`)) doDelete();
+                          } else {
+                            Alert.alert('Delete Permanently', `Permanently delete "${item.title}"?`, [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: 'Delete', style: 'destructive', onPress: doDelete },
+                            ]);
+                          }
+                        }}
+                      >
+                        <Icon name="close" size={16} color={Colors.textMuted} />
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
       </Modal>
     </ScrollView>
@@ -1432,5 +1606,209 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     color: '#000000',
     letterSpacing: 1,
+  },
+  trashCard: {
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trashCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  trashCardIconBox: {
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trashCardIconBoxActive: {
+    backgroundColor: 'rgba(238, 77, 55, 0.12)',
+    borderColor: Colors.negative,
+  },
+  trashCardTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+    letterSpacing: 1,
+  },
+  trashCardSubtitle: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  trashCountBadge: {
+    backgroundColor: Colors.negative,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  trashCountBadgeText: {
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  trashSheet: {
+    backgroundColor: '#181818',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingHorizontal: 20,
+    maxHeight: '80%',
+  },
+  trashHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  trashModalTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+    letterSpacing: 1.5,
+  },
+  trashModalSubtitle: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  trashHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyAllBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(238, 77, 55, 0.15)',
+    borderWidth: 1,
+    borderColor: Colors.negative,
+  },
+  emptyAllBtnText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: Colors.negative,
+    letterSpacing: 0.8,
+  },
+  trashModalCloseBtn: {
+    padding: 6,
+  },
+  trashEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  trashEmptyTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semibold,
+    color: Colors.textSecondary,
+    marginTop: 12,
+  },
+  trashEmptySubtitle: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  trashScrollView: {
+    maxHeight: 400,
+  },
+  trashScrollContent: {
+    gap: 10,
+    paddingBottom: 16,
+  },
+  trashItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  trashItemInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  trashItemTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  trashItemBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  trashItemBadgeText: {
+    fontSize: 9,
+    fontFamily: Fonts.bold,
+    letterSpacing: 0.5,
+  },
+  trashItemTime: {
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    color: Colors.textMuted,
+  },
+  trashItemTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.semibold,
+    color: Colors.white,
+  },
+  trashItemSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  trashItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  restoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  restoreBtnText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
+  permDeleteBtn: {
+    padding: 6,
   },
 });
