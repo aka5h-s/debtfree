@@ -53,11 +53,11 @@ function generateId() {
   return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-// Create the MCP server instance
-const server = new McpServer({
-  name: 'debtfree-mcp',
-  version: '1.0.0',
-});
+function createMcpServer() {
+  const server = new McpServer({
+    name: 'debtfree-mcp',
+    version: '1.0.0',
+  });
 
 // ==========================================
 // 1. PEOPLE TOOLS (CRUD)
@@ -585,7 +585,10 @@ server.tool(
       };
     }
   }
-);
+  );
+
+  return server;
+}
 
 // ==========================================
 // 4. SERVER LAUNCH (Dual Mode: HTTP/SSE + Stdio)
@@ -1133,18 +1136,24 @@ async function startHttpServer() {
 
   // MCP Transport for native MCP clients (ChatGPT Plugin Creator, Claude, Cursor, Antigravity)
   const handleMcpConnection = async (req, res) => {
-    const proto = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.get('host');
-    const messagesEndpoint = `${proto}://${host}/messages`;
+    try {
+      const proto = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const messagesEndpoint = `${proto}://${host}/messages`;
 
-    const transport = new SSEServerTransport(messagesEndpoint, res);
-    transports.set(transport.sessionId, transport);
+      const transport = new SSEServerTransport(messagesEndpoint, res);
+      transports.set(transport.sessionId, transport);
 
-    transport.onclose = () => {
-      transports.delete(transport.sessionId);
-    };
+      transport.onclose = () => {
+        transports.delete(transport.sessionId);
+      };
 
-    await server.connect(transport);
+      const instance = createMcpServer();
+      await instance.connect(transport);
+    } catch (err) {
+      console.error('SSE connect error:', err);
+      if (!res.headersSent) res.status(500).send(err.message);
+    }
   };
 
   app.get('/mcp', handleMcpConnection);
@@ -1174,7 +1183,8 @@ if (process.argv.includes('--http') || process.env.PORT) {
   });
 } else {
   const transport = new StdioServerTransport();
-  server.connect(transport).then(() => {
+  const stdioServer = createMcpServer();
+  stdioServer.connect(transport).then(() => {
     console.error('DebtFree MCP Server running on stdio');
   }).catch(err => {
     console.error('Fatal error running DebtFree MCP Server:', err);
