@@ -328,6 +328,7 @@ export default function DashboardScreen() {
             onRefresh={handleRefresh}
             tintColor={Colors.primary}
             colors={[Colors.primary]}
+            progressViewOffset={topPad + 12}
           />
         }
         keyboardShouldPersistTaps="handled"
