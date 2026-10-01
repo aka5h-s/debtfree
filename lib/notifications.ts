@@ -98,11 +98,6 @@ function buildReminderSlots(
   const targetDay = returnDate.getDate();
 
   const formattedAmount = formatCurrency(tx.amount);
-  const formattedDate = returnDate.toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-  });
-
   const isLent = tx.direction === 'YOU_LENT';
   const title = `DebtFree: ${personName} · ${formattedAmount}`;
 
@@ -123,23 +118,23 @@ function buildReminderSlots(
   const dueMorning = new Date(dueDay.getFullYear(), dueDay.getMonth(), dueDay.getDate(), 9, 0, 0);
   const dueNight = new Date(dueDay.getFullYear(), dueDay.getMonth(), dueDay.getDate(), 20, 30, 0);
 
-  // Slot definitions with minimalist/discreet copy
+  // Slot definitions with minimalist/discreet copy (clean day reference only)
   if (isLent) {
     slots.push(
       {
         triggerDate: d2Morning,
         title,
-        body: `Repayment scheduled in 2 days (${formattedDate})`,
+        body: `Repayment scheduled in 2 days`,
       },
       {
         triggerDate: d2Night,
         title,
-        body: `Reminder: Repayment scheduled in 2 days (${formattedDate})`,
+        body: `Reminder: Repayment scheduled in 2 days`,
       },
       {
         triggerDate: d1Morning,
         title,
-        body: `Repayment scheduled for tomorrow (${formattedDate})`,
+        body: `Repayment scheduled for tomorrow`,
       },
       {
         triggerDate: d1Night,
@@ -149,7 +144,7 @@ function buildReminderSlots(
       {
         triggerDate: dueMorning,
         title,
-        body: `Repayment scheduled for today (${formattedDate})`,
+        body: `Repayment scheduled for today`,
       },
       {
         triggerDate: dueNight,
@@ -162,17 +157,17 @@ function buildReminderSlots(
       {
         triggerDate: d2Morning,
         title,
-        body: `Payment scheduled in 2 days (${formattedDate})`,
+        body: `Payment scheduled in 2 days`,
       },
       {
         triggerDate: d2Night,
         title,
-        body: `Reminder: Payment scheduled in 2 days (${formattedDate})`,
+        body: `Reminder: Payment scheduled in 2 days`,
       },
       {
         triggerDate: d1Morning,
         title,
-        body: `Payment scheduled for tomorrow (${formattedDate})`,
+        body: `Payment scheduled for tomorrow`,
       },
       {
         triggerDate: d1Night,
@@ -182,7 +177,7 @@ function buildReminderSlots(
       {
         triggerDate: dueMorning,
         title,
-        body: `Payment scheduled for today (${formattedDate})`,
+        body: `Payment scheduled for today`,
       },
       {
         triggerDate: dueNight,
