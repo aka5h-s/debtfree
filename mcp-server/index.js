@@ -915,7 +915,7 @@ async function startHttpServer() {
           get: {
             summary: 'List circle members and their balances',
             operationId: 'listPeople',
-            parameters: [{ name: 'userId', in: 'query', required: true, schema: { type: 'string' } }],
+            parameters: [{ name: 'userId', in: 'query', required: false, schema: { type: 'string', default: 'WOt70TOaGETm3HPaOIJzCq3VKRB3' } }],
             responses: { 200: { description: 'Success' } },
           },
         },
@@ -924,7 +924,7 @@ async function startHttpServer() {
             summary: 'List transactions',
             operationId: 'listTransactions',
             parameters: [
-              { name: 'userId', in: 'query', required: true, schema: { type: 'string' } },
+              { name: 'userId', in: 'query', required: false, schema: { type: 'string', default: 'WOt70TOaGETm3HPaOIJzCq3VKRB3' } },
               { name: 'personId', in: 'query', required: false, schema: { type: 'string' } },
               { name: 'direction', in: 'query', required: false, schema: { type: 'string', enum: ['YOU_LENT', 'YOU_BORROWED'] } },
             ],
@@ -959,7 +959,7 @@ async function startHttpServer() {
           get: {
             summary: 'Financial summary (total lent, borrowed, net balance, debtors/creditors)',
             operationId: 'getFinancialSummary',
-            parameters: [{ name: 'userId', in: 'query', required: true, schema: { type: 'string' } }],
+            parameters: [{ name: 'userId', in: 'query', required: false, schema: { type: 'string', default: 'WOt70TOaGETm3HPaOIJzCq3VKRB3' } }],
             responses: { 200: { description: 'Success' } },
           },
         },
@@ -967,7 +967,7 @@ async function startHttpServer() {
           get: {
             summary: 'Repayments due today, due soon, or overdue',
             operationId: 'getDueAndOverdue',
-            parameters: [{ name: 'userId', in: 'query', required: true, schema: { type: 'string' } }],
+            parameters: [{ name: 'userId', in: 'query', required: false, schema: { type: 'string', default: 'WOt70TOaGETm3HPaOIJzCq3VKRB3' } }],
             responses: { 200: { description: 'Success' } },
           },
         },
@@ -996,8 +996,18 @@ async function startHttpServer() {
   });
 
   // REST endpoints for agents that use direct HTTP calls (ChatGPT Actions, Gemini Functions, LangChain)
+  
+  const DEFAULT_USER_ID = process.env.DEFAULT_USER_ID || 'WOt70TOaGETm3HPaOIJzCq3VKRB3';
+  function resolveUserId(req, paramVal) {
+    if (req.oauthUser?.userId) return req.oauthUser.userId;
+    if (paramVal && paramVal !== 'me' && paramVal !== '{userId}' && paramVal !== 'USER_ID' && paramVal.trim() !== '') {
+      return paramVal;
+    }
+    return DEFAULT_USER_ID;
+  }
+
   app.get('/api/people', async (req, res) => {
-    const userId = req.oauthUser?.userId || req.query.userId;
+    const userId = resolveUserId(req, req.query.userId);
     if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
     const snap = await getDocs(collection(db, 'users', userId, 'people'));
     const txSnap = await getDocs(collection(db, 'users', userId, 'transactions'));
@@ -1016,7 +1026,7 @@ async function startHttpServer() {
   });
 
   app.get('/api/transactions', async (req, res) => {
-    const userId = req.oauthUser?.userId || req.query.userId;
+    const userId = resolveUserId(req, req.query.userId);
     const { personId, direction } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
     const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
@@ -1028,7 +1038,7 @@ async function startHttpServer() {
   });
 
   app.post('/api/transactions', async (req, res) => {
-    const userId = req.oauthUser?.userId || req.body.userId;
+    const userId = resolveUserId(req, req.body.userId);
     const { personId, amount, direction, note, returnDate } = req.body;
     if (!userId || !personId || !amount || !direction) {
       return res.status(400).json({ error: 'userId, personId, amount, and direction are required' });
@@ -1049,7 +1059,7 @@ async function startHttpServer() {
   });
 
   app.get('/api/summary', async (req, res) => {
-    const userId = req.oauthUser?.userId || req.query.userId;
+    const userId = resolveUserId(req, req.query.userId);
     if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
     const snap = await getDocs(collection(db, 'users', userId, 'transactions'));
     let totalLent = 0;
@@ -1063,7 +1073,7 @@ async function startHttpServer() {
   });
 
   app.get('/api/due', async (req, res) => {
-    const userId = req.oauthUser?.userId || req.query.userId;
+    const userId = resolveUserId(req, req.query.userId);
     if (!userId) return res.status(400).json({ error: 'userId is required (or authenticate via OAuth)' });
 
     try {
