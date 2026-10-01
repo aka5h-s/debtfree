@@ -208,29 +208,249 @@ server.tool(
 
 server.tool(
   'delete_person',
-  'Delete a person and all their associated transactions',
+  'Delete a person and all their associated transactions by person ID or name',
   {
     userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
-    personId: z.string().describe('The person ID to delete'),
+    personId: z.string().optional().describe('The person ID to delete'),
+    name: z.string().optional().describe('Or the exact or partial person name to delete'),
   },
-  async ({ userId, personId }) => {
+  async ({ userId, personId, name }) => {
     try {
       const targetUserId = getTargetUser(userId);
-      await deleteDoc(doc(db, 'users', targetUserId, 'people', personId));
+      let targetId = personId;
+
+      if (!targetId && name) {
+        const pSnap = await getDocs(collection(db, 'users', targetUserId, 'people'));
+        const match = [];
+        pSnap.forEach(d => {
+          const p = d.data();
+          if (p.name.toLowerCase().includes(name.trim().toLowerCase())) {
+            match.push(p);
+          }
+        });
+        if (match.length === 0) {
+          return {
+            content: [{ type: 'text', text: `No person matching name "${name}" found.` }],
+            isError: true,
+          };
+        }
+        if (match.length > 1) {
+          return {
+            content: [{ type: 'text', text: `Multiple people found matching "${name}": ${match.map(m => `${m.name} (${m.id})`).join(', ')}. Please specify personId.` }],
+            isError: true,
+          };
+        }
+        targetId = match[0].id;
+      }
+
+      if (!targetId) {
+        return {
+          content: [{ type: 'text', text: 'Please provide either personId or name.' }],
+          isError: true,
+        };
+      }
+
+      await deleteDoc(doc(db, 'users', targetUserId, 'people', targetId));
 
       const txSnap = await getDocs(
-        query(collection(db, 'users', targetUserId, 'transactions'), where('personId', '==', personId))
+        query(collection(db, 'users', targetUserId, 'transactions'), where('personId', '==', targetId))
       );
       const batch = writeBatch(db);
       txSnap.forEach(d => batch.delete(d.ref));
       await batch.commit();
 
       return {
-        content: [{ type: 'text', text: `Deleted person ${personId} and ${txSnap.size} associated transaction(s).` }],
+        content: [{ type: 'text', text: `Deleted person ${targetId} and ${txSnap.size} associated transaction(s).` }],
       };
     } catch (err) {
       return {
         content: [{ type: 'text', text: `Error deleting person: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  'rename_person',
+  'Rename an existing person in your circle by person ID or current name',
+  {
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
+    personId: z.string().optional().describe('The person ID to rename'),
+    currentName: z.string().optional().describe('Or their current name to find them'),
+    newName: z.string().describe('The new name for this person'),
+  },
+  async ({ userId, personId, currentName, newName }) => {
+    try {
+      const targetUserId = getTargetUser(userId);
+      let targetId = personId;
+      let existingPerson = null;
+
+      if (targetId) {
+        const pDoc = await getDoc(doc(db, 'users', targetUserId, 'people', targetId));
+        if (pDoc.exists()) existingPerson = pDoc.data();
+      } else if (currentName) {
+        const pSnap = await getDocs(collection(db, 'users', targetUserId, 'people'));
+        const match = [];
+        pSnap.forEach(d => {
+          const p = d.data();
+          if (p.name.toLowerCase().includes(currentName.trim().toLowerCase())) {
+            match.push(p);
+          }
+        });
+        if (match.length === 0) {
+          return {
+            content: [{ type: 'text', text: `No person matching name "${currentName}" found.` }],
+            isError: true,
+          };
+        }
+        if (match.length > 1) {
+          return {
+            content: [{ type: 'text', text: `Multiple people found matching "${currentName}": ${match.map(m => `${m.name} (${m.id})`).join(', ')}. Please specify personId.` }],
+            isError: true,
+          };
+        }
+        existingPerson = match[0];
+        targetId = existingPerson.id;
+      }
+
+      if (!existingPerson || !targetId) {
+        return {
+          content: [{ type: 'text', text: `Person not found. Please provide personId or currentName.` }],
+          isError: true,
+        };
+      }
+
+      const updated = {
+        ...existingPerson,
+        name: newName.trim(),
+      };
+
+      await setDoc(doc(db, 'users', targetUserId, 'people', targetId), updated);
+
+      return {
+        content: [{ type: 'text', text: `Successfully renamed "${existingPerson.name}" to "${updated.name}" (ID: ${targetId}).` }],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `Error renaming person: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  'settle_person',
+  'Settle up debt with a person partially or completely. Automatically calculates balance and creates offsetting transaction.',
+  {
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
+    personId: z.string().optional().describe('The person ID to settle with'),
+    name: z.string().optional().describe('Or person name to find and settle with'),
+    amount: z.number().positive().optional().describe('Amount being settled/paid. If omitted, settles the entire outstanding balance.'),
+    note: z.string().optional().describe('Optional note (e.g. "Paid via UPI", "Cash settlement")'),
+  },
+  async ({ userId, personId, name, amount, note }) => {
+    try {
+      const targetUserId = getTargetUser(userId);
+      let targetId = personId;
+      let personName = '';
+
+      if (targetId) {
+        const pDoc = await getDoc(doc(db, 'users', targetUserId, 'people', targetId));
+        if (pDoc.exists()) personName = pDoc.data().name;
+      } else if (name) {
+        const pSnap = await getDocs(collection(db, 'users', targetUserId, 'people'));
+        const match = [];
+        pSnap.forEach(d => {
+          const p = d.data();
+          if (p.name.toLowerCase().includes(name.trim().toLowerCase())) {
+            match.push(p);
+          }
+        });
+        if (match.length === 0) {
+          return {
+            content: [{ type: 'text', text: `No person matching "${name}" found.` }],
+            isError: true,
+          };
+        }
+        if (match.length > 1) {
+          return {
+            content: [{ type: 'text', text: `Multiple people found matching "${name}": ${match.map(m => `${m.name} (${m.id})`).join(', ')}. Please specify personId.` }],
+            isError: true,
+          };
+        }
+        targetId = match[0].id;
+        personName = match[0].name;
+      }
+
+      if (!targetId) {
+        return {
+          content: [{ type: 'text', text: 'Please specify personId or name to settle with.' }],
+          isError: true,
+        };
+      }
+
+      // Calculate current net balance with this person
+      const txSnap = await getDocs(
+        query(collection(db, 'users', targetUserId, 'transactions'), where('personId', '==', targetId))
+      );
+      let currentBalance = 0; // > 0: they owe user, < 0: user owes them
+      txSnap.forEach(d => {
+        const t = d.data();
+        if (t.direction === 'YOU_LENT') currentBalance += t.amount;
+        else currentBalance -= t.amount;
+      });
+
+      if (currentBalance === 0) {
+        return {
+          content: [{ type: 'text', text: `${personName || targetId} is already fully settled (balance: ₹0). No transaction needed.` }],
+        };
+      }
+
+      // Settle amount
+      const isOwedToUser = currentBalance > 0; // Rahul owes user
+      const fullAmount = Math.abs(currentBalance);
+      const settleAmount = amount !== undefined ? Math.min(amount, fullAmount) : fullAmount;
+
+      // To offset:
+      // If they owe user (currentBalance > 0), they are paying user back -> direction is YOU_BORROWED (offsets YOU_LENT)
+      // If user owes them (currentBalance < 0), user is paying them back -> direction is YOU_LENT (offsets YOU_BORROWED)
+      const offsetDirection = isOwedToUser ? 'YOU_BORROWED' : 'YOU_LENT';
+
+      const id = generateId();
+      const settlementTx = {
+        id,
+        personId: targetId,
+        amount: settleAmount,
+        direction: offsetDirection,
+        date: Date.now(),
+        returnDate: null,
+        note: (note || (amount && amount < fullAmount ? 'Partial settlement' : 'Full settlement')).trim(),
+        createdAt: Date.now(),
+      };
+
+      await setDoc(doc(db, 'users', targetUserId, 'transactions', id), settlementTx);
+
+      const remainingBalance = isOwedToUser ? currentBalance - settleAmount : currentBalance + settleAmount;
+      const statusText =
+        remainingBalance === 0
+          ? '🎉 Fully settled! Net balance is now ₹0.'
+          : remainingBalance > 0
+          ? `Remaining balance: ₹${remainingBalance} owed to you.`
+          : `Remaining balance: You owe ₹${Math.abs(remainingBalance)}.`;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Settlement recorded for ${personName || targetId}: ₹${settleAmount} (${offsetDirection === 'YOU_BORROWED' ? 'Received from' : 'Paid to'} ${personName || targetId}).\n${statusText}\n(Transaction ID: ${id})`,
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `Error settling person: ${err.message}` }],
         isError: true,
       };
     }
