@@ -164,6 +164,46 @@ server.tool(
 );
 
 server.tool(
+  'add_person',
+  'Add a new person/contact to your circle (alias for create_person)',
+  {
+    userId: z.string().optional().describe('The user ID (defaults to authenticated user)'),
+    name: z.string().describe("Person's name"),
+    phone: z.string().optional().describe('Phone number (optional)'),
+    notes: z.string().optional().describe('Notes about this person (optional)'),
+  },
+  async ({ userId, name, phone, notes }) => {
+    try {
+      const targetUserId = getTargetUser(userId);
+      const id = generateId();
+      const person = {
+        id,
+        name: name.trim(),
+        phone: (phone || '').trim(),
+        notes: (notes || '').trim(),
+        createdAt: Date.now(),
+      };
+
+      await setDoc(doc(db, 'users', targetUserId, 'people', id), person);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Successfully added ${person.name} (ID: ${person.id}) to circle.`,
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `Error adding person: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
   'update_person',
   'Update person details (name, phone, notes)',
   {
