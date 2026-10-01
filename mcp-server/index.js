@@ -901,7 +901,7 @@ async function startHttpServer() {
       });
       const tokenData = await tokenRes.json();
       if (!tokenData.id_token) {
-        return res.status(400).send(`Google authentication failed: ${tokenData.error_description || 'No ID token returned'}`);
+        return res.status(400).send(`Google authentication failed: ${JSON.stringify(tokenData)}`);
       }
 
       // Sign in to Firebase with the Google ID Token via Identity Toolkit
