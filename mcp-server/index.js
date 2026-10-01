@@ -903,7 +903,7 @@ async function startHttpServer() {
     const proto = req.headers['x-forwarded-proto'] || req.protocol;
     const baseUrl = `${proto}://${req.get('host')}`;
     res.json({
-      openapi: '3.1.0',
+      openapi: '3.0.1',
       info: {
         title: 'DebtFree AI API',
         description: 'Universal AI connection to DebtFree app for ChatGPT, Gemini, Llama, and Claude.',
@@ -973,7 +973,14 @@ async function startHttpServer() {
         },
       },
       components: {
-        schemas: {},
+        schemas: {
+          DebtFreeUser: {
+            type: 'object',
+            properties: {
+              userId: { type: 'string' },
+            },
+          },
+        },
         securitySchemes: {
           ApiKeyAuth: {
             type: 'apiKey',
