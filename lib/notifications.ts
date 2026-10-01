@@ -104,7 +104,7 @@ function buildReminderSlots(
   });
 
   const isLent = tx.direction === 'YOU_LENT';
-  const title = isLent ? `Repayment Reminder · ${personName}` : `Payment Due · ${personName}`;
+  const title = `DebtFree: ${personName} · ${formattedAmount}`;
 
   const slots: NotificationSlot[] = [];
 
@@ -123,38 +123,38 @@ function buildReminderSlots(
   const dueMorning = new Date(dueDay.getFullYear(), dueDay.getMonth(), dueDay.getDate(), 9, 0, 0);
   const dueNight = new Date(dueDay.getFullYear(), dueDay.getMonth(), dueDay.getDate(), 20, 30, 0);
 
-  // Slot definitions with customized copy
+  // Slot definitions with minimalist/discreet copy
   if (isLent) {
     slots.push(
       {
         triggerDate: d2Morning,
         title,
-        body: `${personName} is expected to return ${formattedAmount} in 2 days (${formattedDate}).`,
+        body: `Repayment scheduled in 2 days (${formattedDate})`,
       },
       {
         triggerDate: d2Night,
         title,
-        body: `Upcoming: ${personName} owes ${formattedAmount}, due in 2 days on ${formattedDate}.`,
+        body: `Reminder: Repayment scheduled in 2 days (${formattedDate})`,
       },
       {
         triggerDate: d1Morning,
         title,
-        body: `Tomorrow: ${personName} is expected to return ${formattedAmount}.`,
+        body: `Repayment scheduled for tomorrow (${formattedDate})`,
       },
       {
         triggerDate: d1Night,
         title,
-        body: `Reminder: ${personName} repayment of ${formattedAmount} is due tomorrow.`,
+        body: `Reminder: Repayment scheduled for tomorrow`,
       },
       {
         triggerDate: dueMorning,
         title,
-        body: `Due Today: ${personName} is expected to return ${formattedAmount} today!`,
+        body: `Repayment scheduled for today (${formattedDate})`,
       },
       {
         triggerDate: dueNight,
         title,
-        body: `Did ${personName} return ${formattedAmount}? Tap to view transaction in DebtFree.`,
+        body: `Follow-up: Repayment was due today`,
       }
     );
   } else {
@@ -162,32 +162,32 @@ function buildReminderSlots(
       {
         triggerDate: d2Morning,
         title,
-        body: `You need to send ${formattedAmount} to ${personName} in 2 days (${formattedDate}).`,
+        body: `Payment scheduled in 2 days (${formattedDate})`,
       },
       {
         triggerDate: d2Night,
         title,
-        body: `Reminder: You owe ${formattedAmount} to ${personName}, due in 2 days on ${formattedDate}.`,
+        body: `Reminder: Payment scheduled in 2 days (${formattedDate})`,
       },
       {
         triggerDate: d1Morning,
         title,
-        body: `Tomorrow: You need to send ${formattedAmount} to ${personName}.`,
+        body: `Payment scheduled for tomorrow (${formattedDate})`,
       },
       {
         triggerDate: d1Night,
         title,
-        body: `Reminder: Your payment of ${formattedAmount} to ${personName} is due tomorrow.`,
+        body: `Reminder: Payment scheduled for tomorrow`,
       },
       {
         triggerDate: dueMorning,
         title,
-        body: `Due Today: You need to send ${formattedAmount} to ${personName} today.`,
+        body: `Payment scheduled for today (${formattedDate})`,
       },
       {
         triggerDate: dueNight,
         title,
-        body: `Did you send ${formattedAmount} to ${personName}? Tap to view transaction in DebtFree.`,
+        body: `Follow-up: Payment was due today`,
       }
     );
   }
@@ -297,8 +297,8 @@ export async function sendTestNotificationNow(): Promise<{ success: boolean; mes
     const triggerType = notif.SchedulableTriggerInputTypes?.TIME_INTERVAL ?? 'timeInterval';
     await notif.scheduleNotificationAsync({
       content: {
-        title: '🔔 Repayment Reminder Test',
-        body: 'Due soon: Rahul owes you ₹2,500 by tomorrow (Day -1 reminder)',
+        title: 'DebtFree: Rahul · ₹2,500.00',
+        body: 'Repayment scheduled for tomorrow (Test notification)',
         sound: true,
       },
       trigger: {
