@@ -616,7 +616,7 @@ async function startHttpServer() {
       req.path === '/sse' ||
       req.path === '/messages' ||
       req.path === '/openapi.json' ||
-      req.path === '/.well-known/ai-plugin.json' ||
+      req.path.startsWith('/.well-known/') ||
       req.path.startsWith('/oauth/')
     ) {
       return next();
@@ -645,6 +645,27 @@ async function startHttpServer() {
 
     next();
   });
+
+
+  // RFC 8414 OAuth 2.0 Authorization Server Metadata
+  const getOAuthMetadata = (req, res) => {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${proto}://${host}`;
+    res.json({
+      issuer: baseUrl,
+      authorization_endpoint: `${baseUrl}/oauth/authorize`,
+      token_endpoint: `${baseUrl}/oauth/token`,
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code'],
+      token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic', 'none'],
+      scopes_supported: ['read', 'write'],
+      code_challenge_methods_supported: ['S256', 'plain'],
+    });
+  };
+
+  app.get('/.well-known/oauth-authorization-server', getOAuthMetadata);
+  app.get('/.well-known/openid-configuration', getOAuthMetadata);
 
   // 1. OpenAI / Agent Plugin Manifest
   app.get('/.well-known/ai-plugin.json', (req, res) => {
