@@ -867,6 +867,76 @@ async function startHttpServer() {
     res.redirect(googleAuthUrl);
   });
 
+  // 4b. OAuth Google Callback
+  app.get('/oauth/google-callback', async (req, res) => {
+    const { code, state } = req.query;
+    let redirectUri = '';
+    let clientState = '';
+    try {
+      if (state) {
+        const parsed = JSON.parse(state);
+        redirectUri = parsed.redirectUri;
+        clientState = parsed.state;
+      }
+    } catch (e) {}
+
+    try {
+      const GOOGLE_CLIENT_ID = process.env.GOOGLE_WEB_CLIENT_ID || '629935243184-vflmb8gi97r6e7fcsmdk1dg6i4ib9e2a.apps.googleusercontent.com';
+      const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_WEB_CLIENT_SECRET || '';
+
+      // Exchange code for Google ID token
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          redirect_uri: `https://${req.get('host')}/oauth/google-callback`,
+          grant_type: 'authorization_code',
+        }),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenData.id_token) {
+        return res.status(400).send(`Google authentication failed: ${tokenData.error_description || 'No ID token returned'}`);
+      }
+
+      // Sign in to Firebase with the Google ID Token via Identity Toolkit
+      const fbRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${firebaseConfig.apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            postBody: `id_token=${tokenData.id_token}&providerId=google.com`,
+            requestUri: `https://${req.get('host')}/oauth/google-callback`,
+            returnSecureToken: true,
+          }),
+        }
+      );
+      const fbData = await fbRes.json();
+      if (fbData.error) {
+        return res.status(400).send(`Firebase login failed: ${fbData.error.message}`);
+      }
+
+      // Generate single-use authorization code
+      const authCode = 'df_code_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+      oauthCodes.set(authCode, {
+        userId: fbData.localId,
+        email: fbData.email,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      });
+
+      const finalRedirect = redirectUri
+        ? `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}code=${authCode}&state=${encodeURIComponent(clientState || '')}`
+        : `/oauth/success?code=${authCode}`;
+
+      res.redirect(finalRedirect);
+    } catch (err) {
+      res.status(500).send('Google sign-in error: ' + err.message);
+    }
+  });
+
   // 5. OAuth Token Exchange Endpoint (RFC 6749)
   app.post('/oauth/token', express.urlencoded({ extended: true }), (req, res) => {
     const { code, grant_type } = req.body;
