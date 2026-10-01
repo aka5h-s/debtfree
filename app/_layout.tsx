@@ -21,6 +21,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
+import { registerNotificationResponseListener } from "@/lib/notifications";
 
 SplashScreen.preventAutoHideAsync();
 SystemUI.setBackgroundColorAsync('#0D0D0D').catch(() => {});
@@ -69,6 +70,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function RootLayoutNav() {
   const isAndroid = Platform.OS === 'android';
+
+  useEffect(() => {
+    const unsubscribe = registerNotificationResponseListener((personId) => {
+      router.push({ pathname: '/person/[id]', params: { id: personId } });
+    });
+    return unsubscribe;
+  }, []);
 
   return (
     <AuthGate>

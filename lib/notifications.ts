@@ -78,6 +78,41 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   }
 }
 
+/**
+ * Register listener for when a user taps a notification.
+ * Automatically navigates directly to the specific person's profile.
+ */
+export function registerNotificationResponseListener(onNavigateToPerson: (personId: string) => void): () => void {
+  const notif = getNotifications();
+  if (!notif || typeof notif.addNotificationResponseReceivedListener !== 'function') {
+    return () => {};
+  }
+
+  // Handle cold start when opened from notification
+  if (typeof notif.getLastNotificationResponseAsync === 'function') {
+    notif.getLastNotificationResponseAsync().then((response: any) => {
+      const personId = response?.notification?.request?.content?.data?.personId;
+      if (personId) {
+        onNavigateToPerson(personId);
+      }
+    }).catch(() => {});
+  }
+
+  // Handle tap while app is backgrounded or open
+  const sub = notif.addNotificationResponseReceivedListener((response: any) => {
+    const personId = response?.notification?.request?.content?.data?.personId;
+    if (personId) {
+      onNavigateToPerson(personId);
+    }
+  });
+
+  return () => {
+    if (sub && typeof sub.remove === 'function') {
+      sub.remove();
+    }
+  };
+}
+
 interface NotificationSlot {
   triggerDate: Date;
   title: string;
