@@ -88,10 +88,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
           AsyncStorage.getItem(CACHE_KEYS.PENDING_SYNC(uid)),
         ]);
         if (isMounted) {
-          if (cachedP) setPeople(JSON.parse(cachedP));
-          if (cachedT) setTransactions(JSON.parse(cachedT));
-          if (cachedC) setCards(JSON.parse(cachedC));
-          if (cachedTrash) setDeletedItems(JSON.parse(cachedTrash));
+          const parsedPeople: Person[] = cachedP ? JSON.parse(cachedP) : [];
+          const parsedTrash: DeletedItem[] = cachedTrash ? JSON.parse(cachedTrash) : [];
+          const parsedCards: CreditCard[] = cachedC ? JSON.parse(cachedC) : [];
+          let parsedTxs: Transaction[] = cachedT ? JSON.parse(cachedT) : [];
+
+          const activePersonIds = new Set(parsedPeople.map(p => p.id));
+          const deletedTxIds = new Set(
+            parsedTrash
+              .filter(d => d.type === 'TRANSACTION')
+              .map(d => d.data?.id || d.id)
+          );
+          for (const d of parsedTrash) {
+            if (d.type === 'PERSON' && d.associatedTxs) {
+              for (const at of d.associatedTxs) {
+                deletedTxIds.add(at.id);
+              }
+            }
+          }
+
+          parsedTxs = parsedTxs.filter(tx => activePersonIds.has(tx.personId) && !deletedTxIds.has(tx.id));
+
+          setPeople(parsedPeople);
+          setTransactions(parsedTxs);
+          setCards(parsedCards);
+          setDeletedItems(parsedTrash);
           if (cachedSync) setPendingSync(JSON.parse(cachedSync));
         }
       } catch (e) {
@@ -168,24 +189,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await flushPendingSync(pendingSync);
       }
 
-      const [p, t, c] = await Promise.all([
+      const [p, t, c, trash] = await Promise.all([
         FB.getPeople(uid),
         FB.getTransactions(uid),
         FB.getCards(uid),
+        FB.getDeletedItems(uid).catch(() => []),
       ]);
 
+      // Merge remote trash with local trash
+      const allTrashMap = new Map<string, DeletedItem>();
+      for (const item of deletedItems) allTrashMap.set(item.id, item);
+      for (const item of trash) allTrashMap.set(item.id, item);
+      const mergedTrash = Array.from(allTrashMap.values()).sort((a, b) => b.deletedAt - a.deletedAt);
+
+      // Clean up transactions: must belong to active people and not be in trash
+      const activePersonIds = new Set(p.map(person => person.id));
+      const deletedTxIds = new Set(
+        mergedTrash
+          .filter(d => d.type === 'TRANSACTION')
+          .map(d => d.data?.id || d.id)
+      );
+      for (const d of mergedTrash) {
+        if (d.type === 'PERSON' && d.associatedTxs) {
+          for (const at of d.associatedTxs) {
+            deletedTxIds.add(at.id);
+          }
+        }
+      }
+
+      const cleanTxs = t.filter(tx => activePersonIds.has(tx.personId) && !deletedTxIds.has(tx.id));
+
       setPeople(p);
-      setTransactions(t);
+      setTransactions(cleanTxs);
       setCards(c);
+      setDeletedItems(mergedTrash);
       setIsOnline(true);
-      await persistState(p, t, c);
+      await persistState(p, cleanTxs, c, mergedTrash);
     } catch (e) {
       console.log('Firebase fetch failed, running in offline mode:', e);
       setIsOnline(false);
     } finally {
       setIsSyncing(false);
     }
-  }, [uid, pendingSync, flushPendingSync, persistState]);
+  }, [uid, pendingSync, flushPendingSync, persistState, deletedItems]);
 
   // Background refresh on load
   useEffect(() => {

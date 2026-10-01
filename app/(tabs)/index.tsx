@@ -118,14 +118,17 @@ export default function DashboardScreen() {
     : 'You are free of debt!';
 
   const upcomingAndOverdue = useMemo(() => {
+    const activePersonMap = new Map(people.map(p => [p.id, p]));
     return transactions
       .filter(t => t.returnDate)
       .map(t => {
-        const p = people.find(person => person.id === t.personId);
+        const p = activePersonMap.get(t.personId);
         const status = getReturnDateStatus(t.returnDate);
         return { tx: t, person: p, status };
       })
-      .filter(item => item.status && (item.status.isOverdue || item.status.isDueSoon))
+      .filter((item): item is { tx: (typeof transactions)[0]; person: (typeof people)[0]; status: NonNullable<ReturnType<typeof getReturnDateStatus>> } =>
+        Boolean(item.person) && Boolean(item.status) && (item.status!.isOverdue || item.status!.isDueSoon)
+      )
       .sort((a, b) => (a.tx.returnDate || 0) - (b.tx.returnDate || 0));
   }, [transactions, people]);
 
