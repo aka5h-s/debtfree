@@ -54,9 +54,38 @@ export interface CreditCard {
   cvv: string;
   color: CardColor;
   createdAt: number;
+  currentBill?: number;
+  billDueDate?: number | null;
 }
 
-export type DeletedItemType = 'PERSON' | 'TRANSACTION' | 'CARD';
+export type AccountType = 'BANK' | 'CASH' | 'WALLET' | 'OTHER';
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  notes?: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export type LoanType = 'PERSONAL' | 'EMI' | 'HOME' | 'VEHICLE' | 'EDUCATION' | 'OTHER';
+
+export interface Loan {
+  id: string;
+  name: string;
+  type: LoanType;
+  totalAmount: number;
+  remainingAmount: number;
+  emiAmount?: number;
+  monthlyDueDate?: number | null; // day of month 1-31 or timestamp
+  notes?: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export type DeletedItemType = 'PERSON' | 'TRANSACTION' | 'CARD' | 'ACCOUNT' | 'LOAN';
 
 export interface DeletedItem {
   id: string;
@@ -69,3 +98,4 @@ export interface DeletedItem {
   data: any; // payload needed to fully restore the item
   associatedTxs?: Transaction[]; // in case of person deletion
 }
+

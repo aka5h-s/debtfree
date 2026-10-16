@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
-import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem } from '@/lib/types';
+import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem, Account, Loan } from '@/lib/types';
 import * as FB from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateId } from '@/lib/formatters';
@@ -8,7 +8,7 @@ import { scheduleReturnDateReminders, cancelTransactionReminders } from '@/lib/n
 
 interface PendingSyncAction {
   id: string;
-  type: 'SAVE_PERSON' | 'DELETE_PERSON' | 'SAVE_TX' | 'DELETE_TX' | 'SAVE_CARD' | 'DELETE_CARD' | 'SAVE_TX_HISTORY';
+  type: 'SAVE_PERSON' | 'DELETE_PERSON' | 'SAVE_TX' | 'DELETE_TX' | 'SAVE_CARD' | 'DELETE_CARD' | 'SAVE_TX_HISTORY' | 'SAVE_ACCOUNT' | 'DELETE_ACCOUNT' | 'SAVE_LOAN' | 'DELETE_LOAN';
   payload: any;
   timestamp: number;
 }
@@ -18,6 +18,8 @@ const CACHE_KEYS = {
   PEOPLE: (uid: string) => `@debtfree_cached_people_${uid}`,
   TRANSACTIONS: (uid: string) => `@debtfree_cached_txs_${uid}`,
   CARDS: (uid: string) => `@debtfree_cached_cards_${uid}`,
+  ACCOUNTS: (uid: string) => `@debtfree_cached_accounts_${uid}`,
+  LOANS: (uid: string) => `@debtfree_cached_loans_${uid}`,
   TRASH: (uid: string) => `@debtfree_cached_trash_${uid}`,
   PENDING_SYNC: (uid: string) => `@debtfree_pending_sync_${uid}`,
 };
@@ -26,6 +28,8 @@ interface DataContextValue {
   people: Person[];
   transactions: Transaction[];
   cards: CreditCard[];
+  accounts: Account[];
+  loans: Loan[];
   deletedItems: DeletedItem[];
   isLoading: boolean;
   isCacheHydrated: boolean;
@@ -45,12 +49,21 @@ interface DataContextValue {
   addCard: (card: Omit<CreditCard, 'id' | 'createdAt'>) => Promise<CreditCard>;
   updateCard: (card: CreditCard) => Promise<void>;
   removeCard: (id: string) => Promise<void>;
+  addAccount: (account: Omit<Account, 'id' | 'createdAt'>) => Promise<Account>;
+  updateAccount: (account: Account) => Promise<void>;
+  removeAccount: (id: string) => Promise<void>;
+  addLoan: (loan: Omit<Loan, 'id' | 'createdAt'>) => Promise<Loan>;
+  updateLoan: (loan: Loan) => Promise<void>;
+  removeLoan: (id: string) => Promise<void>;
   restoreDeletedItem: (id: string, options?: { alsoRestoreTrashIds?: string[] }) => Promise<void>;
   permanentlyDeleteTrashItem: (id: string) => Promise<void>;
   emptyTrash: () => Promise<void>;
   globalBalance: number;
   totalLent: number;
   totalBorrowed: number;
+  totalCashAndAccounts: number;
+  totalCreditCardsDue: number;
+  totalLoansRemaining: number;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -60,6 +73,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [people, setPeople] = useState<Person[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cards, setCards] = useState<CreditCard[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [deletedItems, setDeletedItems] = useState<DeletedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCacheHydrated, setIsCacheHydrated] = useState(false);
@@ -84,10 +99,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const [cachedP, cachedT, cachedC, cachedTrash, cachedSync] = await Promise.all([
+        const [cachedP, cachedT, cachedC, cachedA, cachedL, cachedTrash, cachedSync] = await Promise.all([
           AsyncStorage.getItem(CACHE_KEYS.PEOPLE(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.TRANSACTIONS(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.CARDS(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.ACCOUNTS(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.LOANS(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.TRASH(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.PENDING_SYNC(activeUid)),
         ]);
@@ -96,6 +113,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const parsedPeople: Person[] = cachedP ? JSON.parse(cachedP) : [];
           const parsedTrash: DeletedItem[] = cachedTrash ? JSON.parse(cachedTrash) : [];
           const parsedCards: CreditCard[] = cachedC ? JSON.parse(cachedC) : [];
+          const parsedAccounts: Account[] = cachedA ? JSON.parse(cachedA) : [];
+          const parsedLoans: Loan[] = cachedL ? JSON.parse(cachedL) : [];
           let parsedTxs: Transaction[] = cachedT ? JSON.parse(cachedT) : [];
 
           const activePersonIds = new Set(parsedPeople.map(p => p.id));
@@ -117,6 +136,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (parsedPeople.length > 0) setPeople(parsedPeople);
           if (parsedTxs.length > 0) setTransactions(parsedTxs);
           if (parsedCards.length > 0) setCards(parsedCards);
+          if (parsedAccounts.length > 0) setAccounts(parsedAccounts);
+          if (parsedLoans.length > 0) setLoans(parsedLoans);
           if (parsedTrash.length > 0) setDeletedItems(parsedTrash);
           if (cachedSync) setPendingSync(JSON.parse(cachedSync));
           setIsCacheHydrated(true);
@@ -136,7 +157,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     newT?: Transaction[],
     newC?: CreditCard[],
     newTrash?: DeletedItem[],
-    newSync?: PendingSyncAction[]
+    newSync?: PendingSyncAction[],
+    newA?: Account[],
+    newL?: Loan[]
   ) => {
     const activeUid = uid || (await AsyncStorage.getItem(CACHE_KEYS.LAST_UID).catch(() => null));
     if (!activeUid) return;
@@ -145,6 +168,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (newP !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PEOPLE(activeUid), JSON.stringify(newP)));
       if (newT !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRANSACTIONS(activeUid), JSON.stringify(newT)));
       if (newC !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.CARDS(activeUid), JSON.stringify(newC)));
+      if (newA !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.ACCOUNTS(activeUid), JSON.stringify(newA)));
+      if (newL !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.LOANS(activeUid), JSON.stringify(newL)));
       if (newTrash !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.TRASH(activeUid), JSON.stringify(newTrash)));
       if (newSync !== undefined) promises.push(AsyncStorage.setItem(CACHE_KEYS.PENDING_SYNC(activeUid), JSON.stringify(newSync)));
       await Promise.all(promises);
@@ -176,6 +201,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         else if (item.type === 'DELETE_TX') await FB.deleteTransaction(uid, item.payload);
         else if (item.type === 'SAVE_CARD') await FB.saveCard(uid, item.payload);
         else if (item.type === 'DELETE_CARD') await FB.deleteCard(uid, item.payload);
+        else if (item.type === 'SAVE_ACCOUNT') await FB.saveAccount(uid, item.payload);
+        else if (item.type === 'DELETE_ACCOUNT') await FB.deleteAccount(uid, item.payload);
+        else if (item.type === 'SAVE_LOAN') await FB.saveLoan(uid, item.payload);
+        else if (item.type === 'DELETE_LOAN') await FB.deleteLoan(uid, item.payload);
         else if (item.type === 'SAVE_TX_HISTORY') await FB.addTransactionHistory(uid, item.payload);
       } catch (err) {
         remaining.push(item);
@@ -199,10 +228,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await flushPendingSync(pendingSync);
       }
 
-      const [p, t, c, trash] = await Promise.all([
+      const [p, t, c, a, l, trash] = await Promise.all([
         FB.getPeople(uid),
         FB.getTransactions(uid),
         FB.getCards(uid),
+        FB.getAccounts(uid).catch(() => []),
+        FB.getLoans(uid).catch(() => []),
         FB.getDeletedItems(uid).catch(() => []),
       ]);
 
@@ -233,10 +264,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setPeople(prev => (JSON.stringify(prev) !== JSON.stringify(p) ? p : prev));
       setTransactions(prev => (JSON.stringify(prev) !== JSON.stringify(cleanTxs) ? cleanTxs : prev));
       setCards(prev => (JSON.stringify(prev) !== JSON.stringify(c) ? c : prev));
+      setAccounts(prev => (JSON.stringify(prev) !== JSON.stringify(a) ? a : prev));
+      setLoans(prev => (JSON.stringify(prev) !== JSON.stringify(l) ? l : prev));
       setDeletedItems(prev => (JSON.stringify(prev) !== JSON.stringify(mergedTrash) ? mergedTrash : prev));
       setIsOnline(true);
       setIsCacheHydrated(true);
-      await persistState(p, cleanTxs, c, mergedTrash);
+      await persistState(p, cleanTxs, c, mergedTrash, undefined, a, l);
     } catch (e) {
       console.log('Firebase fetch failed, running in offline mode:', e);
       setIsOnline(false);
@@ -278,6 +311,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     return { globalBalance: global, totalLent: lent, totalBorrowed: borrowed };
   }, [people, transactions]);
+
+  // Financial Vault totals
+  const totalCashAndAccounts = useMemo(() => {
+    return accounts.reduce((acc, curr) => acc + (Number(curr.balance) || 0), 0);
+  }, [accounts]);
+
+  const totalCreditCardsDue = useMemo(() => {
+    return cards.reduce((acc, curr) => acc + (Number(curr.currentBill) || 0), 0);
+  }, [cards]);
+
+  const totalLoansRemaining = useMemo(() => {
+    return loans.reduce((acc, curr) => acc + (Number(curr.remainingAmount) || 0), 0);
+  }, [loans]);
 
   // Optimistic Add Person (Instant UI)
   const addPerson = useCallback(async (name: string, phone: string, notes: string) => {
@@ -563,6 +609,134 @@ export function DataProvider({ children }: { children: ReactNode }) {
     FB.saveDeletedItem(uid, trashEntry).catch(() => {});
   }, [uid, cards, deletedItems, persistState, queueSyncAction]);
 
+  // Optimistic Add Account
+  const addAccount = useCallback(async (accountData: Omit<Account, 'id' | 'createdAt'>) => {
+    if (!uid) throw new Error('Not authenticated');
+    const newAccount: Account = {
+      ...accountData,
+      id: generateId(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const nextAccounts = [newAccount, ...accounts];
+    setAccounts(nextAccounts);
+    persistState(undefined, undefined, undefined, undefined, undefined, nextAccounts);
+
+    FB.saveAccount(uid, newAccount).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'SAVE_ACCOUNT', payload: newAccount, timestamp: Date.now() });
+    });
+
+    return newAccount;
+  }, [uid, accounts, persistState, queueSyncAction]);
+
+  // Optimistic Update Account
+  const updateAccount = useCallback(async (account: Account) => {
+    if (!uid) throw new Error('Not authenticated');
+    const updated = { ...account, updatedAt: Date.now() };
+    const nextAccounts = accounts.map(a => a.id === updated.id ? updated : a);
+    setAccounts(nextAccounts);
+    persistState(undefined, undefined, undefined, undefined, undefined, nextAccounts);
+
+    FB.saveAccount(uid, updated).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'SAVE_ACCOUNT', payload: updated, timestamp: Date.now() });
+    });
+  }, [uid, accounts, persistState, queueSyncAction]);
+
+  // Optimistic Remove Account -> move to Trash
+  const removeAccount = useCallback(async (id: string) => {
+    if (!uid) throw new Error('Not authenticated');
+    const target = accounts.find(a => a.id === id);
+    if (!target) return;
+
+    const nextAccounts = accounts.filter(a => a.id !== id);
+    const trashEntry: DeletedItem = {
+      id: generateId(),
+      type: 'ACCOUNT',
+      title: target.name,
+      subtitle: `${target.type} • ₹${target.balance.toLocaleString('en-IN')}`,
+      amount: target.balance,
+      deletedAt: Date.now(),
+      data: target,
+    };
+    const nextTrash = [trashEntry, ...deletedItems];
+
+    setAccounts(nextAccounts);
+    setDeletedItems(nextTrash);
+    persistState(undefined, undefined, undefined, nextTrash, undefined, nextAccounts);
+
+    FB.deleteAccount(uid, id).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'DELETE_ACCOUNT', payload: id, timestamp: Date.now() });
+    });
+    FB.saveDeletedItem(uid, trashEntry).catch(() => {});
+  }, [uid, accounts, deletedItems, persistState, queueSyncAction]);
+
+  // Optimistic Add Loan
+  const addLoan = useCallback(async (loanData: Omit<Loan, 'id' | 'createdAt'>) => {
+    if (!uid) throw new Error('Not authenticated');
+    const newLoan: Loan = {
+      ...loanData,
+      id: generateId(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const nextLoans = [newLoan, ...loans];
+    setLoans(nextLoans);
+    persistState(undefined, undefined, undefined, undefined, undefined, undefined, nextLoans);
+
+    FB.saveLoan(uid, newLoan).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'SAVE_LOAN', payload: newLoan, timestamp: Date.now() });
+    });
+
+    return newLoan;
+  }, [uid, loans, persistState, queueSyncAction]);
+
+  // Optimistic Update Loan
+  const updateLoan = useCallback(async (loan: Loan) => {
+    if (!uid) throw new Error('Not authenticated');
+    const updated = { ...loan, updatedAt: Date.now() };
+    const nextLoans = loans.map(l => l.id === updated.id ? updated : l);
+    setLoans(nextLoans);
+    persistState(undefined, undefined, undefined, undefined, undefined, undefined, nextLoans);
+
+    FB.saveLoan(uid, updated).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'SAVE_LOAN', payload: updated, timestamp: Date.now() });
+    });
+  }, [uid, loans, persistState, queueSyncAction]);
+
+  // Optimistic Remove Loan -> move to Trash
+  const removeLoan = useCallback(async (id: string) => {
+    if (!uid) throw new Error('Not authenticated');
+    const target = loans.find(l => l.id === id);
+    if (!target) return;
+
+    const nextLoans = loans.filter(l => l.id !== id);
+    const trashEntry: DeletedItem = {
+      id: generateId(),
+      type: 'LOAN',
+      title: target.name,
+      subtitle: `${target.type} • Remaining ₹${target.remainingAmount.toLocaleString('en-IN')}`,
+      amount: target.remainingAmount,
+      deletedAt: Date.now(),
+      data: target,
+    };
+    const nextTrash = [trashEntry, ...deletedItems];
+
+    setLoans(nextLoans);
+    setDeletedItems(nextTrash);
+    persistState(undefined, undefined, undefined, nextTrash, undefined, undefined, nextLoans);
+
+    FB.deleteLoan(uid, id).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'DELETE_LOAN', payload: id, timestamp: Date.now() });
+    });
+    FB.saveDeletedItem(uid, trashEntry).catch(() => {});
+  }, [uid, loans, deletedItems, persistState, queueSyncAction]);
+
   // Restore deleted item from Trash
   const restoreDeletedItem = useCallback(async (id: string, options?: { alsoRestoreTrashIds?: string[] }) => {
     if (!uid) throw new Error('Not authenticated');
@@ -576,6 +750,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let nextPeople = [...people];
     let nextTxs = [...transactions];
     let nextCards = [...cards];
+    let nextAccounts = [...accounts];
+    let nextLoans = [...loans];
 
     for (const item of itemsToRestore) {
       if (item.type === 'PERSON') {
@@ -599,6 +775,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
         nextCards = [restoredCard, ...nextCards.filter(c => c.id !== restoredCard.id)];
 
         FB.saveCard(uid, restoredCard).catch(() => {});
+      } else if (item.type === 'ACCOUNT') {
+        const restoredAccount: Account = item.data;
+        nextAccounts = [restoredAccount, ...nextAccounts.filter(a => a.id !== restoredAccount.id)];
+
+        FB.saveAccount(uid, restoredAccount).catch(() => {});
+      } else if (item.type === 'LOAN') {
+        const restoredLoan: Loan = item.data;
+        nextLoans = [restoredLoan, ...nextLoans.filter(l => l.id !== restoredLoan.id)];
+
+        FB.saveLoan(uid, restoredLoan).catch(() => {});
       }
 
       FB.permanentlyDeleteTrashItem(uid, item.id).catch(() => {});
@@ -607,8 +793,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setPeople(nextPeople);
     setTransactions(nextTxs);
     setCards(nextCards);
-    persistState(nextPeople, nextTxs, nextCards, nextTrash);
-  }, [uid, deletedItems, people, transactions, cards, persistState]);
+    setAccounts(nextAccounts);
+    setLoans(nextLoans);
+    persistState(nextPeople, nextTxs, nextCards, nextTrash, undefined, nextAccounts, nextLoans);
+  }, [uid, deletedItems, people, transactions, cards, accounts, loans, persistState]);
 
   // Permanently delete a trash item
   const permanentlyDeleteTrashItem = useCallback(async (id: string) => {
@@ -633,22 +821,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [uid, deletedItems, persistState]);
 
   const value = useMemo(() => ({
-    people, transactions, cards, deletedItems, isLoading, isCacheHydrated,
+    people, transactions, cards, accounts, loans, deletedItems, isLoading, isCacheHydrated,
     isOnline, isSyncing, pendingSyncCount: pendingSync.length, reload,
     addPerson, updatePerson, removePerson,
     getPersonTransactions, getPersonBalance,
     addTransaction, updateTransaction, removeTransaction, getTransactionHistory,
     addCard, updateCard, removeCard,
+    addAccount, updateAccount, removeAccount,
+    addLoan, updateLoan, removeLoan,
     restoreDeletedItem, permanentlyDeleteTrashItem, emptyTrash,
     globalBalance, totalLent, totalBorrowed,
-  }), [people, transactions, cards, deletedItems, isLoading, isCacheHydrated,
+    totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining,
+  }), [people, transactions, cards, accounts, loans, deletedItems, isLoading, isCacheHydrated,
     isOnline, isSyncing, pendingSync.length, reload,
     addPerson, updatePerson, removePerson,
     getPersonTransactions, getPersonBalance,
     addTransaction, updateTransaction, removeTransaction, getTransactionHistory,
     addCard, updateCard, removeCard,
+    addAccount, updateAccount, removeAccount,
+    addLoan, updateLoan, removeLoan,
     restoreDeletedItem, permanentlyDeleteTrashItem, emptyTrash,
-    globalBalance, totalLent, totalBorrowed]);
+    globalBalance, totalLent, totalBorrowed,
+    totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

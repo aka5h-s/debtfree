@@ -32,7 +32,7 @@ import {
 } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem } from '@/lib/types';
+import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem, Account, Loan } from '@/lib/types';
 
 export interface FirebaseConfig {
   apiKey?: string;
@@ -142,6 +142,36 @@ export async function getCards(userId: string): Promise<CreditCard[]> {
 
 export async function deleteCard(userId: string, cardId: string): Promise<void> {
   await deleteDoc(doc(db, 'users', userId, 'cards', cardId));
+}
+
+export async function saveAccount(userId: string, account: Account): Promise<void> {
+  await setDoc(doc(db, 'users', userId, 'accounts', account.id), account);
+}
+
+export async function getAccounts(userId: string): Promise<Account[]> {
+  const snap = await getDocs(collection(db, 'users', userId, 'accounts'));
+  const items: Account[] = [];
+  snap.forEach(d => items.push(d.data() as Account));
+  return items.sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
+}
+
+export async function deleteAccount(userId: string, accountId: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'accounts', accountId));
+}
+
+export async function saveLoan(userId: string, loan: Loan): Promise<void> {
+  await setDoc(doc(db, 'users', userId, 'loans', loan.id), loan);
+}
+
+export async function getLoans(userId: string): Promise<Loan[]> {
+  const snap = await getDocs(collection(db, 'users', userId, 'loans'));
+  const items: Loan[] = [];
+  snap.forEach(d => items.push(d.data() as Loan));
+  return items.sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
+}
+
+export async function deleteLoan(userId: string, loanId: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'loans', loanId));
 }
 
 export function calculatePersonBalance(txs: Transaction[]): number {

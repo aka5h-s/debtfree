@@ -71,6 +71,8 @@ export default function DashboardScreen() {
     globalBalance,
     totalLent,
     totalBorrowed,
+    totalCashAndAccounts,
+    totalCreditCardsDue,
   } = useData();
   const [search, setSearch] = useState('');
   const [sortType, setSortType] = useState<SortType>('balance_high');
@@ -179,6 +181,36 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      {/* Quick Glance Finances Ticker */}
+      {(totalCashAndAccounts > 0 || totalCreditCardsDue > 0) && (
+        <Pressable
+          style={styles.financeTickerPressable}
+          onPress={() => {
+            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/cards');
+          }}
+        >
+          <View style={styles.financeTickerBox}>
+            <View style={styles.financeTickerLeft}>
+              <Icon name="wallet-outline" size={14} color={Colors.positive} />
+              <Text style={styles.financeTickerText}>
+                Cash: <Text style={{ color: Colors.positive, fontFamily: Fonts.bold }}>{formatCurrency(totalCashAndAccounts)}</Text>
+              </Text>
+              {totalCreditCardsDue > 0 && (
+                <>
+                  <Text style={styles.financeTickerDivider}>•</Text>
+                  <Icon name="card-outline" size={14} color={Colors.negative} />
+                  <Text style={styles.financeTickerText}>
+                    Bills: <Text style={{ color: Colors.negative, fontFamily: Fonts.bold }}>{formatCurrency(totalCreditCardsDue)}</Text>
+                  </Text>
+                </>
+              )}
+            </View>
+            <Icon name="chevron-forward" size={14} color={Colors.textMuted} />
+          </View>
+        </Pressable>
+      )}
+
       {upcomingAndOverdue.length > 0 && (
         <View style={styles.alertsContainer}>
           <View style={styles.alertsHeader}>
@@ -263,7 +295,7 @@ export default function DashboardScreen() {
         </View>
       </View>
     </View>
-  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, upcomingAndOverdue, people.length, sortedPeople.length, settledCount, hideSettled, setShowFilterModal]);
+  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, totalCashAndAccounts, totalCreditCardsDue, upcomingAndOverdue, people.length, sortedPeople.length, settledCount, hideSettled, setShowFilterModal]);
 
   const renderEmpty = useCallback(() => {
     if (!isCacheHydrated) {
@@ -487,7 +519,35 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 12,
+  },
+  financeTickerPressable: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  financeTickerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#262626',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  financeTickerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  financeTickerText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: Colors.textSecondary,
+  },
+  financeTickerDivider: {
+    color: Colors.textMuted,
+    fontSize: 12,
   },
   summaryLabel: {
     fontSize: 10,

@@ -15,8 +15,8 @@ function NativeTabLayout() {
         <Label>Dashboard</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="cards">
-        <NativeIcon sf={{ default: "creditcard", selected: "creditcard.fill" }} />
-        <Label>Cards</Label>
+        <NativeIcon sf={{ default: "wallet.pass", selected: "wallet.pass.fill" }} />
+        <Label>Finances</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="cloud">
         <NativeIcon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
@@ -64,9 +64,9 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="cards"
         options={{
-          title: "Cards",
+          title: "Finances",
           tabBarIcon: ({ color, size }) => (
-            <AppIcon name="card" size={size} color={color} />
+            <AppIcon name="wallet" size={size} color={color} />
           ),
         }}
       />
