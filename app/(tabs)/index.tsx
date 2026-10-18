@@ -12,6 +12,26 @@ import { ShimmerText } from '@/components/ShimmerText';
 import { formatCurrency, getReturnDateStatus, formatRelativeDate } from '@/lib/formatters';
 import { Fonts } from '@/lib/fonts';
 import { BuriBuriSyncAvatar } from '@/components/BuriBuriSyncAvatar';
+import { AccountsModal, CreditCardsModal, LoansModal } from '@/components/FinancesModals';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Rect, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+
+function formatCompactAmount(num: number): string {
+  const abs = Math.abs(num);
+  if (abs >= 10000000) {
+    const val = (abs / 10000000).toFixed(2).replace(/\.00$/, '');
+    return `₹${val}Cr`;
+  }
+  if (abs >= 100000) {
+    const val = (abs / 100000).toFixed(2).replace(/\.00$/, '');
+    return `₹${val}L`;
+  }
+  if (abs >= 1000) {
+    const val = (abs / 1000).toFixed(1).replace(/\.0$/, '');
+    return `₹${val}K`;
+  }
+  return `₹${abs.toLocaleString('en-IN')}`;
+}
 
 function PersonItem({ person, balance }: { person: any; balance: number }) {
   const status = balance > 0 ? 'YOU LENT' : balance < 0 ? 'YOU OWE' : 'SETTLED';
@@ -63,21 +83,35 @@ export default function DashboardScreen() {
   const {
     people,
     transactions,
+    cards,
+    accounts,
+    loans,
     isLoading,
     isSyncing,
     isCacheHydrated,
     reload,
     getPersonBalance,
     globalBalance,
+    netBalance,
     totalLent,
     totalBorrowed,
     totalCashAndAccounts,
     totalCreditCardsDue,
+    totalLoansRemaining,
+    enableLoans,
+    includeLoansInTotal,
   } = useData();
   const [search, setSearch] = useState('');
   const [sortType, setSortType] = useState<SortType>('balance_high');
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showAccountsModal, setShowAccountsModal] = useState(false);
+  const [showCardsModal, setShowCardsModal] = useState(false);
+  const [showLoansModal, setShowLoansModal] = useState(false);
   const [hideSettled, setHideSettled] = useState(false);
+
+  const loanDebtIncluded = (enableLoans && includeLoansInTotal) ? totalLoansRemaining : 0;
+  const netFinances = (globalBalance + totalCashAndAccounts) - (totalCreditCardsDue + loanDebtIncluded);
+  const hasExternalFinances = accounts.length > 0 || cards.length > 0 || (enableLoans && loans.length > 0);
 
   const handleRefresh = useCallback(async () => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -144,72 +178,164 @@ export default function DashboardScreen() {
 
   const renderHeader = useMemo(() => (
     <View>
-      <View style={[styles.header, { paddingTop: topPad + 16 }]}>
-        <Text style={styles.appTitle}>DebtFree</Text>
+      {/* App Header with Brand Title & Subtitle */}
+      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
+        <View>
+          <View style={styles.brandRow}>
+            <Text style={styles.brandDebt}>Debt</Text>
+            <Text style={styles.brandFree}>Free</Text>
+          </View>
+          <Text style={styles.brandSubtitle}>Track people. Settle easily.</Text>
+        </View>
         <BuriBuriSyncAvatar />
       </View>
 
-      <View style={styles.balanceSection}>
-        <Text style={styles.balanceLabel}>NET BALANCE</Text>
-        <Text style={[styles.balanceAmount, { color: balanceColor }]}>
-          {formatCurrency(Math.abs(globalBalance))}
-        </Text>
-        {globalBalance !== 0 ? (
-          <Text style={[styles.contextMessage, { color: balanceColor }]}>
-            {globalBalance > 0 ? 'You will receive ' : 'You are in debt. Pay '}
-            <Text style={styles.contextAmount}>{formatCurrency(Math.abs(globalBalance))}</Text>
-            {globalBalance < 0 ? ' to be debt-free' : ''}
-          </Text>
-        ) : (
-          <Text style={[styles.contextMessage, { color: balanceColor }]}>All debts settled!</Text>
-        )}
+      {/* Hero Section: Net Balance on Left, Lent & Borrowed Vertically on Right */}
+      <View style={styles.heroCombinedRow}>
+        {/* Left: Hero Net Balance Card (Luminous Emerald Gradient) */}
+        <LinearGradient
+          colors={
+            netBalance >= 0
+              ? ['#0E442B', '#082D1D', '#03170F']
+              : ['#440E19', '#2C0810', '#150306']
+          }
+          start={{ x: 0.1, y: 0.1 }}
+          end={{ x: 0.9, y: 0.9 }}
+          style={[
+            styles.heroNetBalanceCard,
+            netBalance >= 0 ? styles.heroNetBalanceCardGreen : styles.heroNetBalanceCardRed,
+          ]}
+        >
+          <View style={styles.heroNetBalanceTop}>
+            <Text
+              style={[
+                styles.heroNetBalanceLabel,
+                { color: netBalance >= 0 ? '#7BE5B0' : '#FFA1AE' },
+              ]}
+            >
+              NET BALANCE
+            </Text>
+            <Text style={styles.heroNetBalanceAmount} numberOfLines={1} adjustsFontSizeToFit>
+              {formatCurrency(Math.abs(netBalance)).split('.')[0]}
+            </Text>
+          </View>
+
+          <View style={[styles.heroPillBtn, netBalance < 0 && styles.heroPillBtnDue]}>
+            <View style={[styles.heroPillDot, { backgroundColor: netBalance >= 0 ? '#00E599' : '#EE4D37' }]} />
+            <Text style={[styles.heroPillText, { color: netBalance >= 0 ? '#00E599' : '#EE4D37' }]}>
+              {netBalance > 0 ? 'NET POSITIVE' : netBalance < 0 ? 'NET IN DEBT' : 'ALL BALANCED'}
+            </Text>
+            <Icon name="chevron-forward" size={10} color={netBalance >= 0 ? '#00E599' : '#EE4D37'} />
+          </View>
+        </LinearGradient>
+
+        {/* Right: Vertical Stack for YOU LENT & YOU BORROWED */}
+        <View style={styles.heroSideStack}>
+          {/* YOU LENT Card */}
+          <View style={styles.heroLentCard}>
+            <View style={styles.heroLentIconBox}>
+              <Icon name="arrow-up" size={15} color="#06C270" style={{ transform: [{ rotate: '45deg' }] }} />
+            </View>
+            <View style={styles.heroCardTextBox}>
+              <Text style={styles.heroCardSubLabel}>YOU LENT</Text>
+              <Text style={styles.heroLentAmountText} numberOfLines={1} adjustsFontSizeToFit>
+                {formatCurrency(totalLent).split('.')[0]}
+              </Text>
+            </View>
+          </View>
+
+          {/* YOU BORROWED Card */}
+          <View style={styles.heroBorrowedCard}>
+            <View style={styles.heroBorrowedIconBox}>
+              <Icon name="arrow-down" size={15} color="#EE4D37" style={{ transform: [{ rotate: '-45deg' }] }} />
+            </View>
+            <View style={styles.heroCardTextBox}>
+              <Text style={styles.heroCardSubLabel}>YOU BORROWED</Text>
+              <Text style={styles.heroBorrowedAmountText} numberOfLines={1} adjustsFontSizeToFit>
+                {formatCurrency(totalBorrowed).split('.')[0]}
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.summaryRow}>
-        <View style={{ flex: 1 }}>
-          <NeoPopCard color={Colors.cardGreen} depth={2}>
-            <Text style={styles.summaryLabel}>YOU LENT</Text>
-            <Text style={[styles.summaryAmount, { color: Colors.positive }]}>{formatCurrency(totalLent)}</Text>
-          </NeoPopCard>
-        </View>
-        <View style={{ width: 12 }} />
-        <View style={{ flex: 1 }}>
-          <NeoPopCard color={Colors.cardRed} depth={2}>
-            <Text style={styles.summaryLabel}>YOU BORROWED</Text>
-            <Text style={[styles.summaryAmount, { color: Colors.negative }]}>{formatCurrency(totalBorrowed)}</Text>
-          </NeoPopCard>
-        </View>
-      </View>
-
-      {/* Quick Glance Finances Ticker */}
-      {(totalCashAndAccounts > 0 || totalCreditCardsDue > 0) && (
+      {/* Three Horizontal Finance Tiles (Cash, Cards, Loans) */}
+      <View style={styles.financeTilesRow}>
+        {/* Cash Tile */}
         <Pressable
-          style={styles.financeTickerPressable}
+          style={styles.financeTileItem}
           onPress={() => {
             if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/cards');
+            setShowAccountsModal(true);
           }}
         >
-          <View style={styles.financeTickerBox}>
-            <View style={styles.financeTickerLeft}>
-              <Icon name="wallet-outline" size={14} color={Colors.positive} />
-              <Text style={styles.financeTickerText}>
-                Cash: <Text style={{ color: Colors.positive, fontFamily: Fonts.bold }}>{formatCurrency(totalCashAndAccounts)}</Text>
-              </Text>
-              {totalCreditCardsDue > 0 && (
-                <>
-                  <Text style={styles.financeTickerDivider}>•</Text>
-                  <Icon name="card-outline" size={14} color={Colors.negative} />
-                  <Text style={styles.financeTickerText}>
-                    Bills: <Text style={{ color: Colors.negative, fontFamily: Fonts.bold }}>{formatCurrency(totalCreditCardsDue)}</Text>
-                  </Text>
-                </>
-              )}
-            </View>
-            <Icon name="chevron-forward" size={14} color={Colors.textMuted} />
+          <View style={[styles.financeIconBubble, { backgroundColor: 'rgba(0, 254, 157, 0.12)', borderColor: 'rgba(0, 254, 157, 0.25)' }]}>
+            <Icon name="wallet" size={13} color="#00FE9D" />
           </View>
+          <View style={styles.financeTileTextBox}>
+            <Text style={styles.financeTileLabel}>Cash</Text>
+            <Text
+              style={styles.financeTileAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {formatCurrency(totalCashAndAccounts).replace(/\.00$/, '')}
+            </Text>
+          </View>
+          <Icon name="chevron-forward" size={10} color="#55555A" />
         </Pressable>
-      )}
+
+        {/* Cards Tile */}
+        <Pressable
+          style={styles.financeTileItem}
+          onPress={() => {
+            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowCardsModal(true);
+          }}
+        >
+          <View style={[styles.financeIconBubble, { backgroundColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
+            <Icon name="card" size={13} color="#3B82F6" />
+          </View>
+          <View style={styles.financeTileTextBox}>
+            <Text style={styles.financeTileLabel}>Cards</Text>
+            <Text
+              style={[styles.financeTileAmount, totalCreditCardsDue > 0 && { color: '#FF5252' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {formatCurrency(totalCreditCardsDue).replace(/\.00$/, '')}
+            </Text>
+          </View>
+          <Icon name="chevron-forward" size={10} color="#55555A" />
+        </Pressable>
+
+        {/* Loans Tile */}
+        <Pressable
+          style={[styles.financeTileItem, !enableLoans && { opacity: 0.6 }]}
+          onPress={() => {
+            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowLoansModal(true);
+          }}
+        >
+          <View style={[styles.financeIconBubble, { backgroundColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
+            <Icon name="receipt-outline" size={13} color="#F59E0B" />
+          </View>
+          <View style={styles.financeTileTextBox}>
+            <Text style={styles.financeTileLabel}>Loans</Text>
+            <Text
+              style={[styles.financeTileAmount, enableLoans && totalLoansRemaining > 0 && { color: '#F59E0B' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {!enableLoans ? 'OFF' : formatCurrency(totalLoansRemaining).replace(/\.00$/, '')}
+            </Text>
+          </View>
+          <Icon name="chevron-forward" size={10} color="#55555A" />
+        </Pressable>
+      </View>
 
       {upcomingAndOverdue.length > 0 && (
         <View style={styles.alertsContainer}>
@@ -295,7 +421,7 @@ export default function DashboardScreen() {
         </View>
       </View>
     </View>
-  ), [topPad, globalBalance, balanceColor, contextMessage, totalLent, totalBorrowed, totalCashAndAccounts, totalCreditCardsDue, upcomingAndOverdue, people.length, sortedPeople.length, settledCount, hideSettled, setShowFilterModal]);
+  ), [topPad, globalBalance, balanceColor, contextMessage, hasExternalFinances, netFinances, totalLent, totalBorrowed, totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining, enableLoans, includeLoansInTotal, accounts.length, cards.length, loans.length, upcomingAndOverdue, people.length, sortedPeople.length, settledCount, hideSettled, setShowFilterModal, setShowAccountsModal, setShowCardsModal, setShowLoansModal]);
 
   const renderEmpty = useCallback(() => {
     if (!isCacheHydrated) {
@@ -463,6 +589,20 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 3 Categories Modals */}
+      <AccountsModal
+        visible={showAccountsModal}
+        onClose={() => setShowAccountsModal(false)}
+      />
+      <CreditCardsModal
+        visible={showCardsModal}
+        onClose={() => setShowCardsModal(false)}
+      />
+      <LoansModal
+        visible={showLoansModal}
+        onClose={() => setShowLoansModal(false)}
+      />
     </View>
   );
 }
@@ -479,86 +619,232 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 8,
   },
-  appTitle: {
-    fontSize: 28,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  brandDebt: {
+    fontSize: 26,
     fontFamily: Fonts.serif,
-    color: Colors.white,
+    color: '#FFFFFF',
     letterSpacing: -0.5,
+  },
+  brandFree: {
+    fontSize: 26,
+    fontFamily: Fonts.serif,
+    color: '#D4FF00',
+    letterSpacing: -0.5,
+  },
+  brandSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#8A8A8A',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
     gap: 16,
   },
-  balanceSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
+  heroCombinedRow: {
+    flexDirection: 'row',
     paddingHorizontal: 20,
+    marginTop: 14,
+    marginBottom: 12,
+    gap: 12,
+    alignItems: 'stretch',
   },
-  balanceLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
+  heroNetBalanceCard: {
+    flex: 1.2,
+    borderRadius: 6,
+    borderWidth: 1.2,
+    borderColor: '#06C270',
+    borderBottomWidth: 3.5,
+    borderBottomColor: '#002B18',
+    borderRightWidth: 1.5,
+    borderRightColor: '#002B18',
+    padding: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'space-between',
+    minHeight: 165,
+    shadowColor: '#06C270',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  heroNetBalanceCardGreen: {
+    borderColor: '#06C270',
+    borderBottomColor: '#002B18',
+    borderRightColor: '#002B18',
+    shadowColor: '#06C270',
+  },
+  heroNetBalanceCardRed: {
+    borderColor: '#EE4D37',
+    borderBottomColor: '#28060A',
+    borderRightColor: '#28060A',
+    shadowColor: '#EE4D37',
+  },
+  heroNetBalanceTop: {
+    zIndex: 2,
+  },
+  heroNetBalanceLabel: {
+    fontSize: 10.5,
+    fontFamily: Fonts.extraBold,
     letterSpacing: 2,
     marginBottom: 8,
   },
-  balanceAmount: {
-    fontSize: 40,
+  heroNetBalanceAmount: {
+    fontSize: 34,
     fontFamily: Fonts.serif,
-    letterSpacing: -1,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  contextMessage: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    marginTop: 8,
-    opacity: 0.8,
-  },
-  contextAmount: {
-    fontFamily: Fonts.serif,
-    fontSize: 14,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  financeTickerPressable: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  financeTickerBox: {
+  heroPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#04281A',
+    borderWidth: 1,
+    borderColor: '#0C5E3B',
+    borderRadius: 3,
+    paddingVertical: 5.5,
+    paddingHorizontal: 9,
+    alignSelf: 'flex-start',
+    zIndex: 2,
+  },
+  heroPillBtnDue: {
+    backgroundColor: '#280E12',
+    borderColor: '#591620',
+  },
+  heroPillDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  heroPillText: {
+    fontSize: 9.5,
+    fontFamily: Fonts.bold,
+    letterSpacing: 1.2,
+    color: '#00E599',
+  },
+  heroSideStack: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: 10,
     justifyContent: 'space-between',
+  },
+  heroLentCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#141414',
     borderWidth: 1,
     borderColor: '#262626',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    borderBottomWidth: 3.5,
+    borderBottomColor: '#000000',
+    borderRightWidth: 1.5,
+    borderRightColor: '#000000',
+    borderRadius: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
   },
-  financeTickerLeft: {
+  heroBorrowedCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#262626',
+    borderBottomWidth: 3.5,
+    borderBottomColor: '#000000',
+    borderRightWidth: 1.5,
+    borderRightColor: '#000000',
+    borderRadius: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
   },
-  financeTickerText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: Colors.textSecondary,
+  heroLentIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 3,
+    backgroundColor: '#0D241A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
-  financeTickerDivider: {
-    color: Colors.textMuted,
-    fontSize: 12,
+  heroBorrowedIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 3,
+    backgroundColor: '#280E12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
-  summaryLabel: {
-    fontSize: 10,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
+  heroCardTextBox: {
+    flex: 1,
+  },
+  heroCardSubLabel: {
+    fontSize: 9.5,
+    fontFamily: Fonts.extraBold,
+    color: '#8A8A8A',
     letterSpacing: 1.5,
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  summaryAmount: {
+  heroLentAmountText: {
     fontSize: 20,
     fontFamily: Fonts.serif,
+    color: '#06C270',
+    letterSpacing: -0.3,
+  },
+  heroBorrowedAmountText: {
+    fontSize: 20,
+    fontFamily: Fonts.serif,
+    color: '#EE4D37',
+    letterSpacing: -0.3,
+  },
+  financeTilesRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 8,
+    marginBottom: 16,
+  },
+  financeTileItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#121215',
+    borderWidth: 1,
+    borderColor: '#222228',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+  },
+  financeIconBubble: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  financeTileTextBox: {
+    flex: 1,
+    minWidth: 0,
+  },
+  financeTileLabel: {
+    fontSize: 8.5,
+    fontFamily: Fonts.extraBold,
+    color: '#8A8A8A',
+    letterSpacing: 1.2,
+    marginBottom: 1,
+  },
+  financeTileAmount: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: '#FFFFFF',
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -1,0 +1,42 @@
+diff --git a/node_modules/expo-keep-awake/src/index.ts b/node_modules/expo-keep-awake/src/index.ts
+--- a/node_modules/expo-keep-awake/src/index.ts
++++ b/node_modules/expo-keep-awake/src/index.ts
+@@ -32,16 +32,14 @@ export function useKeepAwake(tag?: string, options?: KeepAwakeOptions): void {
+   useEffect(() => {
+     let isMounted = true;
+-    activateKeepAwakeAsync(tagOrDefault).then(() => {
+-      if (isMounted && ExpoKeepAwake.addListenerForTag && options?.listener) {
+-        addListener(tagOrDefault, options.listener);
+-      }
+-    });
++    activateKeepAwakeAsync(tagOrDefault)
++      .then(() => {
++        if (isMounted && ExpoKeepAwake.addListenerForTag && options?.listener) {
++          addListener(tagOrDefault, options.listener);
++        }
++      })
++      .catch(() => {});
+     return () => {
+       isMounted = false;
+-      if (options?.suppressDeactivateWarnings) {
+-        deactivateKeepAwake(tagOrDefault).catch(() => {});
+-      } else {
+-        deactivateKeepAwake(tagOrDefault);
+-      }
++      deactivateKeepAwake(tagOrDefault).catch(() => {});
+     };
+   }, [tagOrDefault]);
+@@ -79,3 +77,5 @@ export function activateKeepAwake(tag: string = ExpoKeepAwakeTag): Promise<void>
+ export async function activateKeepAwakeAsync(tag: string = ExpoKeepAwakeTag): Promise<void> {
+-  await ExpoKeepAwake.activate?.(tag);
++  try {
++    await ExpoKeepAwake.activate?.(tag);
++  } catch {}
+ }
+@@ -91,3 +91,5 @@ export async function activateKeepAwakeAsync(tag: string = ExpoKeepAwakeTag): Pr
+ export async function deactivateKeepAwake(tag: string = ExpoKeepAwakeTag): Promise<void> {
+-  await ExpoKeepAwake.deactivate?.(tag);
++  try {
++    await ExpoKeepAwake.deactivate?.(tag);
++  } catch {}
+ }

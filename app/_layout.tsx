@@ -2,7 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
-import { Platform } from "react-native";
+import { Platform, LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
@@ -22,6 +22,11 @@ import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 import { registerNotificationResponseListener } from "@/lib/notifications";
+
+LogBox.ignoreLogs([
+  "Unable to activate keep awake",
+  "Error: Unable to activate keep awake",
+]);
 
 SplashScreen.preventAutoHideAsync();
 SystemUI.setBackgroundColorAsync('#0D0D0D').catch(() => {});

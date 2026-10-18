@@ -52,13 +52,27 @@ export interface CreditCard {
   nameOnCard: string;
   expiry: string;
   cvv: string;
-  color: CardColor;
+  color: string;
   createdAt: number;
   currentBill?: number;
   billDueDate?: number | null;
 }
 
 export type AccountType = 'BANK' | 'CASH' | 'WALLET' | 'OTHER';
+
+export type AccountLogType = 'SET_BALANCE' | 'ADD_MONEY' | 'WITHDRAW_MONEY';
+
+export interface AccountLogEntry {
+  id: string;
+  accountId: string;
+  amount: number;
+  type: AccountLogType;
+  previousBalance: number;
+  newBalance: number;
+  note?: string;
+  date: number;
+  createdAt: number;
+}
 
 export interface Account {
   id: string;
@@ -68,6 +82,7 @@ export interface Account {
   notes?: string;
   createdAt: number;
   updatedAt?: number;
+  history?: AccountLogEntry[];
 }
 
 export type LoanType = 'PERSONAL' | 'EMI' | 'HOME' | 'VEHICLE' | 'EDUCATION' | 'OTHER';

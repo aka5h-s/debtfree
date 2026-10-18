@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
-import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem, Account, Loan } from '@/lib/types';
+import type { Person, Transaction, TransactionHistory, CreditCard, DeletedItem, Account, Loan, AccountLogType, AccountLogEntry } from '@/lib/types';
 import * as FB from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateId } from '@/lib/formatters';
@@ -22,6 +22,8 @@ const CACHE_KEYS = {
   LOANS: (uid: string) => `@debtfree_cached_loans_${uid}`,
   TRASH: (uid: string) => `@debtfree_cached_trash_${uid}`,
   PENDING_SYNC: (uid: string) => `@debtfree_pending_sync_${uid}`,
+  ENABLE_LOANS: (uid: string) => `@debtfree_enable_loans_${uid}`,
+  INCLUDE_LOANS_IN_TOTAL: (uid: string) => `@debtfree_include_loans_${uid}`,
 };
 
 interface DataContextValue {
@@ -52,6 +54,13 @@ interface DataContextValue {
   addAccount: (account: Omit<Account, 'id' | 'createdAt'>) => Promise<Account>;
   updateAccount: (account: Account) => Promise<void>;
   removeAccount: (id: string) => Promise<void>;
+  addAccountLog: (accountId: string, logData: {
+    amount: number;
+    type: AccountLogType;
+    note?: string;
+    date?: number;
+  }) => Promise<void>;
+  deleteAccountLog: (accountId: string, logId: string) => Promise<void>;
   addLoan: (loan: Omit<Loan, 'id' | 'createdAt'>) => Promise<Loan>;
   updateLoan: (loan: Loan) => Promise<void>;
   removeLoan: (id: string) => Promise<void>;
@@ -59,11 +68,16 @@ interface DataContextValue {
   permanentlyDeleteTrashItem: (id: string) => Promise<void>;
   emptyTrash: () => Promise<void>;
   globalBalance: number;
+  netBalance: number;
   totalLent: number;
   totalBorrowed: number;
   totalCashAndAccounts: number;
   totalCreditCardsDue: number;
   totalLoansRemaining: number;
+  enableLoans: boolean;
+  setEnableLoans: (val: boolean) => Promise<void>;
+  includeLoansInTotal: boolean;
+  setIncludeLoansInTotal: (val: boolean) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -75,6 +89,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [enableLoans, setEnableLoansState] = useState<boolean>(true);
+  const [includeLoansInTotal, setIncludeLoansInTotalState] = useState<boolean>(false);
   const [deletedItems, setDeletedItems] = useState<DeletedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCacheHydrated, setIsCacheHydrated] = useState(false);
@@ -99,7 +115,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const [cachedP, cachedT, cachedC, cachedA, cachedL, cachedTrash, cachedSync] = await Promise.all([
+        const [cachedP, cachedT, cachedC, cachedA, cachedL, cachedTrash, cachedSync, cachedEnableLoans, cachedIncludeLoans] = await Promise.all([
           AsyncStorage.getItem(CACHE_KEYS.PEOPLE(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.TRANSACTIONS(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.CARDS(activeUid)),
@@ -107,6 +123,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           AsyncStorage.getItem(CACHE_KEYS.LOANS(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.TRASH(activeUid)),
           AsyncStorage.getItem(CACHE_KEYS.PENDING_SYNC(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.ENABLE_LOANS(activeUid)),
+          AsyncStorage.getItem(CACHE_KEYS.INCLUDE_LOANS_IN_TOTAL(activeUid)),
         ]);
 
         if (isMounted) {
@@ -138,6 +156,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (parsedCards.length > 0) setCards(parsedCards);
           if (parsedAccounts.length > 0) setAccounts(parsedAccounts);
           if (parsedLoans.length > 0) setLoans(parsedLoans);
+          if (cachedEnableLoans !== null) setEnableLoansState(JSON.parse(cachedEnableLoans));
+          if (cachedIncludeLoans !== null) setIncludeLoansInTotalState(JSON.parse(cachedIncludeLoans));
           if (parsedTrash.length > 0) setDeletedItems(parsedTrash);
           if (cachedSync) setPendingSync(JSON.parse(cachedSync));
           setIsCacheHydrated(true);
@@ -324,6 +344,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const totalLoansRemaining = useMemo(() => {
     return loans.reduce((acc, curr) => acc + (Number(curr.remainingAmount) || 0), 0);
   }, [loans]);
+
+  // Overall Net Balance: (Lent - Borrowed) + Cash/Accounts - Credit Card Dues (- Loans if enabled)
+  const netBalance = useMemo(() => {
+    const loanDebt = (enableLoans && includeLoansInTotal) ? totalLoansRemaining : 0;
+    return (globalBalance + totalCashAndAccounts) - (totalCreditCardsDue + loanDebt);
+  }, [globalBalance, totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining, enableLoans, includeLoansInTotal]);
 
   // Optimistic Add Person (Instant UI)
   const addPerson = useCallback(async (name: string, phone: string, notes: string) => {
@@ -612,11 +638,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Optimistic Add Account
   const addAccount = useCallback(async (accountData: Omit<Account, 'id' | 'createdAt'>) => {
     if (!uid) throw new Error('Not authenticated');
+    const newId = generateId();
+    const initialLog: AccountLogEntry = {
+      id: generateId(),
+      accountId: newId,
+      amount: accountData.balance,
+      type: 'SET_BALANCE',
+      previousBalance: 0,
+      newBalance: accountData.balance,
+      note: accountData.notes || 'Initial balance',
+      date: Date.now(),
+      createdAt: Date.now(),
+    };
     const newAccount: Account = {
       ...accountData,
-      id: generateId(),
+      id: newId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      history: [initialLog],
     };
     const nextAccounts = [newAccount, ...accounts];
     setAccounts(nextAccounts);
@@ -641,6 +680,83 @@ export function DataProvider({ children }: { children: ReactNode }) {
     FB.saveAccount(uid, updated).catch(() => {
       setIsOnline(false);
       queueSyncAction({ id: generateId(), type: 'SAVE_ACCOUNT', payload: updated, timestamp: Date.now() });
+    });
+  }, [uid, accounts, persistState, queueSyncAction]);
+
+  // Optimistic Add Account Log (Money in / out / balance update)
+  const addAccountLog = useCallback(async (accountId: string, logData: {
+    amount: number;
+    type: AccountLogType;
+    note?: string;
+    date?: number;
+  }) => {
+    if (!uid) throw new Error('Not authenticated');
+    const target = accounts.find(a => a.id === accountId);
+    if (!target) return;
+
+    const prevBalance = target.balance || 0;
+    let newBalance = prevBalance;
+    if (logData.type === 'ADD_MONEY') {
+      newBalance = prevBalance + logData.amount;
+    } else if (logData.type === 'WITHDRAW_MONEY') {
+      newBalance = prevBalance - logData.amount;
+    } else if (logData.type === 'SET_BALANCE') {
+      newBalance = logData.amount;
+    }
+
+    const logEntry: AccountLogEntry = {
+      id: generateId(),
+      accountId,
+      amount: logData.amount,
+      type: logData.type,
+      previousBalance: prevBalance,
+      newBalance,
+      note: logData.note || '',
+      date: logData.date || Date.now(),
+      createdAt: Date.now(),
+    };
+
+    const existingHistory = target.history || [];
+    const updatedAccount: Account = {
+      ...target,
+      balance: newBalance,
+      updatedAt: Date.now(),
+      history: [logEntry, ...existingHistory],
+    };
+
+    const nextAccounts = accounts.map(a => a.id === accountId ? updatedAccount : a);
+    setAccounts(nextAccounts);
+    persistState(undefined, undefined, undefined, undefined, undefined, nextAccounts);
+
+    FB.saveAccount(uid, updatedAccount).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'SAVE_ACCOUNT', payload: updatedAccount, timestamp: Date.now() });
+    });
+  }, [uid, accounts, persistState, queueSyncAction]);
+
+  // Optimistic Delete Account Log
+  const deleteAccountLog = useCallback(async (accountId: string, logId: string) => {
+    if (!uid) throw new Error('Not authenticated');
+    const target = accounts.find(a => a.id === accountId);
+    if (!target || !target.history) return;
+
+    const nextHistory = target.history.filter(h => h.id !== logId);
+    const newBalance = nextHistory.length > 0 ? nextHistory[0].newBalance : 0;
+
+    const updatedAccount: Account = {
+      ...target,
+      balance: newBalance,
+      updatedAt: Date.now(),
+      history: nextHistory,
+    };
+
+    const nextAccounts = accounts.map(a => a.id === accountId ? updatedAccount : a);
+    setAccounts(nextAccounts);
+    persistState(undefined, undefined, undefined, undefined, undefined, nextAccounts);
+
+    FB.saveAccount(uid, updatedAccount).catch(() => {
+      setIsOnline(false);
+      queueSyncAction({ id: generateId(), type: 'SAVE_ACCOUNT', payload: updatedAccount, timestamp: Date.now() });
     });
   }, [uid, accounts, persistState, queueSyncAction]);
 
@@ -820,6 +936,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [uid, deletedItems, persistState]);
 
+  const setEnableLoans = useCallback(async (val: boolean) => {
+    setEnableLoansState(val);
+    const activeUid = uid || (await AsyncStorage.getItem(CACHE_KEYS.LAST_UID).catch(() => null));
+    if (activeUid) {
+      AsyncStorage.setItem(CACHE_KEYS.ENABLE_LOANS(activeUid), JSON.stringify(val)).catch(() => {});
+    }
+  }, [uid]);
+
+  const setIncludeLoansInTotal = useCallback(async (val: boolean) => {
+    setIncludeLoansInTotalState(val);
+    const activeUid = uid || (await AsyncStorage.getItem(CACHE_KEYS.LAST_UID).catch(() => null));
+    if (activeUid) {
+      AsyncStorage.setItem(CACHE_KEYS.INCLUDE_LOANS_IN_TOTAL(activeUid), JSON.stringify(val)).catch(() => {});
+    }
+  }, [uid]);
+
   const value = useMemo(() => ({
     people, transactions, cards, accounts, loans, deletedItems, isLoading, isCacheHydrated,
     isOnline, isSyncing, pendingSyncCount: pendingSync.length, reload,
@@ -827,22 +959,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     getPersonTransactions, getPersonBalance,
     addTransaction, updateTransaction, removeTransaction, getTransactionHistory,
     addCard, updateCard, removeCard,
-    addAccount, updateAccount, removeAccount,
+    addAccount, updateAccount, removeAccount, addAccountLog, deleteAccountLog,
     addLoan, updateLoan, removeLoan,
     restoreDeletedItem, permanentlyDeleteTrashItem, emptyTrash,
-    globalBalance, totalLent, totalBorrowed,
+    globalBalance, netBalance, totalLent, totalBorrowed,
     totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining,
+    enableLoans, setEnableLoans, includeLoansInTotal, setIncludeLoansInTotal,
   }), [people, transactions, cards, accounts, loans, deletedItems, isLoading, isCacheHydrated,
     isOnline, isSyncing, pendingSync.length, reload,
     addPerson, updatePerson, removePerson,
     getPersonTransactions, getPersonBalance,
     addTransaction, updateTransaction, removeTransaction, getTransactionHistory,
     addCard, updateCard, removeCard,
-    addAccount, updateAccount, removeAccount,
+    addAccount, updateAccount, removeAccount, addAccountLog, deleteAccountLog,
     addLoan, updateLoan, removeLoan,
     restoreDeletedItem, permanentlyDeleteTrashItem, emptyTrash,
-    globalBalance, totalLent, totalBorrowed,
-    totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining]);
+    globalBalance, netBalance, totalLent, totalBorrowed,
+    totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining,
+    enableLoans, setEnableLoans, includeLoansInTotal, setIncludeLoansInTotal]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

@@ -7,10 +7,10 @@ import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
 import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
-import { CARD_COLORS } from '@/lib/types';
-import type { CardType, CardColor } from '@/lib/types';
+import type { CardType } from '@/lib/types';
 import { Fonts } from '@/lib/fonts';
 import { CardNetworkSymbol } from '@/components/CardNetworkSymbol';
+import { getProminentCardColor } from '@/lib/formatters';
 
 const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY', 'AMEX'];
 
@@ -45,7 +45,6 @@ export default function EditCardScreen() {
   const [nameOnCard, setNameOnCard] = useState(card?.nameOnCard || '');
   const [expiry, setExpiry] = useState(card?.expiry || '');
   const [cvv, setCvv] = useState(card?.cvv || '');
-  const [color, setColor] = useState<CardColor>(card?.color || CARD_COLORS[0].value);
   const [error, setError] = useState('');
   const [isSaved, setIsSaved] = useState(false);
 
@@ -102,8 +101,9 @@ export default function EditCardScreen() {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
+    const prominentColor = getProminentCardColor(cardName, cardType);
     router.back();
-    updateCard({ ...card, cardName: cardName.trim(), cardNumber: cleanNumber, cardType, nameOnCard: nameOnCard.trim(), expiry, cvv, color });
+    updateCard({ ...card, cardName: cardName.trim(), cardNumber: cleanNumber, cardType, nameOnCard: nameOnCard.trim(), expiry, cvv, color: prominentColor });
   };
 
   return (
@@ -146,7 +146,7 @@ export default function EditCardScreen() {
               style={[styles.typeBtn, cardType === t && styles.typeBtnActive]}
               onPress={() => handleCardTypeSelect(t)}
             >
-              <CardNetworkSymbol type={t} width={t === 'RUPAY' ? 52 : 42} height={22} />
+              <CardNetworkSymbol type={t} size="sm" />
             </Pressable>
           ))}
         </View>
@@ -188,22 +188,6 @@ export default function EditCardScreen() {
               secureTextEntry
             />
           </View>
-        </View>
-
-        <Text style={styles.label}>CARD COLOR</Text>
-        <View style={styles.colorRow}>
-          {CARD_COLORS.map(c => (
-            <Pressable
-              key={c.value}
-              style={[styles.colorBtn, { backgroundColor: c.value }, color === c.value && styles.colorBtnActive]}
-              onPress={() => {
-                setColor(c.value);
-                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-            >
-              {color === c.value && <Icon name="checkmark" size={16} color="#fff" />}
-            </Pressable>
-          ))}
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -273,34 +257,19 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: '#161618',
+    borderWidth: 1.5,
+    borderColor: '#2C2C30',
     borderRadius: 8,
+    paddingHorizontal: 4,
   },
   typeBtnActive: {
     borderColor: Colors.primary,
-    backgroundColor: 'rgba(255, 235, 52, 0.12)',
+    borderWidth: 2,
+    backgroundColor: '#202026',
   },
   rowFields: {
     flexDirection: 'row',
-  },
-  colorRow: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  colorBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorBtnActive: {
-    borderColor: Colors.primary,
   },
   errorText: {
     fontSize: 12,

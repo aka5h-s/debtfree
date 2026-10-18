@@ -21,8 +21,45 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
   switch (name) {
     case 'home':
       return <Svg {...svgProps}><Path d="M3 9.5L12 2l9 7.5V20a2 2 0 01-2 2H5a2 2 0 01-2-2V9.5z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M9 22V12h6v10" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'business-outline':
+    case 'business':
+    case 'bank':
+      return <Svg {...svgProps}><Path d="M3 9.5L12 3l9 6.5M5 10v9M9 10v9M15 10v9M19 10v9M2 21h20" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'cash-outline':
+    case 'cash':
+      return <Svg {...svgProps}><Rect x="2" y="6" width="20" height="12" rx="2" stroke={color} strokeWidth={2} /><Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={2} /><Path d="M6 12h.01M18 12h.01" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
+    case 'phone-portrait-outline':
+    case 'mobile':
+    case 'phone':
+      return <Svg {...svgProps}><Rect x="6" y="2" width="12" height="20" rx="3" stroke={color} strokeWidth={2} /><Line x1="11" y1="18" x2="13" y2="18" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
+    case 'shield-checkmark':
+    case 'shield-checkmark-outline':
+      return <Svg {...svgProps}><Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Polyline points="9 12 11 14 15 10" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'cube':
+    case 'cube-outline':
+      return <Svg {...svgProps}><Path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Polyline points="3.27 6.96 12 12.01 20.73 6.96" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Line x1="12" y1="22.08" x2="12" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+    case 'sync':
+    case 'sync-outline':
+      return <Svg {...svgProps}><Path d="M20 11a8.1 8.1 0 00-15.5-2m-.5-5v5h5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M4 13a8.1 8.1 0 0015.5 2m.5 5v-5h-5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
     case 'wallet':
-      return <Svg {...svgProps}><Rect x="2" y="4" width="20" height="16" rx="2" stroke={color} strokeWidth={2} /><Path d="M2 10h20" stroke={color} strokeWidth={2} /><Circle cx="17" cy="14.5" r="1.5" fill={color} /></Svg>;
+    case 'wallet-outline':
+      return (
+        <Svg {...svgProps}>
+          <Path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <Path d="M16 12h6v4h-6a2 2 0 010-4z" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <Path d="M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </Svg>
+      );
+    case 'menu':
+    case 'options':
+    case 'reorder-three':
+      return (
+        <Svg {...svgProps}>
+          <Line x1="4" y1="7" x2="20" y2="7" stroke={color} strokeWidth={2} strokeLinecap="round" />
+          <Line x1="4" y1="12" x2="20" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" />
+          <Line x1="4" y1="17" x2="20" y2="17" stroke={color} strokeWidth={2} strokeLinecap="round" />
+        </Svg>
+      );
     case 'add':
       return <Svg {...svgProps}><Line x1="12" y1="5" x2="12" y2="19" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="5" y1="12" x2="19" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
     case 'close':
@@ -54,9 +91,16 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
       return <Svg {...svgProps}><Circle cx="11" cy="11" r="7" stroke={color} strokeWidth={2} /><Line x1="16.5" y1="16.5" x2="21" y2="21" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
     case 'arrow-back':
       return <Svg {...svgProps}><Line x1="19" y1="12" x2="5" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" /><Polyline points="12 19 5 12 12 5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'arrow-forward':
+      return <Svg {...svgProps}><Line x1="5" y1="12" x2="19" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" /><Polyline points="12 5 19 12 12 19" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'arrow-down':
+      return <Svg {...svgProps}><Line x1="12" y1="5" x2="12" y2="19" stroke={color} strokeWidth={2} strokeLinecap="round" /><Polyline points="19 12 12 19 5 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'arrow-up':
+      return <Svg {...svgProps}><Line x1="12" y1="19" x2="12" y2="5" stroke={color} strokeWidth={2} strokeLinecap="round" /><Polyline points="5 12 12 5 19 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
     case 'chevron-forward':
       return <Svg {...svgProps}><Polyline points="9 18 15 12 9 6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
     case 'alert-circle':
+    case 'alert-circle-outline':
       return <Svg {...svgProps}><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} /><Line x1="12" y1="8" x2="12" y2="12" stroke={color} strokeWidth={2} strokeLinecap="round" /><Circle cx="12" cy="16" r="1" fill={color} /></Svg>;
     case 'stats-chart':
       return <Svg {...svgProps}><Rect x="4" y="14" width="4" height="6" rx="1" fill={color} /><Rect x="10" y="8" width="4" height="12" rx="1" fill={color} /><Rect x="16" y="4" width="4" height="16" rx="1" fill={color} /></Svg>;
@@ -72,11 +116,24 @@ function renderPath(name: string, color: string, size: number): React.ReactNode 
     case 'trash-outline':
       return <Svg {...svgProps}><Polyline points="3 6 5 6 21 6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M10 3h4a1 1 0 011 1v2H9V4a1 1 0 011-1z" stroke={color} strokeWidth={2} /></Svg>;
     case 'create-outline':
+    case 'pencil-outline':
+    case 'pencil':
+    case 'edit':
       return <Svg {...svgProps}><Path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
     case 'time-outline':
       return <Svg {...svgProps}><Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} /><Polyline points="12 6 12 12 16 14" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
+    case 'receipt':
     case 'receipt-outline':
     case 'document-text-outline':
+    case 'loans':
+    case 'loan':
+      return <Svg {...svgProps}><Path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Polyline points="14 2 14 8 20 8" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Line x1="8" y1="13" x2="16" y2="13" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="8" y1="17" x2="13" y2="17" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
+    case 'key-outline':
+    case 'key':
+      return <Svg {...svgProps}><Path d="M21 2l-2 2m-1.5 1.5L14 9M3 21l6.5-6.5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Circle cx="7.5" cy="16.5" r="4.5" stroke={color} strokeWidth={2} /></Svg>;
+    case 'notifications-outline':
+    case 'notifications':
+      return <Svg {...svgProps}><Path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Path d="M13.73 21a2 2 0 01-3.46 0" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>;
       return <Svg {...svgProps}><Path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /><Polyline points="14 2 14 8 20 8" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /><Line x1="8" y1="13" x2="16" y2="13" stroke={color} strokeWidth={2} strokeLinecap="round" /><Line x1="8" y1="17" x2="13" y2="17" stroke={color} strokeWidth={2} strokeLinecap="round" /></Svg>;
     case 'cloud-done':
       return <Svg {...svgProps}><Path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" stroke={color} strokeWidth={2} strokeLinejoin="round" /><Polyline points="10 15 12 17 16 13" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
