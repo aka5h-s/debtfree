@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express from 'express';
 import cors from 'cors';
 import { z } from 'zod';
@@ -1013,7 +1014,44 @@ async function startHttpServer() {
   };
 
   app.get('/.well-known/oauth-authorization-server', getOAuthMetadata);
+  app.get('/.well-known/oauth-authorization-server/sse', getOAuthMetadata);
+  app.get('/.well-known/oauth-authorization-server/mcp', getOAuthMetadata);
   app.get('/.well-known/openid-configuration', getOAuthMetadata);
+
+  // RFC 9728 OAuth 2.0 Protected Resource Metadata (required by Gemini & MCP standard)
+  const getProtectedResourceMetadata = (req, res) => {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${proto}://${host}`;
+    res.json({
+      resource: baseUrl,
+      authorization_servers: [baseUrl],
+      scopes_supported: ['read', 'write'],
+      bearer_methods_supported: ['header'],
+    });
+  };
+
+  app.get('/.well-known/oauth-protected-resource', getProtectedResourceMetadata);
+  app.get('/.well-known/oauth-protected-resource/sse', getProtectedResourceMetadata);
+  app.get('/.well-known/oauth-protected-resource/mcp', getProtectedResourceMetadata);
+  app.get('/.well-known/mcp.json', (req, res) => {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${proto}://${host}`;
+    res.json({
+      name: 'DebtFree',
+      description: 'DebtFree Ledger MCP Server',
+      endpoints: {
+        mcp: `${baseUrl}/mcp`,
+        sse: `${baseUrl}/sse`,
+      },
+      authentication: {
+        type: 'oauth2',
+        authorization_url: `${baseUrl}/oauth/authorize`,
+        token_url: `${baseUrl}/oauth/token`,
+      },
+    });
+  });
 
   // 1. OpenAI / Agent Plugin Manifest
   app.get('/.well-known/ai-plugin.json', (req, res) => {
@@ -1576,7 +1614,7 @@ async function startHttpServer() {
     }
   });
 
-  // MCP Transport for native MCP clients (ChatGPT Plugin Creator, Claude, Cursor, Antigravity)
+  // 1. SSE Transport for traditional MCP SSE clients (Claude Desktop, etc.)
   const handleMcpConnection = async (req, res) => {
     try {
       const proto = req.headers['x-forwarded-proto'] || req.protocol;
@@ -1608,6 +1646,31 @@ async function startHttpServer() {
 
   app.get('/mcp', handleMcpConnection);
   app.get('/sse', handleMcpConnection);
+
+  // 2. Streamable HTTP Transport (POST) for modern clients like Gemini, Cursor, etc.
+  const handleStreamableHttpPost = async (req, res) => {
+    try {
+      const authHeader = req.headers['authorization'] || '';
+      const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      let authenticatedUserId = null;
+      if (bearerToken && oauthTokens.has(bearerToken)) {
+        authenticatedUserId = oauthTokens.get(bearerToken).userId;
+      }
+
+      const streamableTransport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined, // stateless mode for direct HTTP POST JSON-RPC
+      });
+      const instance = createMcpServer(authenticatedUserId);
+      await instance.connect(streamableTransport);
+      await streamableTransport.handleRequest(req, res, req.body);
+    } catch (err) {
+      console.error('Streamable HTTP POST error:', err);
+      if (!res.headersSent) res.status(500).json({ error: err.message });
+    }
+  };
+
+  app.post('/mcp', handleStreamableHttpPost);
+  app.post('/sse', handleStreamableHttpPost);
 
   app.post('/messages', async (req, res) => {
     const sessionId = req.query.sessionId;
