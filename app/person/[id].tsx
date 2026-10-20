@@ -427,6 +427,7 @@ export default function PersonDetailScreen() {
     <View style={styles.container}>
       {/* Top Bar with BackButton (44x44 square, surface-2) */}
       <View
+        pointerEvents="box-none"
         style={[
           styles.topBar,
           { paddingTop: Math.max(insets.top, 24) + 10 },
@@ -867,9 +868,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: 'rgba(13, 13, 13, 0.92)',
+    backgroundColor: 'transparent',
     paddingHorizontal: 20,
     paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   listContent: {
     paddingHorizontal: 20,

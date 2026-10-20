@@ -28,7 +28,7 @@ export function BackButton({ onPress, style }: BackButtonProps) {
       bg={C.surface2}
       pressable
       onPress={handlePress}
-      style={style}
+      style={[styles.container, style]}
       contentStyle={styles.buttonContent}
     >
       <ChevronLeft size={20} color={C.text} strokeWidth={2.5} />
@@ -37,6 +37,11 @@ export function BackButton({ onPress, style }: BackButtonProps) {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    alignSelf: 'flex-start',
+    width: 48,
+    height: 48,
+  },
   buttonContent: {
     width: 44,
     height: 44,
