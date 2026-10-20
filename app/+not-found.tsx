@@ -1,17 +1,24 @@
-import { Link, Stack } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-import Colors from "@/constants/colors";
-import { Fonts } from '@/lib/fonts';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { router, Stack } from 'expo-router';
+import { C, FONT } from '@/theme/neo';
+import { NeoButton } from '@/components/neo';
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: "Oops!" }} />
+      <Stack.Screen options={{ title: 'Oops!' }} />
       <View style={styles.container}>
-        <Text style={styles.title}>Page not found</Text>
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home</Text>
-        </Link>
+        <Text style={styles.title}>Screen Not Found</Text>
+        <Text style={styles.subtitle}>This screen does not exist.</Text>
+        <NeoButton
+          variant="poli"
+          size="md"
+          onPress={() => router.replace('/')}
+          style={{ marginTop: 20 }}
+        >
+          GO TO HOME
+        </NeoButton>
       </View>
     </>
   );
@@ -20,21 +27,20 @@ export default function NotFoundScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.bg,
+    padding: 24,
   },
   title: {
-    fontSize: 20,
-    fontFamily: Fonts.semibold,
-    color: Colors.white,
+    fontFamily: FONT.display,
+    fontSize: 24,
+    color: C.text,
+    marginBottom: 8,
   },
-  link: {
-    marginTop: 16,
-  },
-  linkText: {
-    fontSize: 16,
-    color: Colors.primary,
-    fontFamily: Fonts.medium,
+  subtitle: {
+    fontFamily: FONT.sans,
+    fontSize: 14,
+    color: C.muted,
   },
 });

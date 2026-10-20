@@ -12,6 +12,7 @@ import {
   linkWithCredential,
   updatePassword,
   updateProfile,
+  reauthenticateWithCredential,
   fetchSignInMethodsForEmail,
   type User,
 } from 'firebase/auth';
@@ -69,7 +70,7 @@ if (Platform.OS === 'web') {
 
 const db = getFirestore(app);
 
-export { auth, db, GoogleAuthProvider, EmailAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, firebaseSignOut, onAuthStateChanged, linkWithCredential, updatePassword, updateProfile, fetchSignInMethodsForEmail };
+export { auth, db, GoogleAuthProvider, EmailAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, firebaseSignOut, onAuthStateChanged, linkWithCredential, updatePassword, updateProfile, reauthenticateWithCredential, fetchSignInMethodsForEmail };
 export type { User };
 
 function userDoc(userId: string) {

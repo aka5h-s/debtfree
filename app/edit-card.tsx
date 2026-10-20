@@ -1,201 +1,230 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, Keyboard } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Pressable,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Icon } from '@/components/Icon';
-import * as Haptics from 'expo-haptics';
-import Colors from '@/constants/colors';
 import { useData } from '@/contexts/DataContext';
-import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
+import { C, FONT, CARD_COLORS } from '@/theme/neo';
+import {
+  BackButton,
+  Field,
+  TiltButton,
+  Extruded,
+  Eyebrow,
+} from '@/components/neo';
+import { useToast } from '@/components/neo/Toast';
+import { tap } from '@/lib/tap';
 import type { CardType } from '@/lib/types';
-import { Fonts } from '@/lib/fonts';
-import { CardNetworkSymbol } from '@/components/CardNetworkSymbol';
-import { getProminentCardColor } from '@/lib/formatters';
 
-const CARD_TYPES: CardType[] = ['VISA', 'MASTERCARD', 'RUPAY', 'AMEX'];
+function formatCardNumber(val: string): string {
+  const digits = val.replace(/\D/g, '').slice(0, 16);
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+
+function formatExpiry(val: string): string {
+  const digits = val.replace(/\D/g, '').slice(0, 4);
+  if (digits.length >= 3) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  return digits;
+}
 
 export default function EditCardScreen() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
-  const { cards, updateCard } = useData();
   const insets = useSafeAreaInsets();
-  const webTopInset = Platform.OS === 'web' ? 67 : 0;
-  const topPad = Math.max(insets.top, webTopInset);
+  const { cards, updateCard } = useData();
+  const { showToast } = useToast();
 
-  const card = cards.find(c => c.id === cardId);
+  const card = cards.find((c) => c.id === cardId);
 
-  const formatCardInput = (text: string, type: CardType) => {
-    const digits = text.replace(/\D/g, '');
-    const isAmex = type === 'AMEX';
-    const maxLen = isAmex ? 15 : 16;
-    const sliced = digits.slice(0, maxLen);
-    if (isAmex) {
-      const p1 = sliced.slice(0, 4);
-      const p2 = sliced.slice(4, 10);
-      const p3 = sliced.slice(10, 15);
-      return [p1, p2, p3].filter(Boolean).join(' ');
-    }
-    return sliced.replace(/(.{4})/g, '$1 ').trim();
-  };
-
-  const [cardName, setCardName] = useState(card?.cardName || '');
-  const [cardType, setCardType] = useState<CardType>(card?.cardType || 'VISA');
-  const [cardNumber, setCardNumber] = useState(
-    card ? formatCardInput(card.cardNumber, card.cardType) : ''
-  );
+  const [cardBank, setCardBank] = useState(card?.cardName || '');
   const [nameOnCard, setNameOnCard] = useState(card?.nameOnCard || '');
+  const [cardNumber, setCardNumber] = useState(card ? formatCardNumber(card.cardNumber) : '');
+  const [cardType, setCardType] = useState<CardType>(card?.cardType || 'VISA');
   const [expiry, setExpiry] = useState(card?.expiry || '');
   const [cvv, setCvv] = useState(card?.cvv || '');
+  const [dueAmount, setDueAmount] = useState(card?.currentBill ? card.currentBill.toString() : '');
+  const [cardColor, setCardColor] = useState<string>(card?.color || '#0D0D0D');
   const [error, setError] = useState('');
-  const [isSaved, setIsSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!card) {
     return (
-      <View style={styles.container}>
-        <Text style={[styles.title, { padding: 24 }]}>Card not found</Text>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top, 24) + 16, paddingHorizontal: 20 }]}>
+        <BackButton />
+        <Text style={[styles.title, { marginTop: 24 }]}>Card not found</Text>
       </View>
     );
   }
 
   const handleCardNumberChange = (text: string) => {
     const raw = text.replace(/\D/g, '');
-    let targetType = cardType;
-    if ((raw.startsWith('34') || raw.startsWith('37')) && cardType !== 'AMEX') {
-      targetType = 'AMEX';
-      setCardType('AMEX');
-    }
-    setCardNumber(formatCardInput(text, targetType));
+    if (raw.startsWith('4')) setCardType('VISA');
+    else if (raw.startsWith('5')) setCardType('MASTERCARD');
+    else if (raw.startsWith('6')) setCardType('RUPAY');
+    else if (raw.startsWith('3')) setCardType('AMEX');
+    setCardNumber(formatCardNumber(text));
     setError('');
   };
 
-  const handleCardTypeSelect = (t: CardType) => {
-    setCardType(t);
-    if (cardNumber) {
-      setCardNumber(formatCardInput(cardNumber, t));
-    }
-    if (t !== 'AMEX' && cvv.length > 3) {
-      setCvv(cvv.slice(0, 3));
-    }
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  const formatExpiryInput = (text: string) => {
-    const digits = text.replace(/\D/g, '').slice(0, 4);
-    if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
-    return digits;
-  };
-
   const handleSave = async () => {
-    const cleanNumber = cardNumber.replace(/\s/g, '');
-    const isAmex = cardType === 'AMEX';
-    const reqDigits = isAmex ? 15 : 16;
-    const reqCvv = isAmex ? 4 : 3;
+    const trimmedBank = cardBank.trim();
+    const rawNum = cardNumber.replace(/\s+/g, '');
 
-    if (!cardName.trim() || cleanNumber.length !== reqDigits || !nameOnCard.trim() || expiry.length !== 5 || cvv.length !== reqCvv) {
-      setError(
-        isAmex
-          ? 'Amex card number must be 15 digits, expiry MM/YY, CVV 4 digits.'
-          : 'Card number must be 16 digits, expiry MM/YY, CVV 3 digits.'
-      );
+    if (!trimmedBank) {
+      setError('Card / Bank name is required');
       return;
     }
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (!rawNum || rawNum.length < 12) {
+      setError('Enter a valid card number');
+      return;
     }
-    const prominentColor = getProminentCardColor(cardName, cardType);
-    router.back();
-    updateCard({ ...card, cardName: cardName.trim(), cardNumber: cleanNumber, cardType, nameOnCard: nameOnCard.trim(), expiry, cvv, color: prominentColor });
+
+    setSubmitting(true);
+    try {
+      await updateCard({
+        ...card,
+        cardName: trimmedBank,
+        nameOnCard: nameOnCard.trim(),
+        cardNumber: rawNum,
+        cardType,
+        expiry: expiry.trim(),
+        cvv: cvv.trim(),
+        color: cardColor,
+        currentBill: parseFloat(dueAmount) || 0,
+      });
+      showToast('Card updated');
+      router.back();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to update card');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 12 }]} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24) + 12,
+            paddingBottom: Math.max(insets.bottom, 24) + 20,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.topBar}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Edit Card</Text>
-          </View>
-          <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Icon name="close" size={24} color={Colors.white} />
-          </Pressable>
+          <BackButton />
         </View>
 
-        <Text style={styles.label}>CARD NAME</Text>
-        <TextInput
-          style={styles.input}
-          value={cardName}
-          onChangeText={(t) => { setCardName(t); setError(''); }}
-          placeholder="e.g., HDFC Millennia"
-          placeholderTextColor={Colors.textMuted}
-        />
+        <Text style={styles.title}>Edit Card</Text>
+        <Text style={styles.subtitle}>Update card details for {card.cardName}</Text>
 
-        <Text style={styles.label}>CARD NUMBER</Text>
-        <TextInput
-          style={styles.input}
-          value={cardNumber}
-          onChangeText={handleCardNumberChange}
-          placeholder={cardType === 'AMEX' ? "XXXX XXXXXX XXXXX" : "XXXX XXXX XXXX XXXX"}
-          placeholderTextColor={Colors.textMuted}
-          keyboardType="number-pad"
-          maxLength={cardType === 'AMEX' ? 17 : 19}
-        />
+        <View style={styles.form}>
+          <Field
+            label="BANK / CARD NAME"
+            value={cardBank}
+            onChangeText={(t) => {
+              setCardBank(t);
+              setError('');
+            }}
+            placeholder="e.g. HDFC Millennia"
+            error={error}
+          />
 
-        <Text style={styles.label}>CARD TYPE</Text>
-        <View style={styles.typeRow}>
-          {CARD_TYPES.map(t => (
-            <Pressable
-              key={t}
-              style={[styles.typeBtn, cardType === t && styles.typeBtnActive]}
-              onPress={() => handleCardTypeSelect(t)}
-            >
-              <CardNetworkSymbol type={t} size="sm" />
-            </Pressable>
-          ))}
-        </View>
+          <Field
+            label="NAME ON CARD"
+            value={nameOnCard}
+            onChangeText={setNameOnCard}
+            placeholder="e.g. Rahul Sharma"
+            autoCapitalize="characters"
+          />
 
-        <Text style={styles.label}>NAME ON CARD</Text>
-        <TextInput
-          style={styles.input}
-          value={nameOnCard}
-          onChangeText={setNameOnCard}
-          placeholder="Cardholder name"
-          placeholderTextColor={Colors.textMuted}
-          autoCapitalize="characters"
-        />
+          <Field
+            label="CARD NUMBER"
+            value={cardNumber}
+            onChangeText={handleCardNumberChange}
+            placeholder="•••• •••• •••• ••••"
+            keyboardType="numeric"
+          />
 
-        <View style={styles.rowFields}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>EXPIRY (MM/YY)</Text>
-            <TextInput
-              style={styles.input}
-              value={expiry}
-              onChangeText={(t) => setExpiry(formatExpiryInput(t))}
-              placeholder="MM/YY"
-              placeholderTextColor={Colors.textMuted}
-              keyboardType="number-pad"
-              maxLength={5}
-            />
+          <View style={styles.formRow}>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="EXPIRY"
+                value={expiry}
+                onChangeText={(t) => setExpiry(formatExpiry(t))}
+                placeholder="MM/YY"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="CVV"
+                value={cvv}
+                onChangeText={setCvv}
+                placeholder="•••"
+                keyboardType="numeric"
+                secureTextEntry
+              />
+            </View>
           </View>
-          <View style={{ width: 12 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>{cardType === 'AMEX' ? 'CVV (4 DIGITS)' : 'CVV'}</Text>
-            <TextInput
-              style={styles.input}
-              value={cvv}
-              onChangeText={(t) => setCvv(t.replace(/\D/g, '').slice(0, cardType === 'AMEX' ? 4 : 3))}
-              placeholder={cardType === 'AMEX' ? "****" : "***"}
-              placeholderTextColor={Colors.textMuted}
-              keyboardType="number-pad"
-              maxLength={cardType === 'AMEX' ? 4 : 3}
-              secureTextEntry
-            />
+
+          <Field
+            label="CURRENT DUE (₹)"
+            value={dueAmount}
+            onChangeText={setDueAmount}
+            placeholder="0"
+            keyboardType="numeric"
+          />
+
+          <View style={styles.swatchesSection}>
+            <Eyebrow style={{ marginBottom: 10 }}>CARD COLOR</Eyebrow>
+            <View style={styles.swatchesRow}>
+              {CARD_COLORS.map((col) => {
+                const isSelected = cardColor === col.value;
+                return (
+                  <Pressable
+                    key={col.value}
+                    onPress={() => {
+                      tap('light');
+                      setCardColor(col.value);
+                    }}
+                    style={[
+                      styles.swatchWrap,
+                      isSelected && styles.swatchSelected,
+                    ]}
+                  >
+                    <Extruded
+                      depth={3}
+                      face="dark"
+                      bg={col.value}
+                      contentStyle={styles.swatchBox}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <View style={styles.actions}>
-          <NeoPopTiltedButton onPress={handleSave} showShimmer>
-            <Text style={styles.ctaText}>{isSaved ? 'UPDATED ✓' : 'UPDATE'}</Text>
-          </NeoPopTiltedButton>
+          <TiltButton
+            disabled={submitting}
+            onPress={handleSave}
+            style={{ marginTop: 12 }}
+          >
+            {submitting ? 'SAVING…' : 'SAVE CHANGES'}
+          </TiltButton>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -205,85 +234,51 @@ export default function EditCardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-    overflow: 'hidden' as const,
+    backgroundColor: C.bg,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
   },
   topBar: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    justifyContent: 'space-between' as const,
-    marginBottom: 4,
-  },
-  closeBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: Colors.white,
-    marginBottom: 16,
+    fontFamily: FONT.display,
+    fontSize: 30,
+    lineHeight: 34,
+    letterSpacing: -0.5,
+    color: C.text,
+    marginBottom: 4,
   },
-  label: {
-    fontSize: 11,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 1.5,
-    marginBottom: 8,
-    marginTop: 14,
-  },
-  input: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    padding: 14,
-    color: Colors.white,
-    fontFamily: Fonts.regular,
-    fontSize: 16,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  typeBtn: {
-    flex: 1,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#161618',
-    borderWidth: 1.5,
-    borderColor: '#2C2C30',
-    borderRadius: 8,
-    paddingHorizontal: 4,
-  },
-  typeBtnActive: {
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    backgroundColor: '#202026',
-  },
-  rowFields: {
-    flexDirection: 'row',
-  },
-  errorText: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.negative,
-    marginTop: 12,
-  },
-  actions: {
-    marginTop: 24,
-  },
-  ctaText: {
+  subtitle: {
+    fontFamily: FONT.sans,
     fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#000',
-    letterSpacing: 1,
+    color: C.muted,
+    marginBottom: 24,
+  },
+  form: {
+    gap: 16,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  swatchesSection: {
+    marginTop: 4,
+  },
+  swatchesRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  swatchWrap: {
+    padding: 2,
+  },
+  swatchSelected: {
+    borderWidth: 2,
+    borderColor: C.poli,
+  },
+  swatchBox: {
+    width: 36,
+    height: 36,
   },
 });

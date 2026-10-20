@@ -1,8 +1,11 @@
+import { FONT } from '@/theme/neo';
+
 export const Fonts = {
-  regular: 'PlusJakartaSans_400Regular',
-  medium: 'PlusJakartaSans_500Medium',
-  semibold: 'PlusJakartaSans_600SemiBold',
-  bold: 'PlusJakartaSans_700Bold',
-  extraBold: 'PlusJakartaSans_800ExtraBold',
-  serif: 'DMSerifDisplay_400Regular',
+  regular: FONT.sans,
+  medium: FONT.sans,
+  semibold: FONT.sansBold,
+  bold: FONT.sansBold,
+  extraBold: FONT.sansX,
+  serif: FONT.display,
+  mono: FONT.mono,
 };

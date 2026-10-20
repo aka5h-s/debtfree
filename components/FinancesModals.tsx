@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   TextInput,
-  Switch,
   Platform,
   Alert,
   KeyboardAvoidingView,
@@ -25,6 +24,7 @@ import type { AccountType, LoanType, Account, Loan, CreditCard } from '@/lib/typ
 import { AccountDetailView } from '@/components/AccountDetailView';
 import { CardNetworkSymbol } from '@/components/CardNetworkSymbol';
 import { AccountLogoBadge } from '@/components/AccountLogoBadge';
+import { NeoToggle } from '@/src/design';
 
 // ==========================================
 // 1. CASH & ACCOUNTS MODAL
@@ -752,14 +752,11 @@ export function LoansModal({ visible, onClose }: LoansModalProps) {
                 <Text style={styles.toggleTitle}>Track Active Loans</Text>
                 <Text style={styles.toggleSubtitle}>Turn on if you have any active loans or EMIs</Text>
               </View>
-              <Switch
-                value={enableLoans}
-                onValueChange={(val) => {
-                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              <NeoToggle
+                checked={enableLoans}
+                onChange={(val) => {
                   setEnableLoans(val);
                 }}
-                trackColor={{ false: '#262626', true: '#F59E0B' }}
-                thumbColor="#FFFFFF"
               />
             </View>
 
@@ -773,15 +770,12 @@ export function LoansModal({ visible, onClose }: LoansModalProps) {
                   Turn on to factor loan dues into your net financial calculations
                 </Text>
               </View>
-              <Switch
+              <NeoToggle
                 disabled={!enableLoans}
-                value={includeLoansInTotal}
-                onValueChange={(val) => {
-                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                checked={includeLoansInTotal}
+                onChange={(val) => {
                   setIncludeLoansInTotal(val);
                 }}
-                trackColor={{ false: '#262626', true: Colors.primary }}
-                thumbColor="#FFFFFF"
               />
             </View>
           </View>

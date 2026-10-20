@@ -11,6 +11,7 @@ import {
   linkWithCredential,
   updatePassword,
   updateProfile,
+  reauthenticateWithCredential,
   fetchSignInMethodsForEmail,
   type User,
 } from '@/lib/firebase';
@@ -41,6 +42,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   updateUserProfile: (data: { displayName?: string }) => Promise<{ error?: string }>;
   setAccountPassword: (password: string) => Promise<{ error?: string }>;
+  changeUserPassword: (currentPassword: string, newPassword: string) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -280,8 +282,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   }, [nativeAvailable]);
 
+  const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!auth.currentUser || !auth.currentUser.email) return { error: 'Not signed in' };
+    if (newPassword.length < 6) return { error: 'New password must be at least 6 characters' };
+
+    try {
+      const cred = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+      await reauthenticateWithCredential(auth.currentUser, cred);
+      await updatePassword(auth.currentUser, newPassword);
+      return {};
+    } catch (e: any) {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+        return { error: 'Current password is wrong' };
+      }
+      return { error: e.message || "Couldn't change password" };
+    }
+  }, []);
+
   const value = useMemo(() => ({
-    user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut, updateUserProfile, setAccountPassword,
+    user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut, updateUserProfile, setAccountPassword, changeUserPassword,
   }), [user, isLoading, signInEmail, signUpEmail, signInGoogle, signOut, updateUserProfile, setAccountPassword]);
 
   return (

@@ -1,29 +1,66 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, ActivityIndicator, Image } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Colors from '@/constants/colors';
-import { Icon } from '@/components/Icon';
 import { useAuth } from '@/contexts/AuthContext';
-import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
-import { NeoPopButton } from '@/components/NeoPopButton';
-import { NeoPopCard } from '@/components/NeoPopCard';
-import { ShimmerText } from '@/components/ShimmerText';
-import { Fonts } from '@/lib/fonts';
+import { C, FONT } from '@/theme/neo';
+import {
+  Extruded,
+  TiltButton,
+  NeoButton,
+  Field,
+  DotGrid,
+} from '@/components/neo';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function SignupScreen() {
   const insets = useSafeAreaInsets();
-  const { signUpEmail, signInGoogle } = useAuth();
-  const webTopInset = Platform.OS === 'web' ? 67 : 0;
-  const topPad = Math.max(insets.top, webTopInset);
+  const { signUpEmail, signInGoogle, updateUserProfile } = useAuth();
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleSignup = async () => {
+    if (!name.trim()) {
+      setError('Please enter your full name');
+      return;
+    }
+    if (!email.trim() || !password.trim()) {
+      setError('Email and password are required');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+    const result = await signUpEmail(email.trim(), password.trim());
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
+    if (name.trim()) {
+      await updateUserProfile({ displayName: name.trim() });
+    }
+    setLoading(false);
+  };
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -33,129 +70,106 @@ export default function SignupScreen() {
     if (result.error) setError(result.error);
   };
 
-  const handleSignup = async () => {
-    if (!email.trim() || !password.trim()) {
-      setError('Email and password are required');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    setError('');
-    setLoading(true);
-    const result = await signUpEmail(email.trim(), password.trim());
-    setLoading(false);
-    if (result.error) setError(result.error);
-  };
-
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 40 }]} keyboardShouldPersistTaps="handled">
-        <View style={styles.logoSection}>
-          <Image
-            source={require('@/assets/images/icon.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.appName}>DebtFree</Text>
-          <Text style={styles.tagline}>Create your account</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.topHalfGrid}>
+        <DotGrid />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24) + 20,
+            paddingBottom: Math.max(insets.bottom, 24) + 20,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.brandSection}>
+          <Extruded
+            depth={4}
+            face="poli"
+            bg={C.poli}
+            contentStyle={styles.monogramBox}
+          >
+            <Text style={styles.monogramText}>DF</Text>
+          </Extruded>
+
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Start managing your debts and assets cleanly</Text>
         </View>
 
         <View style={styles.formSection}>
-          <NeoPopCard color={Colors.surface} depth={3}>
-            <View style={styles.formInner}>
-              <Text style={styles.formTitle}>Get Started</Text>
+          <Field
+            label="FULL NAME"
+            value={name}
+            onChangeText={(t) => {
+              setName(t);
+              setError('');
+            }}
+            placeholder="John Doe"
+            autoCapitalize="words"
+          />
 
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Icon name="alert-circle" size={16} color={Colors.negative} />
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+          <Field
+            label="EMAIL"
+            value={email}
+            onChangeText={(t) => {
+              setEmail(t);
+              setError('');
+            }}
+            placeholder="you@domain.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
 
-              <Text style={styles.label}>EMAIL</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={(t) => { setEmail(t); setError(''); }}
-                placeholder="you@example.com"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
+          <Field
+            label="PASSWORD"
+            value={password}
+            onChangeText={(t) => {
+              setPassword(t);
+              setError('');
+            }}
+            placeholder="At least 6 characters"
+            secureTextEntry
+            autoCapitalize="none"
+          />
 
-              <Text style={styles.label}>PASSWORD</Text>
-              <View style={styles.passwordWrap}>
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  value={password}
-                  onChangeText={(t) => { setPassword(t); setError(''); }}
-                  placeholder="Min 6 characters"
-                  placeholderTextColor={Colors.textMuted}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                />
-                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.textMuted} />
-                </Pressable>
-              </View>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              <Text style={styles.label}>CONFIRM PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
-                placeholder="Re-enter password"
-                placeholderTextColor={Colors.textMuted}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
+          <TiltButton
+            disabled={loading}
+            onPress={handleSignup}
+            style={{ marginTop: 8 }}
+          >
+            {loading ? 'CREATING ACCOUNT…' : 'CREATE ACCOUNT'}
+          </TiltButton>
 
-              <View style={{ marginTop: 20 }}>
-                {loading ? (
-                  <View style={styles.loadingWrap}>
-                    <ActivityIndicator size="small" color={Colors.primary} />
-                  </View>
-                ) : (
-                  <NeoPopTiltedButton onPress={handleSignup} showShimmer>
-                    <Text style={styles.ctaText}>CREATE ACCOUNT</Text>
-                  </NeoPopTiltedButton>
-                )}
-              </View>
+          <NeoButton
+            variant="white"
+            size="lg"
+            disabled={googleLoading}
+            onPress={handleGoogleSignIn}
+            fullWidth
+          >
+            {googleLoading ? 'CONNECTING…' : 'CONTINUE WITH GOOGLE'}
+          </NeoButton>
 
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <NeoPopButton onPress={handleGoogleSignIn} variant="secondary">
-                <View style={styles.googleBtn}>
-                  {googleLoading ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <>
-                      <Icon name="logo-google" size={20} color={Colors.white} />
-                      <Text style={styles.googleText}>CONTINUE WITH GOOGLE</Text>
-                    </>
-                  )}
-                </View>
-              </NeoPopButton>
-            </View>
-          </NeoPopCard>
+          <View style={styles.ghostRow}>
+            <NeoButton
+              variant="ghost"
+              onPress={() => router.push('/login')}
+            >
+              ALREADY HAVE AN ACCOUNT? SIGN IN
+            </NeoButton>
+          </View>
         </View>
-
-        <Pressable onPress={() => router.back()} style={styles.switchBtn}>
-          <Text style={styles.switchText}>
-            Already have an account? <Text style={styles.switchLink}>Log In</Text>
-          </Text>
-        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -164,142 +178,65 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: C.bg,
+  },
+  topHalfGrid: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: SCREEN_HEIGHT * 0.45,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    minHeight: '100%',
+    justifyContent: 'center',
   },
-  logoSection: {
+  brandSection: {
     alignItems: 'center',
-    marginBottom: 36,
+    marginBottom: 32,
   },
-  logoImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 22,
-    marginBottom: 16,
+  monogramBox: {
+    width: 64,
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 0,
   },
-  appName: {
-    fontSize: 36,
-    fontFamily: Fonts.serif,
-    color: Colors.primary,
-    marginBottom: 8,
+  monogramText: {
+    fontFamily: FONT.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: C.ink,
   },
-  tagline: {
+  title: {
+    fontFamily: FONT.display,
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -0.5,
+    color: C.text,
+    marginTop: 18,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontFamily: FONT.sans,
     fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
+    lineHeight: 20,
+    color: C.muted,
+    textAlign: 'center',
   },
   formSection: {
-    marginBottom: 24,
-  },
-  formInner: {
-    padding: 24,
-  },
-  formTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: Colors.white,
-    marginBottom: 20,
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 107, 107, 0.3)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
+    gap: 16,
+    width: '100%',
   },
   errorText: {
+    fontFamily: FONT.sansBold,
     fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: Colors.negative,
-    flex: 1,
+    color: C.red,
+    marginTop: -4,
   },
-  label: {
-    fontSize: 10,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 1.5,
-    marginBottom: 6,
+  ghostRow: {
     marginTop: 12,
-  },
-  input: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    padding: 14,
-    color: Colors.white,
-    fontFamily: Fonts.regular,
-    fontSize: 16,
-  },
-  passwordWrap: {
-    position: 'relative' as const,
-  },
-  passwordInput: {
-    paddingRight: 48,
-  },
-  eyeBtn: {
-    position: 'absolute' as const,
-    right: 12,
-    top: 14,
-  },
-  ctaText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#000',
-    letterSpacing: 1,
-  },
-  loadingWrap: {
-    height: 48,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    marginHorizontal: 12,
-  },
-  googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 10,
-  },
-  googleText: {
-    fontSize: 13,
-    fontFamily: Fonts.semibold,
-    color: Colors.white,
-    letterSpacing: 0.5,
-  },
-  switchBtn: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  switchText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-  },
-  switchLink: {
-    color: Colors.primary,
-    fontFamily: Fonts.semibold,
   },
 });

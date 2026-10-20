@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Colors from '@/constants/colors';
 import { Fonts } from '@/lib/fonts';
+import { haptic } from '@/src/design/tokens';
 
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -21,7 +22,7 @@ function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-// Returns an array of Date | null for the grid (6 weeks × 7 days)
+// Returns an array of Date | null for the grid (7 equal columns)
 function buildCalendarGrid(year: number, month: number): (Date | null)[] {
   const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -35,22 +36,32 @@ function buildCalendarGrid(year: number, month: number): (Date | null)[] {
     cells.push(new Date(year, month, d));
   }
 
-  // Trailing empty cells to fill 6 rows
-  while (cells.length < 42) cells.push(null);
+  // Trailing empty cells to pad row to 7
+  while (cells.length % 7 !== 0) cells.push(null);
 
   return cells;
 }
 
 // ── DatePickerModal (Calendar) ────────────────────────────────────────────────
-interface DatePickerModalProps {
+export interface DatePickerModalProps {
   visible: boolean;
   value: Date;
   onConfirm: (date: Date) => void;
   onClose: () => void;
   allowFuture?: boolean;
+  showClear?: boolean;
+  onClear?: () => void;
 }
 
-export function DatePickerModal({ visible, value, onConfirm, onClose, allowFuture = false }: DatePickerModalProps) {
+export function DatePickerModal({
+  visible,
+  value,
+  onConfirm,
+  onClose,
+  allowFuture = false,
+  showClear = false,
+  onClear,
+}: DatePickerModalProps) {
   const today = startOfDay(new Date());
 
   const [viewYear, setViewYear] = useState(value.getFullYear());
@@ -68,6 +79,7 @@ export function DatePickerModal({ visible, value, onConfirm, onClose, allowFutur
   }, [visible, value]);
 
   const goToPrev = () => {
+    haptic('light');
     if (viewMonth === 0) {
       setViewMonth(11);
       setViewYear(y => y - 1);
@@ -84,6 +96,7 @@ export function DatePickerModal({ visible, value, onConfirm, onClose, allowFutur
       if (nextFirst > today) return;
     }
 
+    haptic('light');
     if (viewMonth === 11) {
       setViewMonth(0);
       setViewYear(y => y + 1);
@@ -102,10 +115,12 @@ export function DatePickerModal({ visible, value, onConfirm, onClose, allowFutur
 
   const handleDayPress = (date: Date) => {
     if (!allowFuture && date > today) return;
+    haptic('light');
     setSelected(date);
   };
 
   const handleConfirm = () => {
+    haptic('light');
     onConfirm(selected);
   };
 
@@ -139,9 +154,11 @@ export function DatePickerModal({ visible, value, onConfirm, onClose, allowFutur
         </View>
 
         {/* Day of week labels */}
-        <View style={styles.dayLabels}>
+        <View style={styles.daysRow}>
           {DAY_LABELS.map(d => (
-            <Text key={d} style={styles.dayLabel}>{d}</Text>
+            <View key={d} style={styles.headerCell}>
+              <Text style={styles.dayLabel}>{d}</Text>
+            </View>
           ))}
         </View>
 
@@ -149,7 +166,7 @@ export function DatePickerModal({ visible, value, onConfirm, onClose, allowFutur
         <View style={styles.grid}>
           {grid.map((date, idx) => {
             if (!date) {
-              return <View key={`empty-${idx}`} style={styles.cell} />;
+              return <View key={`empty-${idx}`} style={styles.cellWrapper} />;
             }
 
             const isFuture = !allowFuture && date > today;
@@ -157,27 +174,28 @@ export function DatePickerModal({ visible, value, onConfirm, onClose, allowFutur
             const isSelected = date.getTime() === selected.getTime();
 
             return (
-              <Pressable
-                key={date.toISOString()}
-                style={[
-                  styles.cell,
-                  isSelected && styles.cellSelected,
-                  !isSelected && isToday && styles.cellToday,
-                ]}
-                onPress={() => handleDayPress(date)}
-                disabled={isFuture}
-              >
-                <Text
+              <View key={date.toISOString()} style={styles.cellWrapper}>
+                <Pressable
                   style={[
-                    styles.cellText,
-                    isSelected && styles.cellTextSelected,
-                    isToday && !isSelected && styles.cellTextToday,
-                    isFuture && styles.cellTextFuture,
+                    styles.cellInner,
+                    isSelected && styles.cellSelected,
+                    !isSelected && isToday && styles.cellToday,
                   ]}
+                  onPress={() => handleDayPress(date)}
+                  disabled={isFuture}
                 >
-                  {date.getDate()}
-                </Text>
-              </Pressable>
+                  <Text
+                    style={[
+                      styles.cellText,
+                      isSelected && styles.cellTextSelected,
+                      isToday && !isSelected && styles.cellTextToday,
+                      isFuture && styles.cellTextFuture,
+                    ]}
+                  >
+                    {date.getDate()}
+                  </Text>
+                </Pressable>
+              </View>
             );
           })}
         </View>
@@ -188,6 +206,18 @@ export function DatePickerModal({ visible, value, onConfirm, onClose, allowFutur
             {selected.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
           </Text>
           <View style={styles.actions}>
+            {showClear && onClear && (
+              <Pressable
+                style={styles.clearBtn}
+                onPress={() => {
+                  haptic('light');
+                  onClear();
+                }}
+                hitSlop={8}
+              >
+                <Text style={styles.clearText}>CLEAR</Text>
+              </Pressable>
+            )}
             <Pressable style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelText}>CANCEL</Text>
             </Pressable>
@@ -233,26 +263,26 @@ export function NoteModal({ visible, note, onClose }: NoteModalProps) {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const CELL_SIZE = 44;
-
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#181818',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: '#0D0D0D',
+    borderTopWidth: 2,
+    borderTopColor: '#E3FF46',
+    borderRadius: 0,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
+    backgroundColor: '#3A3A3A',
+    borderRadius: 0,
     alignSelf: 'center',
     marginBottom: 20,
   },
@@ -281,117 +311,144 @@ const styles = StyleSheet.create({
   navArrow: {
     fontSize: 22,
     color: Colors.white,
-    fontFamily: Fonts.semibold,
+    fontFamily: 'Manrope_600SemiBold',
     lineHeight: 26,
   },
   navArrowDisabled: {
-    color: Colors.textMuted,
+    color: '#8A8A8A',
   },
   calTitle: {
-    fontSize: 17,
-    fontFamily: Fonts.serif,
+    fontSize: 18,
+    fontFamily: 'Fraunces_900Black',
     color: Colors.white,
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   },
 
   // Day labels row
-  dayLabels: {
+  daysRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    width: '100%',
     marginBottom: 4,
   },
+  headerCell: {
+    flexBasis: '14.2857%',
+    maxWidth: '14.2857%',
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dayLabel: {
-    width: CELL_SIZE,
     textAlign: 'center',
-    fontSize: 11,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontFamily: 'Manrope_600SemiBold',
+    color: '#8A8A8A',
   },
 
   // Grid
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
+    width: '100%',
   },
-  cell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
+  cellWrapper: {
+    flexBasis: '14.2857%',
+    maxWidth: '14.2857%',
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: CELL_SIZE / 2,
-    marginVertical: 2,
+    padding: 2,
+  },
+  cellInner: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 0,
   },
   cellSelected: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#E3FF46',
   },
   cellToday: {
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: '#E3FF46',
   },
   cellText: {
-    fontSize: 16,
-    fontFamily: Fonts.serif,
-    color: Colors.textSecondary,
+    fontSize: 17,
+    fontFamily: 'Manrope_700Bold',
+    color: '#FFFFFF',
+    fontVariant: ['tabular-nums'],
+    textAlign: 'center',
   },
   cellTextSelected: {
-    color: '#000',
-    fontFamily: Fonts.serif,
+    color: '#0D0D0D',
+    fontFamily: 'Manrope_700Bold',
   },
   cellTextToday: {
-    color: Colors.primary,
-    fontFamily: Fonts.serif,
+    color: '#FFFFFF',
+    fontFamily: 'Manrope_700Bold',
   },
   cellTextFuture: {
-    color: Colors.border,
+    color: '#3A3A3A',
   },
 
   // Footer
   footer: {
     marginTop: 12,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.border,
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A2A',
     paddingTop: 14,
   },
   selectedLabel: {
-    fontSize: 15,
-    fontFamily: Fonts.serif,
-    color: Colors.textMuted,
+    fontSize: 14,
+    fontFamily: 'Manrope_600SemiBold',
+    color: '#8A8A8A',
     textAlign: 'center',
     marginBottom: 14,
   },
   actions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
+  },
+  clearBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearText: {
+    fontSize: 12,
+    fontFamily: 'Manrope_700Bold',
+    color: '#8A8A8A',
+    letterSpacing: 1.5,
   },
   cancelBtn: {
     flex: 1,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
+    backgroundColor: '#1F1F1F',
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#2A2A2A',
   },
   cancelText: {
-    fontSize: 13,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 1,
+    fontSize: 12,
+    fontFamily: 'Manrope_700Bold',
+    color: '#8A8A8A',
+    letterSpacing: 1.5,
   },
   confirmBtn: {
     flex: 1,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
+    backgroundColor: '#E3FF46',
+    borderRadius: 0,
   },
   confirmText: {
-    fontSize: 13,
-    fontFamily: Fonts.bold,
-    color: '#000',
-    letterSpacing: 1,
+    fontSize: 12,
+    fontFamily: 'Manrope_800ExtraBold',
+    color: '#0D0D0D',
+    letterSpacing: 1.5,
   },
 
   // Note modal

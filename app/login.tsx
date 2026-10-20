@@ -1,36 +1,46 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable, ActivityIndicator, Image } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Colors from '@/constants/colors';
-import { Icon } from '@/components/Icon';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
-import { NeoPopButton } from '@/components/NeoPopButton';
-import { NeoPopCard } from '@/components/NeoPopCard';
-import { ShimmerText } from '@/components/ShimmerText';
-import { Fonts } from '@/lib/fonts';
+import { C, FONT } from '@/theme/neo';
+import {
+  Extruded,
+  TiltButton,
+  NeoButton,
+  Field,
+  DotGrid,
+  Sheet,
+} from '@/components/neo';
+import { useToast } from '@/components/neo/Toast';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signInEmail, signInGoogle } = useAuth();
-  const webTopInset = Platform.OS === 'web' ? 67 : 0;
-  const topPad = Math.max(insets.top, webTopInset);
+  const { showToast } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleGoogleSignIn = async () => {
-    setError('');
-    setGoogleLoading(true);
-    const result = await signInGoogle();
-    setGoogleLoading(false);
-    if (result.error) setError(result.error);
-  };
+  // Forgot password sheet
+  const [showForgotSheet, setShowForgotSheet] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -44,99 +54,166 @@ export default function LoginScreen() {
     if (result.error) setError(result.error);
   };
 
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+    const result = await signInGoogle();
+    setGoogleLoading(false);
+    if (result.error) setError(result.error);
+  };
+
+  const handleSendResetEmail = async () => {
+    if (!forgotEmail.trim()) {
+      showToast('Please enter your email');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, forgotEmail.trim());
+      setShowForgotSheet(false);
+      setForgotEmail('');
+      showToast('Password reset link sent to your email');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to send reset email');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: topPad + 40 }]} keyboardShouldPersistTaps="handled">
-        <View style={styles.logoSection}>
-          <Image
-            source={require('@/assets/images/icon.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.appName}>DebtFree</Text>
-          <Text style={styles.tagline}>Track every rupee, settle with confidence</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      {/* Dot grid top half */}
+      <View style={styles.topHalfGrid}>
+        <DotGrid />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24) + 20,
+            paddingBottom: Math.max(insets.bottom, 24) + 20,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Monogram & Title */}
+        <View style={styles.brandSection}>
+          <Extruded
+            depth={4}
+            face="poli"
+            bg={C.poli}
+            contentStyle={styles.monogramBox}
+          >
+            <Text style={styles.monogramText}>DF</Text>
+          </Extruded>
+
+          <Text style={styles.title}>DebtFree</Text>
+          <Text style={styles.subtitle}>Track every rupee, settle with confidence</Text>
         </View>
 
+        {/* Form Fields */}
         <View style={styles.formSection}>
-          <NeoPopCard color={Colors.surface} depth={3}>
-            <View style={styles.formInner}>
-              <Text style={styles.formTitle}>Welcome Back</Text>
+          <Field
+            label="EMAIL"
+            value={email}
+            onChangeText={(t) => {
+              setEmail(t);
+              setError('');
+            }}
+            placeholder="you@domain.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
 
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Icon name="alert-circle" size={16} color={Colors.negative} />
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+          <Field
+            label="PASSWORD"
+            value={password}
+            onChangeText={(t) => {
+              setPassword(t);
+              setError('');
+            }}
+            placeholder="••••••••"
+            secureTextEntry
+            autoCapitalize="none"
+          />
 
-              <Text style={styles.label}>EMAIL</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={(t) => { setEmail(t); setError(''); }}
-                placeholder="you@example.com"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              <Text style={styles.label}>PASSWORD</Text>
-              <View style={styles.passwordWrap}>
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  value={password}
-                  onChangeText={(t) => { setPassword(t); setError(''); }}
-                  placeholder="Enter password"
-                  placeholderTextColor={Colors.textMuted}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                />
-                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.textMuted} />
-                </Pressable>
-              </View>
+          {/* Primary CTA: TiltButton */}
+          <TiltButton
+            disabled={loading}
+            onPress={handleLogin}
+            style={{ marginTop: 8 }}
+          >
+            {loading ? 'SIGNING IN…' : 'SIGN IN'}
+          </TiltButton>
 
-              <View style={{ marginTop: 20 }}>
-                {loading ? (
-                  <View style={styles.loadingWrap}>
-                    <ActivityIndicator size="small" color={Colors.primary} />
-                  </View>
-                ) : (
-                  <NeoPopTiltedButton onPress={handleLogin} showShimmer>
-                    <Text style={styles.ctaText}>LOG IN</Text>
-                  </NeoPopTiltedButton>
-                )}
-              </View>
+          {/* Google Sign In */}
+          <NeoButton
+            variant="white"
+            size="lg"
+            disabled={googleLoading}
+            onPress={handleGoogleSignIn}
+            fullWidth
+          >
+            {googleLoading ? 'CONNECTING…' : 'CONTINUE WITH GOOGLE'}
+          </NeoButton>
 
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
-              </View>
+          {/* Secondary Ghost Actions */}
+          <View style={styles.ghostRow}>
+            <NeoButton
+              variant="ghost"
+              onPress={() => {
+                setForgotEmail(email);
+                setShowForgotSheet(true);
+              }}
+            >
+              FORGOT PASSWORD?
+            </NeoButton>
 
-              <NeoPopButton onPress={handleGoogleSignIn} variant="secondary">
-                <View style={styles.googleBtn}>
-                  {googleLoading ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <>
-                      <Icon name="logo-google" size={20} color={Colors.white} />
-                      <Text style={styles.googleText}>CONTINUE WITH GOOGLE</Text>
-                    </>
-                  )}
-                </View>
-              </NeoPopButton>
-            </View>
-          </NeoPopCard>
+            <NeoButton
+              variant="ghost"
+              onPress={() => router.push('/signup')}
+            >
+              NEW HERE? CREATE ACCOUNT
+            </NeoButton>
+          </View>
         </View>
-
-        <Pressable onPress={() => router.push('/signup')} style={styles.switchBtn}>
-          <Text style={styles.switchText}>
-            Don't have an account? <Text style={styles.switchLink}>Sign Up</Text>
-          </Text>
-        </Pressable>
       </ScrollView>
+
+      {/* Forgot Password Sheet */}
+      <Sheet
+        visible={showForgotSheet}
+        onClose={() => setShowForgotSheet(false)}
+        title="Reset Password"
+        subtitle="Enter your email to receive a password recovery link"
+        footer={
+          <NeoButton
+            variant="poli"
+            size="lg"
+            fullWidth
+            disabled={forgotLoading}
+            onPress={handleSendResetEmail}
+          >
+            {forgotLoading ? 'SENDING…' : 'SEND RESET LINK'}
+          </NeoButton>
+        }
+      >
+        <Field
+          label="EMAIL ADDRESS"
+          value={forgotEmail}
+          onChangeText={setForgotEmail}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+      </Sheet>
     </KeyboardAvoidingView>
   );
 }
@@ -144,142 +221,66 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: C.bg,
+  },
+  topHalfGrid: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: SCREEN_HEIGHT * 0.45,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    minHeight: '100%',
+    justifyContent: 'center',
   },
-  logoSection: {
+  brandSection: {
     alignItems: 'center',
     marginBottom: 36,
   },
-  logoImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 22,
-    marginBottom: 16,
+  monogramBox: {
+    width: 64,
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 0,
   },
-  appName: {
+  monogramText: {
+    fontFamily: FONT.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: C.ink,
+  },
+  title: {
+    fontFamily: FONT.display,
     fontSize: 36,
-    fontFamily: Fonts.serif,
-    color: Colors.primary,
-    marginBottom: 8,
+    lineHeight: 40,
+    letterSpacing: -0.5,
+    color: C.text,
+    marginTop: 18,
+    marginBottom: 6,
   },
-  tagline: {
+  subtitle: {
+    fontFamily: FONT.sans,
     fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
+    lineHeight: 20,
+    color: C.muted,
+    textAlign: 'center',
   },
   formSection: {
-    marginBottom: 24,
-  },
-  formInner: {
-    padding: 24,
-  },
-  formTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: Colors.white,
-    marginBottom: 20,
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 107, 107, 0.3)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
+    gap: 16,
+    width: '100%',
   },
   errorText: {
+    fontFamily: FONT.sansBold,
     fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: Colors.negative,
-    flex: 1,
+    color: C.red,
+    marginTop: -4,
   },
-  label: {
-    fontSize: 10,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 1.5,
-    marginBottom: 6,
+  ghostRow: {
     marginTop: 12,
-  },
-  input: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    padding: 14,
-    color: Colors.white,
-    fontFamily: Fonts.regular,
-    fontSize: 16,
-  },
-  passwordWrap: {
-    position: 'relative' as const,
-  },
-  passwordInput: {
-    paddingRight: 48,
-  },
-  eyeBtn: {
-    position: 'absolute' as const,
-    right: 12,
-    top: 14,
-  },
-  ctaText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#000',
-    letterSpacing: 1,
-  },
-  loadingWrap: {
-    height: 48,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    marginHorizontal: 12,
-  },
-  googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 10,
-  },
-  googleText: {
-    fontSize: 13,
-    fontFamily: Fonts.semibold,
-    color: Colors.white,
-    letterSpacing: 0.5,
-  },
-  switchBtn: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  switchText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-  },
-  switchLink: {
-    color: Colors.primary,
-    fontFamily: Fonts.semibold,
+    gap: 8,
   },
 });

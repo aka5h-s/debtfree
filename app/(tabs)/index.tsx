@@ -1,608 +1,1111 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, TextInput, Modal, ScrollView, RefreshControl } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  RefreshControl,
+  Pressable,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { Icon } from '@/components/Icon';
-import Colors from '@/constants/colors';
+import {
+  SlidersHorizontal,
+  Plus,
+  ChevronRight,
+  Eye,
+  Check,
+  Landmark,
+  Banknote,
+  Wallet,
+  CircleDot,
+  Clock,
+  ArrowDownUp,
+  ArrowDown,
+  ArrowUp,
+} from 'lucide-react-native';
+import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { NeoPopCard } from '@/components/NeoPopCard';
-import { NeoPopTiltedButton } from '@/components/NeoPopTiltedButton';
-import { ShimmerText } from '@/components/ShimmerText';
-import { formatCurrency, getReturnDateStatus, formatRelativeDate } from '@/lib/formatters';
-import { Fonts } from '@/lib/fonts';
-import { BuriBuriSyncAvatar } from '@/components/BuriBuriSyncAvatar';
-import { AccountsModal, CreditCardsModal, LoansModal } from '@/components/FinancesModals';
-import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path, Rect, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import {
+  C,
+  T,
+  NeoCard,
+  NeoButton,
+  TiltButton,
+  Eyebrow,
+  Amount,
+  TextShimmer,
+  DotGrid,
+  Sheet,
+  Field,
+  Card3DModal,
+  NeoToggle,
+  haptic,
+  formatRupees,
+} from '@/src/design';
+import { useToast } from '@/components/neo/Toast';
+import { formatRelativeDate, getReturnDateStatus } from '@/lib/formatters';
+import { CreditCard, Account, AccountType } from '@/lib/types';
 
-function formatCompactAmount(num: number): string {
-  const abs = Math.abs(num);
-  if (abs >= 10000000) {
-    const val = (abs / 10000000).toFixed(2).replace(/\.00$/, '');
-    return `₹${val}Cr`;
+type ChipFilter = 'ALL' | 'LENT' | 'OWE' | 'SETTLED';
+type SortOption =
+  | 'HIGHEST_BALANCE'
+  | 'LOWEST_BALANCE'
+  | 'NAME_AZ'
+  | 'NAME_ZA'
+  | 'NEWEST_FIRST'
+  | 'SETTLED_LAST';
+
+function parseUserFirstName(user: any): string {
+  let raw = '';
+  if (user?.displayName?.trim()) {
+    raw = user.displayName.trim();
+  } else if (user?.email) {
+    raw = user.email.split('@')[0];
   }
-  if (abs >= 100000) {
-    const val = (abs / 100000).toFixed(2).replace(/\.00$/, '');
-    return `₹${val}L`;
-  }
-  if (abs >= 1000) {
-    const val = (abs / 1000).toFixed(1).replace(/\.0$/, '');
-    return `₹${val}K`;
-  }
-  return `₹${abs.toLocaleString('en-IN')}`;
+  if (!raw) return 'Akash.';
+  // Split at . _ - or digits
+  const parts = raw.split(/[._\-\d\s]+/);
+  let first = parts[0] || raw;
+  first = first.charAt(0).toUpperCase() + first.slice(1);
+  if (first.length > 14) first = first.slice(0, 13);
+  return `${first}.`;
 }
 
-function PersonItem({ person, balance }: { person: any; balance: number }) {
-  const status = balance > 0 ? 'YOU LENT' : balance < 0 ? 'YOU OWE' : 'SETTLED';
-  const statusColor = balance > 0 ? Colors.positive : balance < 0 ? Colors.negative : Colors.settled;
-  const avatarColor = balance > 0 ? Colors.cardGreen : balance < 0 ? Colors.cardRed : Colors.surfaceLight;
-
-  return (
-    <Pressable
-      onPress={() => {
-        if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push({ pathname: '/person/[id]', params: { id: person.id } });
-      }}
-      style={styles.personPressable}
-    >
-      <NeoPopCard color={Colors.surface} depth={2}>
-        <View style={styles.personRow}>
-          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-            <Text style={styles.avatarText}>{person.name.charAt(0).toUpperCase()}</Text>
-          </View>
-          <View style={styles.personInfo}>
-            <Text style={styles.personName}>{person.name}</Text>
-            <Text style={[styles.statusLabel, { color: statusColor }]}>{status}</Text>
-          </View>
-          <View style={styles.personBalanceArea}>
-            <Text style={[styles.personBalance, { color: statusColor }]}>
-              {balance === 0 ? formatCurrency(0) : formatCurrency(Math.abs(balance))}
-            </Text>
-            <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
-          </View>
-        </View>
-      </NeoPopCard>
-    </Pressable>
-  );
-}
-
-type SortType = 'balance_high' | 'balance_low' | 'name_az' | 'name_za' | 'newest' | 'settled_last';
-
-const SORT_OPTIONS: { key: SortType; label: string; icon: string }[] = [
-  { key: 'balance_high', label: 'Highest Balance', icon: 'trending-up' },
-  { key: 'balance_low', label: 'Lowest Balance', icon: 'trending-down' },
-  { key: 'name_az', label: 'Name A → Z', icon: 'text' },
-  { key: 'name_za', label: 'Name Z → A', icon: 'text' },
-  { key: 'newest', label: 'Newest First', icon: 'time-outline' },
-  { key: 'settled_last', label: 'Settled Last', icon: 'checkmark-circle-outline' },
-];
-
-export default function DashboardScreen() {
+export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const {
     people,
     transactions,
     cards,
     accounts,
     loans,
+    enableLoans,
     isLoading,
     isSyncing,
-    isCacheHydrated,
+    isOnline,
     reload,
     getPersonBalance,
-    globalBalance,
-    netBalance,
+    addPerson,
+    updateCard,
+    addAccount,
     totalLent,
     totalBorrowed,
-    totalCashAndAccounts,
-    totalCreditCardsDue,
-    totalLoansRemaining,
-    enableLoans,
-    includeLoansInTotal,
   } = useData();
+
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [sortType, setSortType] = useState<SortType>('balance_high');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showAccountsModal, setShowAccountsModal] = useState(false);
-  const [showCardsModal, setShowCardsModal] = useState(false);
-  const [showLoansModal, setShowLoansModal] = useState(false);
-  const [hideSettled, setHideSettled] = useState(false);
+  const [chipFilter, setChipFilter] = useState<ChipFilter>('ALL');
 
-  const loanDebtIncluded = (enableLoans && includeLoansInTotal) ? totalLoansRemaining : 0;
-  const netFinances = (globalBalance + totalCashAndAccounts) - (totalCreditCardsDue + loanDebtIncluded);
-  const hasExternalFinances = accounts.length > 0 || cards.length > 0 || (enableLoans && loans.length > 0);
+  // Filter & Sort Settings
+  const [showFilterSortSheet, setShowFilterSortSheet] = useState(false);
+  const [appliedHideSettled, setAppliedHideSettled] = useState(false);
+  const [appliedSort, setAppliedSort] = useState<SortOption>('HIGHEST_BALANCE');
+  const [tempHideSettled, setTempHideSettled] = useState(false);
+  const [tempSort, setTempSort] = useState<SortOption>('HIGHEST_BALANCE');
 
-  const handleRefresh = useCallback(async () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  // Sheets
+  const [showCashSheet, setShowCashSheet] = useState(false);
+  const [showCardsSheet, setShowCardsSheet] = useState(false);
+  const [cardSearch, setCardSearch] = useState('');
+  const [selected3DCard, setSelected3DCard] = useState<CreditCard | null>(null);
+
+  // Bill Sheet
+  const [billTargetCard, setBillTargetCard] = useState<CreditCard | null>(null);
+  const [billAmountInput, setBillAmountInput] = useState('');
+
+  // Add Person Sheet
+  const [showAddPersonSheet, setShowAddPersonSheet] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addPhone, setAddPhone] = useState('');
+  const [addNotes, setAddNotes] = useState('');
+
+  // Add Account Sheet
+  const [showAddAccountSheet, setShowAddAccountSheet] = useState(false);
+  const [accName, setAccName] = useState('');
+  const [accType, setAccType] = useState<AccountType>('BANK');
+  const [accBalance, setAccBalance] = useState('');
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
     await reload();
+    setRefreshing(false);
   }, [reload]);
 
-  const settledCount = useMemo(() => people.filter(p => getPersonBalance(p.id) === 0).length, [people, getPersonBalance]);
+  const firstName = useMemo(() => parseUserFirstName(user), [user]);
+  const avatarLetter = (user?.displayName || user?.email || 'A')
+    .trim()
+    .charAt(0)
+    .toUpperCase();
 
-  const webTopInset = Platform.OS === 'web' ? 67 : 0;
-  const topPad = Math.max(insets.top, webTopInset);
+  // Status text for eyebrow
+  const statusEyebrow = !isOnline
+    ? 'offline · showing saved data'
+    : isSyncing || isLoading
+    ? 'syncing…'
+    : 'good to see you';
 
-  const sortedPeople = useMemo(() => {
-    const filtered = [...people].filter(p => {
-      if (hideSettled && getPersonBalance(p.id) === 0) return false;
-      if (!search.trim()) return true;
-      const q = search.toLowerCase();
-      return p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q));
-    });
+  // Net position: to receive - to pay
+  const netPosition = totalLent - totalBorrowed;
+  const netCaption =
+    netPosition > 0
+      ? 'People owe you more than you owe.'
+      : netPosition < 0
+      ? "You owe more than you're owed."
+      : 'All square. Debt free.';
 
-    switch (sortType) {
-      case 'balance_high':
-        return filtered.sort((a, b) => Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id)));
-      case 'balance_low':
-        return filtered.sort((a, b) => Math.abs(getPersonBalance(a.id)) - Math.abs(getPersonBalance(b.id)));
-      case 'name_az':
-        return filtered.sort((a, b) => a.name.localeCompare(b.name));
-      case 'name_za':
-        return filtered.sort((a, b) => b.name.localeCompare(a.name));
-      case 'newest':
-        return filtered.sort((a, b) => b.createdAt - a.createdAt);
-      case 'settled_last':
-        return filtered.sort((a, b) => {
-          const aSettled = getPersonBalance(a.id) === 0 ? 1 : 0;
-          const bSettled = getPersonBalance(b.id) === 0 ? 1 : 0;
-          if (aSettled !== bSettled) return aSettled - bSettled;
-          return Math.abs(getPersonBalance(b.id)) - Math.abs(getPersonBalance(a.id));
-        });
-      default:
-        return filtered;
-    }
-  }, [people, search, sortType, hideSettled, getPersonBalance]);
+  // Summary row totals
+  const totalCash = useMemo(
+    () => accounts.reduce((acc, a) => acc + (a.balance || 0), 0),
+    [accounts]
+  );
+  const totalCardBills = useMemo(
+    () => cards.reduce((acc, c) => acc + (c.currentBill || 0), 0),
+    [cards]
+  );
+  const totalLoans = useMemo(
+    () => loans.reduce((acc, l) => acc + (l.remainingAmount || 0), 0),
+    [loans]
+  );
 
-  const balanceColor = globalBalance > 0 ? Colors.positive : globalBalance < 0 ? Colors.negative : Colors.settled;
-  const contextMessage = globalBalance > 0
-    ? `You will receive ${formatCurrency(globalBalance)}`
-    : globalBalance < 0
-    ? `You are in debt. Pay ${formatCurrency(Math.abs(globalBalance))} to be debt-free`
-    : 'You are free of debt!';
-
-  const upcomingAndOverdue = useMemo(() => {
-    const activePersonMap = new Map(people.map(p => [p.id, p]));
+  // Due back soon: next 3 entries with return date
+  const dueBackSoon = useMemo(() => {
     return transactions
-      .filter(t => t.returnDate)
-      .map(t => {
-        const p = activePersonMap.get(t.personId);
-        const status = getReturnDateStatus(t.returnDate);
-        return { tx: t, person: p, status };
+      .filter((t) => t.returnDate)
+      .map((t) => {
+        const p = people.find((item) => item.id === t.personId);
+        const st = getReturnDateStatus(t.returnDate!);
+        return {
+          id: t.id,
+          personId: t.personId,
+          personName: p?.name || 'Unknown',
+          amount: t.amount,
+          direction: t.direction,
+          returnDate: t.returnDate!,
+          isOverdue: !!st?.isOverdue,
+          relativeDate: formatRelativeDate(t.returnDate!),
+        };
       })
-      .filter((item): item is { tx: (typeof transactions)[0]; person: (typeof people)[0]; status: NonNullable<ReturnType<typeof getReturnDateStatus>> } =>
-        Boolean(item.person) && Boolean(item.status) && (item.status!.isOverdue || item.status!.isDueSoon)
-      )
-      .sort((a, b) => (a.tx.returnDate || 0) - (b.tx.returnDate || 0));
+      .sort((a, b) => a.returnDate - b.returnDate)
+      .slice(0, 3);
   }, [transactions, people]);
 
-  const renderHeader = useMemo(() => (
-    <View>
-      {/* App Header with Brand Title & Subtitle */}
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <View>
-          <View style={styles.brandRow}>
-            <Text style={styles.brandDebt}>Debt</Text>
-            <Text style={styles.brandFree}>Free</Text>
-          </View>
-          <Text style={styles.brandSubtitle}>Track people. Settle easily.</Text>
-        </View>
-        <BuriBuriSyncAvatar />
-      </View>
-
-      {/* Hero Section: Net Balance on Left, Lent & Borrowed Vertically on Right */}
-      <View style={styles.heroCombinedRow}>
-        {/* Left: Hero Net Balance Card (Luminous Emerald Gradient) */}
-        <LinearGradient
-          colors={
-            netBalance >= 0
-              ? ['#0E442B', '#082D1D', '#03170F']
-              : ['#440E19', '#2C0810', '#150306']
-          }
-          start={{ x: 0.1, y: 0.1 }}
-          end={{ x: 0.9, y: 0.9 }}
-          style={[
-            styles.heroNetBalanceCard,
-            netBalance >= 0 ? styles.heroNetBalanceCardGreen : styles.heroNetBalanceCardRed,
-          ]}
-        >
-          <View style={styles.heroNetBalanceTop}>
-            <Text
-              style={[
-                styles.heroNetBalanceLabel,
-                { color: netBalance >= 0 ? '#7BE5B0' : '#FFA1AE' },
-              ]}
-            >
-              NET BALANCE
-            </Text>
-            <Text style={styles.heroNetBalanceAmount} numberOfLines={1} adjustsFontSizeToFit>
-              {formatCurrency(Math.abs(netBalance)).split('.')[0]}
-            </Text>
-          </View>
-
-          <View style={[styles.heroPillBtn, netBalance < 0 && styles.heroPillBtnDue]}>
-            <View style={[styles.heroPillDot, { backgroundColor: netBalance >= 0 ? '#00E599' : '#EE4D37' }]} />
-            <Text style={[styles.heroPillText, { color: netBalance >= 0 ? '#00E599' : '#EE4D37' }]}>
-              {netBalance > 0 ? 'NET POSITIVE' : netBalance < 0 ? 'NET IN DEBT' : 'ALL BALANCED'}
-            </Text>
-            <Icon name="chevron-forward" size={10} color={netBalance >= 0 ? '#00E599' : '#EE4D37'} />
-          </View>
-        </LinearGradient>
-
-        {/* Right: Vertical Stack for YOU LENT & YOU BORROWED */}
-        <View style={styles.heroSideStack}>
-          {/* YOU LENT Card */}
-          <View style={styles.heroLentCard}>
-            <View style={styles.heroLentIconBox}>
-              <Icon name="arrow-up" size={15} color="#06C270" style={{ transform: [{ rotate: '45deg' }] }} />
-            </View>
-            <View style={styles.heroCardTextBox}>
-              <Text style={styles.heroCardSubLabel}>YOU LENT</Text>
-              <Text style={styles.heroLentAmountText} numberOfLines={1} adjustsFontSizeToFit>
-                {formatCurrency(totalLent).split('.')[0]}
-              </Text>
-            </View>
-          </View>
-
-          {/* YOU BORROWED Card */}
-          <View style={styles.heroBorrowedCard}>
-            <View style={styles.heroBorrowedIconBox}>
-              <Icon name="arrow-down" size={15} color="#EE4D37" style={{ transform: [{ rotate: '-45deg' }] }} />
-            </View>
-            <View style={styles.heroCardTextBox}>
-              <Text style={styles.heroCardSubLabel}>YOU BORROWED</Text>
-              <Text style={styles.heroBorrowedAmountText} numberOfLines={1} adjustsFontSizeToFit>
-                {formatCurrency(totalBorrowed).split('.')[0]}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Three Horizontal Finance Tiles (Cash, Cards, Loans) */}
-      <View style={styles.financeTilesRow}>
-        {/* Cash Tile */}
-        <Pressable
-          style={styles.financeTileItem}
-          onPress={() => {
-            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowAccountsModal(true);
-          }}
-        >
-          <View style={[styles.financeIconBubble, { backgroundColor: 'rgba(0, 254, 157, 0.12)', borderColor: 'rgba(0, 254, 157, 0.25)' }]}>
-            <Icon name="wallet" size={13} color="#00FE9D" />
-          </View>
-          <View style={styles.financeTileTextBox}>
-            <Text style={styles.financeTileLabel}>Cash</Text>
-            <Text
-              style={styles.financeTileAmount}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.75}
-            >
-              {formatCurrency(totalCashAndAccounts).replace(/\.00$/, '')}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={10} color="#55555A" />
-        </Pressable>
-
-        {/* Cards Tile */}
-        <Pressable
-          style={styles.financeTileItem}
-          onPress={() => {
-            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowCardsModal(true);
-          }}
-        >
-          <View style={[styles.financeIconBubble, { backgroundColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
-            <Icon name="card" size={13} color="#3B82F6" />
-          </View>
-          <View style={styles.financeTileTextBox}>
-            <Text style={styles.financeTileLabel}>Cards</Text>
-            <Text
-              style={[styles.financeTileAmount, totalCreditCardsDue > 0 && { color: '#FF5252' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.75}
-            >
-              {formatCurrency(totalCreditCardsDue).replace(/\.00$/, '')}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={10} color="#55555A" />
-        </Pressable>
-
-        {/* Loans Tile */}
-        <Pressable
-          style={[styles.financeTileItem, !enableLoans && { opacity: 0.6 }]}
-          onPress={() => {
-            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowLoansModal(true);
-          }}
-        >
-          <View style={[styles.financeIconBubble, { backgroundColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.25)' }]}>
-            <Icon name="receipt-outline" size={13} color="#F59E0B" />
-          </View>
-          <View style={styles.financeTileTextBox}>
-            <Text style={styles.financeTileLabel}>Loans</Text>
-            <Text
-              style={[styles.financeTileAmount, enableLoans && totalLoansRemaining > 0 && { color: '#F59E0B' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.75}
-            >
-              {!enableLoans ? 'OFF' : formatCurrency(totalLoansRemaining).replace(/\.00$/, '')}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={10} color="#55555A" />
-        </Pressable>
-      </View>
-
-      {upcomingAndOverdue.length > 0 && (
-        <View style={styles.alertsContainer}>
-          <View style={styles.alertsHeader}>
-            <View style={styles.alertsHeaderLeft}>
-              <Text style={styles.alertsTitle}>DUE & OVERDUE</Text>
-            </View>
-            <Text style={styles.alertsCount}>{upcomingAndOverdue.length}</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.alertsScroll}>
-            {upcomingAndOverdue.map(({ tx, person, status }) => {
-              if (!person || !status) return null;
-              const isLent = tx.direction === 'YOU_LENT';
-              const directionColor = isLent ? Colors.positive : Colors.negative;
-              return (
-                <Pressable
-                  key={tx.id}
-                  style={[
-                    styles.alertCard,
-                    isLent ? styles.alertCardLent : styles.alertCardBorrowed,
-                    status.isOverdue && styles.alertCardOverdue,
-                  ]}
-                  onPress={() => {
-                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push({ pathname: '/person/[id]', params: { id: person.id } });
-                  }}
-                >
-                  <View style={styles.alertHeaderRow}>
-                    <View style={[styles.directionPill, isLent ? styles.directionPillLent : styles.directionPillBorrowed]}>
-                      <Text style={[styles.directionPillText, { color: directionColor }]}>
-                        {isLent ? 'RECEIVE' : 'PAY'}
-                      </Text>
-                    </View>
-                    <Text style={[styles.alertAmount, { color: directionColor }]}>
-                      {formatCurrency(tx.amount)}
-                    </Text>
-                  </View>
-
-                  <Text style={styles.alertPersonName} numberOfLines={1}>{person.name}</Text>
-
-                  <View style={styles.alertStatusRow}>
-                    <Icon
-                      name={status.isOverdue ? 'alert-circle-outline' : 'time-outline'}
-                      size={12}
-                      color={status.isOverdue ? Colors.negative : Colors.textMuted}
-                    />
-                    <Text style={[
-                      styles.alertBadgeText,
-                      status.isOverdue ? styles.alertTextOverdue : styles.alertTextDueSoon,
-                    ]} numberOfLines={1}>
-                      {status.label}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>YOUR CIRCLE</Text>
-        <View style={styles.sectionHeaderRight}>
-          <Text style={styles.sectionCount}>
-            {sortedPeople.length}
-            {hideSettled && settledCount > 0 ? ` (${settledCount} hidden)` : ''}
-          </Text>
-          {people.length > 0 && (
-            <Pressable
-              onPress={() => {
-                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setShowFilterModal(true);
-              }}
-              style={[styles.filterBtn, hideSettled && styles.filterBtnActive]}
-            >
-              <Icon
-                name="filter"
-                size={16}
-                color={hideSettled ? '#000000' : Colors.textMuted}
-              />
-            </Pressable>
-          )}
-        </View>
-      </View>
-    </View>
-  ), [topPad, globalBalance, balanceColor, contextMessage, hasExternalFinances, netFinances, totalLent, totalBorrowed, totalCashAndAccounts, totalCreditCardsDue, totalLoansRemaining, enableLoans, includeLoansInTotal, accounts.length, cards.length, loans.length, upcomingAndOverdue, people.length, sortedPeople.length, settledCount, hideSettled, setShowFilterModal, setShowAccountsModal, setShowCardsModal, setShowLoansModal]);
-
-  const renderEmpty = useCallback(() => {
-    if (!isCacheHydrated) {
-      return (
-        <View style={[styles.emptyState, { opacity: 0.6 }]}>
-          <ActivityIndicator size="small" color={Colors.accent} />
-        </View>
-      );
+  // People map for balances
+  const personBalanceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of people) {
+      map.set(p.id, getPersonBalance(p.id));
     }
-    return (
-      <View style={styles.emptyState}>
-        <Icon name="people-outline" size={48} color={Colors.textMuted} />
-        <Text style={styles.emptyText}>Your circle is empty</Text>
-        <Text style={styles.emptySubtext}>Add someone to start tracking</Text>
-        <View style={{ marginTop: 20, width: '70%' }}>
-          <NeoPopTiltedButton onPress={() => router.push('/add-person')} showShimmer>
-            <Text style={styles.ctaText}>ADD SOMEONE</Text>
-          </NeoPopTiltedButton>
-        </View>
-      </View>
-    );
-  }, [isCacheHydrated]);
+    return map;
+  }, [people, getPersonBalance, transactions]);
 
-  const renderItem = useCallback(({ item }: { item: any }) => (
-    <PersonItem person={item} balance={getPersonBalance(item.id)} />
-  ), [getPersonBalance]);
+  // Filtered & Sorted People
+  const filteredPeople = useMemo(() => {
+    let list = people.filter((p) => {
+      // 1. Search text
+      if (
+        search.trim() &&
+        !p.name.toLowerCase().includes(search.toLowerCase()) &&
+        !p.phone?.includes(search)
+      ) {
+        return false;
+      }
+      const bal = personBalanceMap.get(p.id) || 0;
+
+      // 2. Chip filter
+      if (chipFilter === 'LENT' && bal <= 0) return false;
+      if (chipFilter === 'OWE' && bal >= 0) return false;
+      if (chipFilter === 'SETTLED' && bal !== 0) return false;
+
+      // 3. Hide settled
+      if (appliedHideSettled && bal === 0) return false;
+
+      return true;
+    });
+
+    // 4. Sort
+    list.sort((a, b) => {
+      const balA = personBalanceMap.get(a.id) || 0;
+      const balB = personBalanceMap.get(b.id) || 0;
+      switch (appliedSort) {
+        case 'HIGHEST_BALANCE':
+          return Math.abs(balB) - Math.abs(balA);
+        case 'LOWEST_BALANCE':
+          return Math.abs(balA) - Math.abs(balB);
+        case 'NAME_AZ':
+          return a.name.localeCompare(b.name);
+        case 'NAME_ZA':
+          return b.name.localeCompare(a.name);
+        case 'NEWEST_FIRST':
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        case 'SETTLED_LAST':
+          if (balA === 0 && balB !== 0) return 1;
+          if (balA !== 0 && balB === 0) return -1;
+          return Math.abs(balB) - Math.abs(balA);
+        default:
+          return 0;
+      }
+    });
+
+    return list;
+  }, [people, personBalanceMap, search, chipFilter, appliedHideSettled, appliedSort]);
+
+  // Filter cards in cards sheet
+  const filteredCards = useMemo(() => {
+    if (!cardSearch.trim()) return cards;
+    const q = cardSearch.toLowerCase().trim();
+    return cards.filter(
+      (c) =>
+        c.cardName.toLowerCase().includes(q) ||
+        (c.cardNumber && c.cardNumber.slice(-4).includes(q))
+    );
+  }, [cards, cardSearch]);
+
+  const isFilterActive = appliedHideSettled || appliedSort !== 'HIGHEST_BALANCE';
+
+  // Handlers
+  const handleOpenFilterSort = () => {
+    haptic('light');
+    setTempHideSettled(appliedHideSettled);
+    setTempSort(appliedSort);
+    setShowFilterSortSheet(true);
+  };
+
+  const handleApplyFilterSort = () => {
+    haptic('medium');
+    setAppliedHideSettled(tempHideSettled);
+    setAppliedSort(tempSort);
+    setShowFilterSortSheet(false);
+  };
+
+  const handleAddPerson = async () => {
+    if (!addName.trim()) {
+      showToast("Name can't be empty");
+      return;
+    }
+    try {
+      await addPerson(addName.trim(), addPhone.trim(), addNotes.trim());
+      showToast('Person added');
+      setAddName('');
+      setAddPhone('');
+      setAddNotes('');
+      setShowAddPersonSheet(false);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to add person');
+    }
+  };
+
+  const handleAddAccount = async () => {
+    if (!accName.trim()) {
+      showToast("Name can't be empty");
+      return;
+    }
+    const bal = parseFloat(accBalance) || 0;
+    try {
+      await addAccount({
+        name: accName.trim(),
+        type: accType,
+        balance: bal,
+        history: [
+          {
+            id: String(Date.now()),
+            accountId: '',
+            amount: bal,
+            type: 'SET_BALANCE',
+            previousBalance: 0,
+            newBalance: bal,
+            note: 'Initial balance',
+            date: Date.now(),
+            createdAt: Date.now(),
+          },
+        ],
+      });
+      showToast('Account added');
+      setAccName('');
+      setAccBalance('');
+      setShowAddAccountSheet(false);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to add account');
+    }
+  };
+
+  const handleSaveBill = async () => {
+    if (!billTargetCard) return;
+    const val = parseFloat(billAmountInput);
+    if (isNaN(val) || val < 0) {
+      showToast('Enter a valid bill amount');
+      return;
+    }
+    try {
+      await updateCard({
+        ...billTargetCard,
+        currentBill: val,
+      });
+      showToast('Bill saved');
+      setBillTargetCard(null);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save bill');
+    }
+  };
+
+  const handleMarkBillPaid = async () => {
+    if (!billTargetCard) return;
+    try {
+      await updateCard({
+        ...billTargetCard,
+        currentBill: 0,
+      });
+      showToast('Marked as paid');
+      setBillTargetCard(null);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to mark as paid');
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={sortedPeople}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListHeaderComponent={
-          <>
-            {renderHeader}
-            {people.length > 0 && (
-              <View style={styles.searchContainer}>
-                <Icon name="search" size={18} color={Colors.textMuted} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search by name or phone..."
-                  placeholderTextColor={Colors.textMuted}
-                  value={search}
-                  onChangeText={setSearch}
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                />
-                {search.length > 0 && (
-                  <Pressable onPress={() => setSearch('')}>
-                    <Icon name="close-circle" size={18} color={Colors.textMuted} />
-                  </Pressable>
-                )}
-              </View>
-            )}
-          </>
-        }
-        ListEmptyComponent={renderEmpty}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContainer,
+          {
+            paddingTop: Math.max(insets.top, 16) + 8,
+            paddingBottom: Math.max(insets.bottom, 24) + 80,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isSyncing}
-            onRefresh={handleRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
-            progressViewOffset={topPad + 12}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.primary}
           />
         }
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        contentContainerStyle={[styles.listContent, { paddingBottom: Platform.OS === 'web' ? 84 + 34 : 100 }]}
-        showsVerticalScrollIndicator={false}
-      />
+      >
+        {/* 1.1 Header */}
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Eyebrow style={styles.statusEyebrow}>{statusEyebrow}</Eyebrow>
+            <Text numberOfLines={1} style={styles.nameHeader}>
+              {firstName}
+            </Text>
+          </View>
 
-      {people.length > 0 && (
-        <View style={[styles.fab, { bottom: Platform.OS === 'web' ? 84 + 34 + 16 : 100 }]}>
-          <NeoPopTiltedButton onPress={() => router.push('/add-person')} showShimmer>
-            <Icon name="add" size={24} color="#000" />
-          </NeoPopTiltedButton>
+          <Pressable
+            onPress={() => {
+              haptic('light');
+              router.push('/(tabs)/cloud');
+            }}
+          >
+            <NeoCard face="poli" depth={3} style={styles.avatarTile}>
+              <Text style={styles.avatarLetter}>{avatarLetter}</Text>
+            </NeoCard>
+          </Pressable>
         </View>
-      )}
 
-      {/* Unified Filter & Sort Sheet */}
-      <Modal visible={showFilterModal} transparent animationType="slide" onRequestClose={() => setShowFilterModal(false)}>
-        <Pressable style={styles.sortBackdrop} onPress={() => setShowFilterModal(false)} />
-        <View style={styles.filterSheet}>
-          <View style={styles.sortHandle} />
-          
-          <View style={styles.filterSheetHeader}>
-            <Text style={styles.filterSheetTitle}>FILTER & SORT</Text>
-            <Pressable
-              onPress={() => setShowFilterModal(false)}
-              style={styles.sheetCloseBtn}
+        {/* 1.2 Net Position Card */}
+        <NeoCard face="dark" depth={4} style={styles.netCard}>
+          <DotGrid opacity={0.09} />
+
+          <View style={{ gap: 4 }}>
+            <Eyebrow>NET POSITION</Eyebrow>
+            <TextShimmer amount={netPosition} fontSize={46} />
+            <Text style={styles.netCaption}>{netCaption}</Text>
+          </View>
+
+          <View style={styles.netDivider} />
+
+          <View style={styles.netSplitRow}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Eyebrow style={{ color: C.positive }}>↗ TO RECEIVE</Eyebrow>
+              <Amount value={totalLent} tone="pos" size={20} />
+            </View>
+
+            <View style={styles.verticalSplit} />
+
+            <View style={{ flex: 1, paddingLeft: 16, gap: 2 }}>
+              <Eyebrow style={{ color: C.negative }}>↙ TO PAY</Eyebrow>
+              <Amount value={totalBorrowed} tone="neg" size={20} />
+            </View>
+          </View>
+        </NeoCard>
+
+        {/* 1.3 Summary Row (Cash / Card bills / Loans) — Slim & Pretty */}
+        <View style={styles.summaryRow}>
+          {/* Cash Tile */}
+          <View style={{ flex: 1 }}>
+            <NeoCard
+              face="dark"
+              depth={3}
+              press
+              onPress={() => {
+                haptic('light');
+                setShowCashSheet(true);
+              }}
+              style={styles.summaryTile}
             >
-              <Icon name="close" size={20} color={Colors.textMuted} />
+              <View
+                style={[styles.tileStripe, { backgroundColor: C.positive }]}
+              />
+              <View style={styles.tileTop}>
+                <Text style={styles.tileLabel}>CASH</Text>
+                <ChevronRight size={12} color={C.mutedFg} />
+              </View>
+              <Amount value={totalCash} size={17} style={{ marginTop: 4 }} />
+            </NeoCard>
+          </View>
+
+          {/* Card Bills Tile */}
+          <View style={{ flex: 1 }}>
+            <NeoCard
+              face="dark"
+              depth={3}
+              press
+              onPress={() => {
+                haptic('light');
+                setShowCardsSheet(true);
+              }}
+              style={styles.summaryTile}
+            >
+              <View
+                style={[styles.tileStripe, { backgroundColor: C.primary }]}
+              />
+              <View style={styles.tileTop}>
+                <Text style={styles.tileLabel}>CARD BILLS</Text>
+                <ChevronRight size={12} color={C.mutedFg} />
+              </View>
+              <Amount
+                value={totalCardBills}
+                tone={totalCardBills > 0 ? 'neg' : undefined}
+                size={17}
+                style={{ marginTop: 4 }}
+              />
+            </NeoCard>
+          </View>
+
+          {/* Loans Tile (only when enabled) */}
+          {enableLoans && (
+            <View style={{ flex: 1 }}>
+              <NeoCard
+                face="dark"
+                depth={3}
+                press
+                onPress={() => {
+                  haptic('light');
+                  router.push({
+                    pathname: '/(tabs)/cards',
+                    params: { tab: 'loans' },
+                  });
+                }}
+                style={styles.summaryTile}
+              >
+                <View
+                  style={[styles.tileStripe, { backgroundColor: C.negative }]}
+                />
+                <View style={styles.tileTop}>
+                  <Text style={styles.tileLabel}>LOANS</Text>
+                  <ChevronRight size={12} color={C.mutedFg} />
+                </View>
+                <Amount
+                  value={totalLoans}
+                  tone="neg"
+                  size={17}
+                  style={{ marginTop: 4 }}
+                />
+              </NeoCard>
+            </View>
+          )}
+        </View>
+
+        {/* 1.6 Due Back Soon (if any entries exist) */}
+        {dueBackSoon.length > 0 && (
+          <View style={{ gap: 10 }}>
+            <Eyebrow>DUE BACK SOON</Eyebrow>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12 }}
+            >
+              {dueBackSoon.map((item) => (
+                <NeoCard
+                  key={item.id}
+                  face={item.isOverdue ? 'red' : 'dark'}
+                  depth={3}
+                  press
+                  onPress={() => {
+                    haptic('light');
+                    router.push({
+                      pathname: '/person/[id]',
+                      params: { id: item.personId },
+                    });
+                  }}
+                  style={styles.dueCard}
+                >
+                  <View style={styles.dueTopRow}>
+                    <Text
+                      style={[
+                        styles.dueTag,
+                        { color: item.isOverdue ? C.negative : C.primary },
+                      ]}
+                    >
+                      {item.isOverdue ? 'OVERDUE' : item.relativeDate}
+                    </Text>
+                  </View>
+                  <Text numberOfLines={1} style={styles.dueName}>
+                    {item.personName}
+                  </Text>
+                  <Amount
+                    value={item.amount}
+                    tone={item.direction === 'YOU_LENT' ? 'pos' : 'neg'}
+                    size={18}
+                  />
+                </NeoCard>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* 1.7 People Section */}
+        <View style={{ gap: 14 }}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.sectionTitle}>People</Text>
+              <View style={styles.totalPill}>
+                <Text style={styles.totalPillText}>{people.length} total</Text>
+              </View>
+            </View>
+
+            <NeoButton
+              label="+ PERSON"
+              variant="poli"
+              size="sm"
+              onPress={() => {
+                haptic('light');
+                setShowAddPersonSheet(true);
+              }}
+            />
+          </View>
+
+          {/* Search Row + Square Filter Button */}
+          <View style={styles.searchRow}>
+            <View style={{ flex: 1 }}>
+              <Field
+                placeholder="Search people"
+                isSearch
+                value={search}
+                onChangeText={setSearch}
+              />
+            </View>
+
+            <Pressable onPress={handleOpenFilterSort}>
+              <NeoCard
+                face={isFilterActive ? 'poli' : 'dark'}
+                depth={3}
+                style={[
+                  styles.filterSquareBtn,
+                  isFilterActive && { backgroundColor: C.primary },
+                ]}
+              >
+                <SlidersHorizontal
+                  size={18}
+                  color={isFilterActive ? C.background : C.foreground}
+                />
+              </NeoCard>
             </Pressable>
           </View>
 
-          {/* Visibility Section (Filter) */}
-          <Text style={styles.sheetSectionTitle}>VISIBILITY</Text>
-          <Pressable
-            style={[styles.filterToggleRow, hideSettled && styles.filterToggleRowActive]}
-            onPress={() => {
-              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setHideSettled(prev => !prev);
-            }}
-          >
-            <View style={styles.filterToggleLeft}>
-              <View style={[styles.filterToggleIconBox, hideSettled && styles.filterToggleIconBoxActive]}>
-                <Icon
-                  name={hideSettled ? 'eye-off' : 'eye'}
-                  size={16}
-                  color={hideSettled ? '#000000' : Colors.textMuted}
+          {/* Filter Chips: ALL / LENT / OWE / SETTLED */}
+          <View style={styles.chipRow}>
+            {(['ALL', 'LENT', 'OWE', 'SETTLED'] as ChipFilter[]).map((c) => (
+              <View key={c} style={{ flex: 1 }}>
+                <NeoButton
+                  label={c}
+                  variant={chipFilter === c ? 'white' : 'dark'}
+                  size="chip"
+                  fullWidth
+                  onPress={() => {
+                    haptic('light');
+                    setChipFilter(c);
+                  }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.filterToggleTitle}>Hide Settled Debts</Text>
-                <Text style={styles.filterToggleSubtitle}>
-                  {settledCount > 0
-                    ? `${settledCount} settled contact${settledCount === 1 ? '' : 's'} in your circle`
-                    : 'All contacts currently have active balances'}
-                </Text>
-              </View>
-            </View>
+            ))}
+          </View>
 
-            <View style={[styles.filterSwitchPill, hideSettled && styles.filterSwitchPillActive]}>
-              <Text style={[styles.filterSwitchPillText, hideSettled && styles.filterSwitchPillTextActive]}>
-                {hideSettled ? 'HIDDEN' : 'SHOWN'}
+          {/* People List */}
+          {filteredPeople.length === 0 ? (
+            <View style={styles.emptyPeopleBox}>
+              <Text style={styles.emptyText}>
+                {search.trim() ? 'No person matches that.' : 'No people yet.'}
               </Text>
             </View>
-          </Pressable>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {filteredPeople.map((p) => {
+                const bal = personBalanceMap.get(p.id) || 0;
+                const isLent = bal > 0;
+                const isOwe = bal < 0;
+                const isSettled = bal === 0;
 
-          {/* Sort By Section */}
-          <Text style={[styles.sheetSectionTitle, { marginTop: 20 }]}>SORT BY</Text>
-          {SORT_OPTIONS.map((opt) => {
-            const isActive = sortType === opt.key;
-            return (
-              <Pressable
-                key={opt.key}
-                style={[styles.sortOption, isActive && styles.sortOptionActive]}
+                const avatarBg = isLent
+                  ? C.positiveDeep
+                  : isOwe
+                  ? C.negativeDeep
+                  : C.surface2;
+
+                const avatarTextColor = isLent
+                  ? C.positive
+                  : isOwe
+                  ? C.negative
+                  : C.mutedFg;
+
+                const statusLabel = isLent
+                  ? 'OWES YOU'
+                  : isOwe
+                  ? 'YOU OWE'
+                  : 'SETTLED';
+
+                const statusColor = isLent
+                  ? C.positive
+                  : isOwe
+                  ? C.negative
+                  : C.mutedFg;
+
+                return (
+                  <NeoCard
+                    key={p.id}
+                    face="dark"
+                    depth={3}
+                    press
+                    onPress={() => {
+                      haptic('light');
+                      router.push({
+                        pathname: '/person/[id]',
+                        params: { id: p.id },
+                      });
+                    }}
+                    style={styles.personCard}
+                  >
+                    <View style={styles.personRow}>
+                      {/* Avatar Square */}
+                      <View
+                        style={[
+                          styles.personAvatarSquare,
+                          { backgroundColor: avatarBg },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.personAvatarLetter,
+                            { color: avatarTextColor },
+                          ]}
+                        >
+                          {p.name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+
+                      {/* Name & Status */}
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text numberOfLines={1} style={styles.personName}>
+                          {p.name}
+                        </Text>
+                        <Text
+                          style={[styles.personStatus, { color: statusColor }]}
+                        >
+                          {statusLabel}
+                        </Text>
+                      </View>
+
+                      {/* Balance Amount */}
+                      <Amount
+                        value={Math.abs(bal)}
+                        tone={isLent ? 'pos' : isOwe ? 'neg' : 'mute'}
+                        size={18}
+                      />
+                    </View>
+                  </NeoCard>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* 1.4 Cash & Accounts Sheet */}
+      <Sheet
+        visible={showCashSheet}
+        onClose={() => setShowCashSheet(false)}
+        title="Cash & accounts"
+        maxHeightRatio={0.88}
+      >
+        {/* Centered Green-faced Card */}
+        <NeoCard face="green" depth={4} style={styles.sheetTotalCard}>
+          <Eyebrow style={{ color: C.positive }}>
+            TOTAL CASH & ACCOUNTS
+          </Eyebrow>
+          <Amount value={totalCash} size={36} />
+          <Text style={styles.sheetSubtitle}>
+            {accounts.length} accounts / wallets
+          </Text>
+        </NeoCard>
+
+        {/* Row: SAVED ACCOUNTS + Add new */}
+        <View style={styles.sheetSectionRow}>
+          <Eyebrow>SAVED ACCOUNTS</Eyebrow>
+          <NeoButton
+            label="+ ADD NEW"
+            variant="dark"
+            size="sm"
+            onPress={() => setShowAddAccountSheet(true)}
+          />
+        </View>
+
+        {accounts.length === 0 ? (
+          <View style={styles.emptyDashedBox}>
+            <Text style={styles.emptyText}>No accounts yet.</Text>
+          </View>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {accounts.map((acc) => (
+              <NeoCard
+                key={acc.id}
+                face="dark"
+                depth={3}
+                press
                 onPress={() => {
-                  setSortType(opt.key);
-                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  haptic('light');
+                  setShowCashSheet(false);
+                  router.push({
+                    pathname: '/account/[id]' as any,
+                    params: { id: acc.id },
+                  });
                 }}
+                style={styles.accountRowCard}
               >
-                <Icon name={opt.icon as any} size={18} color={isActive ? Colors.primary : Colors.textMuted} />
-                <Text style={[styles.sortOptionText, isActive && styles.sortOptionTextActive]}>
-                  {opt.label}
-                </Text>
-                {isActive && <Icon name="checkmark" size={18} color={Colors.primary} />}
-              </Pressable>
-            );
-          })}
+                <View style={styles.accountIconBox}>
+                  {acc.type === 'BANK' ? (
+                    <Landmark size={18} color={C.primary} />
+                  ) : acc.type === 'CASH' ? (
+                    <Banknote size={18} color={C.primary} />
+                  ) : acc.type === 'WALLET' ? (
+                    <Wallet size={18} color={C.primary} />
+                  ) : (
+                    <CircleDot size={18} color={C.primary} />
+                  )}
+                </View>
 
-          <View style={{ marginTop: 24 }}>
-            <NeoPopTiltedButton
-              onPress={() => {
-                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setShowFilterModal(false);
-              }}
-              color={Colors.primary}
-              plunkColor={Colors.primaryDark}
-            >
-              <Text style={styles.applyBtnText}>APPLY</Text>
-            </NeoPopTiltedButton>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text numberOfLines={1} style={styles.accountName}>
+                    {acc.name}
+                  </Text>
+                  <Text style={styles.accountSubtype}>
+                    {acc.type === 'BANK'
+                      ? 'Bank account'
+                      : acc.type === 'CASH'
+                      ? 'cash'
+                      : acc.type === 'WALLET'
+                      ? 'wallet'
+                      : 'other'}
+                  </Text>
+                </View>
+
+                <Amount
+                  value={acc.balance}
+                  tone={acc.balance >= 0 ? 'pos' : 'neg'}
+                  size={18}
+                />
+                <ChevronRight size={16} color={C.mutedFg} />
+              </NeoCard>
+            ))}
+          </View>
+        )}
+      </Sheet>
+
+      {/* 1.5 Credit Cards Sheet */}
+      <Sheet
+        visible={showCardsSheet}
+        onClose={() => setShowCardsSheet(false)}
+        title="Credit cards"
+        subtitle="Your outstanding on each card"
+        maxHeightRatio={0.88}
+      >
+        {/* Summary Card Split */}
+        <NeoCard face="dark" depth={4} style={styles.cardDebtSummary}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Eyebrow>TOTAL CARD DEBT</Eyebrow>
+            <Amount
+              value={totalCardBills}
+              tone={totalCardBills > 0 ? 'neg' : undefined}
+              size={28}
+            />
+          </View>
+
+          <View style={styles.verticalSplit} />
+
+          <View style={{ flex: 1, paddingLeft: 16, gap: 4 }}>
+            <Eyebrow>TOTAL CARDS</Eyebrow>
+            <Text style={[T.display, { fontSize: 28, color: C.foreground }]}>
+              {cards.length}
+            </Text>
+          </View>
+        </NeoCard>
+
+        {/* Search Box */}
+        <Field
+          placeholder="Search cards"
+          isSearch
+          value={cardSearch}
+          onChangeText={setCardSearch}
+        />
+
+        {/* List of Cards */}
+        <View style={{ gap: 10 }}>
+          <Eyebrow>MY CARDS</Eyebrow>
+          {filteredCards.length === 0 ? (
+            <View style={styles.emptyDashedBox}>
+              <Text style={styles.emptyText}>
+                {cards.length === 0 ? 'No cards yet.' : 'No card matches that.'}
+              </Text>
+            </View>
+          ) : (
+            filteredCards.map((c) => (
+              <NeoCard
+                key={c.id}
+                face="dark"
+                depth={3}
+                press
+                onPress={() => {
+                  haptic('light');
+                  setSelected3DCard(c);
+                }}
+                style={styles.cardListRow}
+              >
+                {/* 4px vertical color bar */}
+                <View
+                  style={[
+                    styles.cardBar,
+                    { backgroundColor: c.color || '#0D0D0D' },
+                  ]}
+                />
+
+                <View style={{ flex: 1, paddingLeft: 14, gap: 2 }}>
+                  <Text numberOfLines={1} style={styles.cardRowTitle}>
+                    {c.cardName}
+                  </Text>
+                  <Text style={styles.cardRowMono}>
+                    •••• {c.cardNumber ? c.cardNumber.slice(-4) : '0000'}
+                  </Text>
+                </View>
+
+                {/* Current Bill */}
+                <Text style={styles.cardRowBill}>
+                  {formatRupees(c.currentBill || 0)}
+                </Text>
+
+                {/* Round + Button to open Bill Sheet */}
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    haptic('light');
+                    setShowCardsSheet(false);
+                    setTimeout(() => {
+                      setBillTargetCard(c);
+                      setBillAmountInput(
+                        c.currentBill ? String(c.currentBill) : ''
+                      );
+                    }, 250);
+                  }}
+                  style={styles.roundPlusBtn}
+                >
+                  <Plus size={16} color={C.primary} />
+                </Pressable>
+
+                <ChevronRight size={16} color={C.mutedFg} />
+              </NeoCard>
+            ))
+          )}
+        </View>
+      </Sheet>
+
+      {/* Filter & Sort Sheet (1.7) */}
+      <Sheet
+        visible={showFilterSortSheet}
+        onClose={() => setShowFilterSortSheet(false)}
+        title="Filter & sort"
+        footer={
+          <TiltButton onPress={handleApplyFilterSort}>APPLY</TiltButton>
+        }
+      >
+        {/* VISIBILITY */}
+        <View style={{ gap: 8 }}>
+          <Eyebrow>VISIBILITY</Eyebrow>
+          <NeoCard face="dark" depth={2} style={styles.filterOptionCard}>
+            <View style={styles.iconBox}>
+              <Eye size={18} color={C.foreground} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.filterOptionTitle}>Hide settled</Text>
+              <Text style={styles.filterOptionSub}>
+                Only show people with a balance
+              </Text>
+            </View>
+            <NeoToggle
+              checked={tempHideSettled}
+              onChange={(val) => setTempHideSettled(val)}
+            />
+          </NeoCard>
+        </View>
+
+        {/* SORT BY */}
+        <View style={{ gap: 8 }}>
+          <Eyebrow>SORT BY</Eyebrow>
+          <NeoCard face="dark" depth={2} style={{ padding: 0 }}>
+            {[
+              { id: 'HIGHEST_BALANCE', label: 'Highest balance' },
+              { id: 'LOWEST_BALANCE', label: 'Lowest balance' },
+              { id: 'NAME_AZ', label: 'Name A → Z' },
+              { id: 'NAME_ZA', label: 'Name Z → A' },
+              { id: 'NEWEST_FIRST', label: 'Newest first' },
+              { id: 'SETTLED_LAST', label: 'Settled last' },
+            ].map((opt, idx, arr) => {
+              const isSelected = tempSort === opt.id;
+              return (
+                <Pressable
+                  key={opt.id}
+                  onPress={() => {
+                    haptic('light');
+                    setTempSort(opt.id as SortOption);
+                  }}
+                  style={[
+                    styles.sortRow,
+                    { minHeight: 56 },
+                    idx < arr.length - 1 && styles.sortDivider,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.sortLabel,
+                      isSelected && {
+                        color: C.primary,
+                        fontFamily: 'Manrope_700Bold',
+                      },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                  {isSelected && <Check size={18} color={C.primary} />}
+                </Pressable>
+              );
+            })}
+          </NeoCard>
+        </View>
+      </Sheet>
+
+      {/* Bill Sheet (Section 6) */}
+      <Sheet
+        visible={!!billTargetCard}
+        onClose={() => setBillTargetCard(null)}
+        title={`Bill · ${billTargetCard?.cardName || 'Card'}`}
+        footer={
+          <View style={{ gap: 10 }}>
+            <TiltButton onPress={handleSaveBill}>SAVE BILL</TiltButton>
+            {billTargetCard && (billTargetCard.currentBill || 0) > 0 && (
+              <NeoButton
+                label="MARK AS PAID"
+                variant="dark"
+                size="md"
+                fullWidth
+                onPress={handleMarkBillPaid}
+              />
+            )}
+          </View>
+        }
+      >
+        <Field
+          label="BILL AMOUNT ₹"
+          keyboardType="decimal-pad"
+          placeholder="0"
+          value={billAmountInput}
+          onChangeText={setBillAmountInput}
+        />
+      </Sheet>
+
+      {/* Add Person Sheet */}
+      <Sheet
+        visible={showAddPersonSheet}
+        onClose={() => setShowAddPersonSheet(false)}
+        title="Add person"
+        footer={<TiltButton onPress={handleAddPerson}>ADD PERSON</TiltButton>}
+      >
+        <Field
+          label="NAME"
+          placeholder="Full name"
+          value={addName}
+          onChangeText={setAddName}
+        />
+        <Field
+          label="PHONE (OPTIONAL)"
+          keyboardType="phone-pad"
+          placeholder="Phone number"
+          value={addPhone}
+          onChangeText={setAddPhone}
+        />
+        <Field
+          label="NOTES (OPTIONAL)"
+          placeholder="e.g. Colleague, Flatmate"
+          value={addNotes}
+          onChangeText={setAddNotes}
+        />
+      </Sheet>
+
+      {/* Add Account Sheet */}
+      <Sheet
+        visible={showAddAccountSheet}
+        onClose={() => setShowAddAccountSheet(false)}
+        title="Add account"
+        footer={<TiltButton onPress={handleAddAccount}>SAVE ACCOUNT</TiltButton>}
+      >
+        <Field
+          label="ACCOUNT NAME"
+          placeholder="e.g. HDFC Salary, Cash"
+          value={accName}
+          onChangeText={setAccName}
+        />
+        <View style={{ gap: 8 }}>
+          <Eyebrow>ACCOUNT TYPE</Eyebrow>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {(['BANK', 'CASH', 'WALLET', 'OTHER'] as AccountType[]).map((t) => (
+              <View key={t} style={{ width: '48%' }}>
+                <NeoButton
+                  label={t}
+                  variant={accType === t ? 'poli' : 'dark'}
+                  size="sm"
+                  fullWidth
+                  depth={2}
+                  onPress={() => setAccType(t)}
+                />
+              </View>
+            ))}
           </View>
         </View>
-      </Modal>
+        <Field
+          label="INITIAL BALANCE ₹"
+          keyboardType="decimal-pad"
+          placeholder="0"
+          value={accBalance}
+          onChangeText={setAccBalance}
+        />
+      </Sheet>
 
-      {/* 3 Categories Modals */}
-      <AccountsModal
-        visible={showAccountsModal}
-        onClose={() => setShowAccountsModal(false)}
-      />
-      <CreditCardsModal
-        visible={showCardsModal}
-        onClose={() => setShowCardsModal(false)}
-      />
-      <LoansModal
-        visible={showLoansModal}
-        onClose={() => setShowLoansModal(false)}
-      />
+      {/* Full-screen 3D Card Viewer (Section 3) */}
+      {selected3DCard && (
+        <Card3DModal
+          visible={true}
+          card={selected3DCard}
+          onClose={() => setSelected3DCard(null)}
+        />
+      )}
     </View>
   );
 }
@@ -610,622 +1113,338 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: C.background,
   },
-  header: {
+  scrollContainer: {
+    paddingHorizontal: 20,
+    gap: 20,
+  },
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 8,
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+  statusEyebrow: {
+    fontSize: 10,
+    letterSpacing: 2,
   },
-  brandDebt: {
-    fontSize: 26,
-    fontFamily: Fonts.serif,
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+  nameHeader: {
+    ...T.display,
+    fontSize: 32,
+    lineHeight: 36,
+    color: C.foreground,
   },
-  brandFree: {
-    fontSize: 26,
-    fontFamily: Fonts.serif,
-    color: '#D4FF00',
-    letterSpacing: -0.5,
+  avatarTile: {
+    width: 44,
+    height: 44,
+    backgroundColor: C.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  brandSubtitle: {
+  avatarLetter: {
+    fontFamily: 'Manrope_800ExtraBold',
+    fontSize: 18,
+    color: C.background,
+  },
+  netCard: {
+    padding: 16,
+    backgroundColor: C.surface,
+    gap: 16,
+    overflow: 'hidden',
+  },
+  netCaption: {
+    ...T.body,
     fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: '#8A8A8A',
+    color: C.mutedFg,
     marginTop: 2,
   },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 16,
+  netDivider: {
+    height: 1,
+    backgroundColor: C.border,
   },
-  heroCombinedRow: {
+  netSplitRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: 14,
-    marginBottom: 12,
-    gap: 12,
-    alignItems: 'stretch',
   },
-  heroNetBalanceCard: {
-    flex: 1.2,
-    borderRadius: 6,
-    borderWidth: 1.2,
-    borderColor: '#06C270',
-    borderBottomWidth: 3.5,
-    borderBottomColor: '#002B18',
-    borderRightWidth: 1.5,
-    borderRightColor: '#002B18',
-    padding: 16,
-    overflow: 'hidden',
+  verticalSplit: {
+    width: 1,
+    backgroundColor: C.border,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  summaryTile: {
+    padding: 12,
+    backgroundColor: C.surface,
     position: 'relative',
+    overflow: 'hidden',
+  },
+  tileStripe: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+  },
+  tileTop: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    minHeight: 165,
-    shadowColor: '#06C270',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  heroNetBalanceCardGreen: {
-    borderColor: '#06C270',
-    borderBottomColor: '#002B18',
-    borderRightColor: '#002B18',
-    shadowColor: '#06C270',
-  },
-  heroNetBalanceCardRed: {
-    borderColor: '#EE4D37',
-    borderBottomColor: '#28060A',
-    borderRightColor: '#28060A',
-    shadowColor: '#EE4D37',
-  },
-  heroNetBalanceTop: {
-    zIndex: 2,
-  },
-  heroNetBalanceLabel: {
-    fontSize: 10.5,
-    fontFamily: Fonts.extraBold,
-    letterSpacing: 2,
-    marginBottom: 8,
-  },
-  heroNetBalanceAmount: {
-    fontSize: 34,
-    fontFamily: Fonts.serif,
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  heroPillBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#04281A',
-    borderWidth: 1,
-    borderColor: '#0C5E3B',
-    borderRadius: 3,
-    paddingVertical: 5.5,
-    paddingHorizontal: 9,
-    alignSelf: 'flex-start',
-    zIndex: 2,
+    marginTop: 4,
   },
-  heroPillBtnDue: {
-    backgroundColor: '#280E12',
-    borderColor: '#591620',
-  },
-  heroPillDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  heroPillText: {
-    fontSize: 9.5,
-    fontFamily: Fonts.bold,
-    letterSpacing: 1.2,
-    color: '#00E599',
-  },
-  heroSideStack: {
-    flex: 1,
-    flexDirection: 'column',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  heroLentCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#141414',
-    borderWidth: 1,
-    borderColor: '#262626',
-    borderBottomWidth: 3.5,
-    borderBottomColor: '#000000',
-    borderRightWidth: 1.5,
-    borderRightColor: '#000000',
-    borderRadius: 4,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-  },
-  heroBorrowedCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#141414',
-    borderWidth: 1,
-    borderColor: '#262626',
-    borderBottomWidth: 3.5,
-    borderBottomColor: '#000000',
-    borderRightWidth: 1.5,
-    borderRightColor: '#000000',
-    borderRadius: 4,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-  },
-  heroLentIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 3,
-    backgroundColor: '#0D241A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  heroBorrowedIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 3,
-    backgroundColor: '#280E12',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  heroCardTextBox: {
-    flex: 1,
-  },
-  heroCardSubLabel: {
-    fontSize: 9.5,
-    fontFamily: Fonts.extraBold,
-    color: '#8A8A8A',
+  tileLabel: {
+    ...T.caps,
+    fontSize: 8,
+    color: C.mutedFg,
     letterSpacing: 1.5,
-    marginBottom: 4,
   },
-  heroLentAmountText: {
-    fontSize: 20,
-    fontFamily: Fonts.serif,
-    color: '#06C270',
-    letterSpacing: -0.3,
+  dueCard: {
+    width: 160,
+    padding: 12,
+    backgroundColor: C.surface,
+    gap: 4,
   },
-  heroBorrowedAmountText: {
-    fontSize: 20,
-    fontFamily: Fonts.serif,
-    color: '#EE4D37',
-    letterSpacing: -0.3,
-  },
-  financeTilesRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 8,
-    marginBottom: 16,
-  },
-  financeTileItem: {
-    flex: 1,
+  dueTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#121215',
-    borderWidth: 1,
-    borderColor: '#222228',
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
   },
-  financeIconBubble: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
+  dueTag: {
+    ...T.caps,
+    fontSize: 8,
+    letterSpacing: 1.5,
   },
-  financeTileTextBox: {
-    flex: 1,
-    minWidth: 0,
-  },
-  financeTileLabel: {
-    fontSize: 8.5,
-    fontFamily: Fonts.extraBold,
-    color: '#8A8A8A',
-    letterSpacing: 1.2,
-    marginBottom: 1,
-  },
-  financeTileAmount: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  alertsContainer: {
-    marginTop: 20,
-    marginBottom: 6,
-  },
-  alertsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
-  alertsHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  alertsTitle: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 2,
-  },
-  alertsCount: {
+  dueName: {
+    fontFamily: 'Manrope_700Bold',
     fontSize: 13,
-    fontFamily: Fonts.serif,
-    color: Colors.textMuted,
+    color: C.foreground,
   },
-  alertsScroll: {
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  alertCard: {
-    borderRadius: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minWidth: 195,
-  },
-  alertCardLent: {
-    backgroundColor: '#0F1E17',
-    borderWidth: 1,
-    borderColor: '#194A34',
-    borderLeftWidth: 3.5,
-    borderLeftColor: Colors.positive,
-  },
-  alertCardBorrowed: {
-    backgroundColor: '#1E1014',
-    borderWidth: 1,
-    borderColor: '#4D1D27',
-    borderLeftWidth: 3.5,
-    borderLeftColor: Colors.negative,
-  },
-  alertCardOverdue: {
-    borderColor: Colors.negative,
-    backgroundColor: '#261216',
-  },
-  alertHeaderRow: {
+  sectionHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 6,
-  },
-  directionPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 0,
-  },
-  directionPillLent: {
-    backgroundColor: 'rgba(6, 194, 112, 0.15)',
-  },
-  directionPillBorrowed: {
-    backgroundColor: 'rgba(238, 77, 55, 0.15)',
-  },
-  directionPillText: {
-    fontSize: 9,
-    fontFamily: Fonts.bold,
-    letterSpacing: 0.8,
-  },
-  alertPersonName: {
-    fontSize: 14,
-    fontFamily: Fonts.semibold,
-    color: Colors.white,
-    marginBottom: 6,
-  },
-  alertAmount: {
-    fontSize: 15,
-    fontFamily: Fonts.serif,
-  },
-  alertStatusRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-  },
-  alertBadgeText: {
-    fontSize: 11,
-    fontFamily: Fonts.medium,
-  },
-  alertTextOverdue: {
-    color: '#EE4D37',
-  },
-  alertTextDueSoon: {
-    color: Colors.textSecondary,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 2,
+    ...T.display,
+    fontSize: 24,
+    color: C.foreground,
   },
-  sectionCount: {
+  totalPill: {
+    backgroundColor: C.surface2,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  totalPillText: {
+    ...T.caps,
+    fontSize: 9,
+    color: C.mutedFg,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  filterSquareBtn: {
+    width: 48,
+    height: 48,
+    backgroundColor: C.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  emptyPeopleBox: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: C.border,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    ...T.body,
     fontSize: 13,
-    fontFamily: Fonts.serif,
-    color: Colors.textMuted,
+    color: C.mutedFg,
   },
-  sectionHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  sortBtn: {
-    padding: 4,
-  },
-  sortBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  sortSheet: {
-    backgroundColor: '#181818',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    paddingHorizontal: 20,
-  },
-  sortHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  sortSheetTitle: {
-    fontSize: 11,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
-  sortOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
-  },
-  sortOptionActive: {
-    // subtle highlight handled via text/icon color
-  },
-  sortOptionText: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: Colors.textSecondary,
-  },
-  sortOptionTextActive: {
-    color: Colors.primary,
-    fontFamily: Fonts.semibold,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    marginHorizontal: 20,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    height: 44,
-    marginBottom: 12,
-    gap: 10,
-  },
-  searchInput: {
-    flex: 1,
-    color: Colors.white,
-    fontFamily: Fonts.regular,
-    fontSize: 15,
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  personPressable: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
+  personCard: {
+    backgroundColor: C.surface,
   },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 12,
+    gap: 12,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  personAvatarSquare: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
   },
-  avatarText: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: Colors.white,
-  },
-  personInfo: {
-    flex: 1,
+  personAvatarLetter: {
+    fontFamily: 'Manrope_800ExtraBold',
+    fontSize: 16,
   },
   personName: {
-    fontSize: 16,
-    fontFamily: Fonts.semibold,
-    color: Colors.white,
-    marginBottom: 2,
-  },
-  statusLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.semibold,
-    letterSpacing: 1,
-  },
-  personBalanceArea: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  personBalance: {
-    fontSize: 17,
-    fontFamily: Fonts.serif,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 40,
-    paddingHorizontal: 40,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontFamily: Fonts.semibold,
-    color: Colors.textSecondary,
-    marginTop: 16,
-  },
-  emptySubtext: {
+    fontFamily: 'Manrope_700Bold',
     fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    marginTop: 4,
+    color: C.foreground,
   },
-  ctaText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#000',
-    letterSpacing: 1,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-  },
-  filterBtn: {
-    padding: 6,
-    borderRadius: 4,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  filterBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterSheet: {
-    backgroundColor: '#181818',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    paddingHorizontal: 20,
-  },
-  filterSheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  filterSheetTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: Colors.white,
+  personStatus: {
+    ...T.caps,
+    fontSize: 9,
     letterSpacing: 1.5,
   },
-  sheetCloseBtn: {
-    padding: 6,
-  },
-  sheetSectionTitle: {
-    fontSize: 11,
-    fontFamily: Fonts.semibold,
-    color: Colors.textMuted,
-    letterSpacing: 2,
-    marginBottom: 10,
-  },
-  filterToggleRow: {
-    flexDirection: 'row',
+  sheetTotalCard: {
+    padding: 18,
+    backgroundColor: C.positiveDeep,
     alignItems: 'center',
+    gap: 6,
+  },
+  sheetSubtitle: {
+    ...T.body,
+    fontSize: 12,
+    color: C.mutedFg,
+  },
+  sheetSectionRow: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  filterToggleRowActive: {
-    borderColor: '#3A3F1A',
-    backgroundColor: '#16190B',
-  },
-  filterToggleLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
-    marginRight: 10,
+    marginTop: 8,
   },
-  filterToggleIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  emptyDashedBox: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: C.border,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterToggleIconBoxActive: {
-    backgroundColor: Colors.primary,
+  accountRowCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+    backgroundColor: C.surface,
   },
-  filterToggleTitle: {
+  accountIconBox: {
+    width: 38,
+    height: 38,
+    backgroundColor: C.surface2,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountName: {
+    fontFamily: 'Manrope_700Bold',
     fontSize: 14,
-    fontFamily: Fonts.semibold,
-    color: Colors.white,
+    color: C.foreground,
   },
-  filterToggleSubtitle: {
+  accountSubtype: {
+    ...T.caps,
+    fontSize: 9,
+    color: C.mutedFg,
+  },
+  cardDebtSummary: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: C.surface,
+  },
+  cardListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingRight: 10,
+    backgroundColor: C.surface,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cardBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  cardRowTitle: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 14,
+    color: C.foreground,
+  },
+  cardRowMono: {
+    ...T.mono,
     fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    marginTop: 2,
+    color: C.mutedFg,
   },
-  filterSwitchPill: {
+  cardRowBill: {
+    ...T.mono,
+    fontSize: 14,
+    color: C.foreground,
+    marginRight: 8,
+  },
+  roundPlusBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: C.surface2,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+  },
+  filterOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+    backgroundColor: C.surface,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    backgroundColor: C.surface2,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterOptionTitle: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 13,
+    color: C.foreground,
+  },
+  filterOptionSub: {
+    ...T.body,
+    fontSize: 11,
+    color: C.mutedFg,
+  },
+  togglePill: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
   },
-  filterSwitchPillActive: {
-    backgroundColor: Colors.primary,
+  togglePillText: {
+    ...T.caps,
+    fontSize: 9,
   },
-  filterSwitchPillText: {
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    color: Colors.textMuted,
-    letterSpacing: 0.5,
+  sortRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
   },
-  filterSwitchPillTextActive: {
-    color: '#000000',
+  sortDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
-  applyBtnText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#000000',
-    letterSpacing: 1.5,
-    textAlign: 'center',
+  sortLabel: {
+    ...T.body,
+    fontSize: 13,
+    color: C.foreground,
   },
 });
