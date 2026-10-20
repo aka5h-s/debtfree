@@ -11,7 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Icon } from "@/components/Icon";
+import { AlertCircle, X } from "lucide-react-native";
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -73,7 +73,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             },
           ]}
         >
-          <Icon family="feather" name="alert-circle" size={20} color={theme.text} />
+          <AlertCircle size={20} color={theme.text} />
         </Pressable>
       ) : null}
 
@@ -139,7 +139,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                     { opacity: pressed ? 0.6 : 1 },
                   ]}
                 >
-                  <Icon family="feather" name="x" size={24} color={theme.text} />
+                  <X size={24} color={theme.text} />
                 </Pressable>
               </View>
 

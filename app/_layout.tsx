@@ -102,14 +102,14 @@ function RootLayoutNav() {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        router.prefetch('/person/[id]');
+        router.prefetch('/person/[id]' as any);
         router.prefetch('/add-transaction');
         router.prefetch('/add-person');
         router.prefetch('/edit-person');
         router.prefetch('/edit-transaction');
         router.prefetch('/add-card');
         router.prefetch('/edit-card');
-        router.prefetch('/account/[id]');
+        router.prefetch('/account/[id]' as any);
         router.prefetch('/transaction-history');
       } catch {}
     }, 400);
